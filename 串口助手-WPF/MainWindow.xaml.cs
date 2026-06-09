@@ -430,7 +430,7 @@ namespace 串口助手
         /// <summary>
         /// Enter = 发送    Shift+Enter = 换行
         /// </summary>
-        private void tbSend_KeyDown(object sender, KeyEventArgs e)
+        private void tbSend_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
