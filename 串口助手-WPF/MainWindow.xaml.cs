@@ -52,9 +52,20 @@ namespace 串口助手
 
         private const int MaxLogLines = 2000;
 
+        // ——— 发送历史 ———
+        private List<string> sendHistory = new List<string>();
+        private const int MaxSendHistory = 20;
+
+        // ——— 动画画刷（非冻结，支持 ColorAnimation）———
+        private SolidColorBrush statusDotBrush;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
+            statusDotBrush = new SolidColorBrush(StatusDotIdle);
+            statusDot.Fill = statusDotBrush;
 
             // 空闲刷新定时器：数据停止到达 100ms 后输出缓冲区剩余文本
             flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -203,7 +214,72 @@ namespace 串口助手
                 rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
             }
 
-            rtReceive.ScrollToEnd();
+            // 仅在用户已滚到底部时自动滚屏（避免打断手动翻阅历史）
+            bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
+            if (isAtBottom)
+                rtReceive.ScrollToEnd();
+        }
+
+        // ————————————————————————————————————————
+        //  动画辅助
+        // ————————————————————————————————————————
+
+        private void AnimateBrushColor(SolidColorBrush brush, Color to)
+        {
+            var anim = new System.Windows.Media.Animation.ColorAnimation(
+                to, TimeSpan.FromMilliseconds(280))
+            {
+                FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
+            };
+            brush.BeginAnimation(SolidColorBrush.ColorProperty, anim);
+        }
+
+        private void PulseElement(FrameworkElement element)
+        {
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(
+                1.0, 0.55, TimeSpan.FromMilliseconds(130))
+            {
+                AutoReverse = true,
+                FillBehavior = System.Windows.Media.Animation.FillBehavior.Stop
+            };
+            element.BeginAnimation(UIElement.OpacityProperty, anim);
+        }
+
+        // ————————————————————————————————————————
+        //  发送历史
+        // ————————————————————————————————————————
+
+        private void RecordSendHistory(string text)
+        {
+            sendHistory.RemoveAll(s => s == text);
+            sendHistory.Insert(0, text);
+            if (sendHistory.Count > MaxSendHistory)
+                sendHistory.RemoveAt(sendHistory.Count - 1);
+        }
+
+        private void btnSendHistory_Click(object sender, RoutedEventArgs e)
+        {
+            var menu = new ContextMenu();
+            if (sendHistory.Count == 0)
+            {
+                menu.Items.Add(new MenuItem { Header = "（暂无历史记录）", IsEnabled = false });
+            }
+            else
+            {
+                foreach (var item in sendHistory)
+                {
+                    string display = item.Length > 60 ? item.Substring(0, 60) + "…" : item;
+                    var menuItem = new MenuItem { Header = display.Replace("_", "__"), Tag = item };
+                    menuItem.Click += (s, args) =>
+                    {
+                        tbSend.Text = (s as MenuItem)?.Tag?.ToString() ?? "";
+                        tbSend.Focus();
+                        tbSend.CaretIndex = tbSend.Text.Length;
+                    };
+                    menu.Items.Add(menuItem);
+                }
+            }
+            menu.IsOpen = true;
         }
 
         // ==================================================================
@@ -257,6 +333,7 @@ namespace 串口助手
                 btnOpen.Content = "关闭串口";
                 btnOpen.Background = new SolidColorBrush(SuccessColor);
                 btnOpen.BorderBrush = new SolidColorBrush(SuccessColor);
+                PulseElement(btnOpen);
 
                 btnSend.IsEnabled = true;
                 cbPortName.IsEnabled = false;
@@ -266,7 +343,7 @@ namespace 串口助手
                 cbParity.IsEnabled = false;
 
                 // 状态栏
-                statusDot.Fill = new SolidColorBrush(SuccessColor);
+                AnimateBrushColor(statusDotBrush, SuccessColor);
                 tbStatusText.Text = "已连接";
                 tbPortInfo.Text = $"{cbPortName.Text} @ {cbBaudRate.Text}";
                 tbPortInfo.Visibility = Visibility.Visible;
@@ -303,6 +380,7 @@ namespace 串口助手
             btnOpen.Content = "打开串口";
             btnOpen.Background = new SolidColorBrush(PrimaryColor);
             btnOpen.BorderBrush = new SolidColorBrush(PrimaryColor);
+            PulseElement(btnOpen);
 
             btnSend.IsEnabled = false;
             cbPortName.IsEnabled = true;
@@ -311,7 +389,7 @@ namespace 串口助手
             cbStopBits.IsEnabled = true;
             cbParity.IsEnabled = true;
 
-            statusDot.Fill = new SolidColorBrush(StatusDotIdle);
+            AnimateBrushColor(statusDotBrush, StatusDotIdle);
             tbStatusText.Text = "就绪";
             tbPortInfo.Visibility = Visibility.Collapsed;
         }
@@ -504,6 +582,9 @@ namespace 串口助手
             if (!serialPort.IsOpen) return;
 
             string rawText = tbSend.Text;
+            if (string.IsNullOrEmpty(rawText)) return;
+
+            RecordSendHistory(rawText);
 
             if (sendMode == "HEX模式")
             {
