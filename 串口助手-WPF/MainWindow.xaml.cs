@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -14,48 +15,29 @@ namespace 串口助手
 {
     public partial class MainWindow : Window
     {
-        /// <summary>
-        /// 接收模式：HEX模式 / 文本模式
-        /// </summary>
+        // ——— 串口参数状态 ———
+
         private string receiveMode = "HEX模式";
-
-        /// <summary>
-        /// 接收文本编码：GBK / UTF-8
-        /// </summary>
         private string receiveCoding = "GBK";
-
-        /// <summary>
-        /// 发送模式：HEX模式 / 文本模式
-        /// </summary>
         private string sendMode = "HEX模式";
-
-        /// <summary>
-        /// 发送文本编码：GBK / UTF-8
-        /// </summary>
         private string sendCoding = "GBK";
 
-        /// <summary>
-        /// 接收字节缓存区（跨数据包拼接多字节字符）
-        /// </summary>
         private List<byte> byteBuffer = new List<byte>();
-
-        /// <summary>
-        /// 串口对象
-        /// </summary>
         private SerialPort serialPort = new SerialPort();
-
-        /// <summary>
-        /// 串口是否已打开
-        /// </summary>
         private bool isSerialOpen = false;
 
         // ——— 颜色常量（与 XAML 资源保持一致）———
 
         private static readonly Color PrimaryColor       = Color.FromRgb(0x00, 0x78, 0xD4);
-        private static readonly Color PrimaryHoverColor  = Color.FromRgb(0x10, 0x6E, 0xBE);
         private static readonly Color SuccessColor       = Color.FromRgb(0x10, 0xB9, 0x81);
-        private static readonly Color SuccessHoverColor  = Color.FromRgb(0x05, 0x96, 0x69);
+        private static readonly Color LogSystemColor     = Color.FromRgb(0x99, 0x99, 0x99);
+        private static readonly Color LogSentColor       = Color.FromRgb(0x00, 0x78, 0xD4);
+        private static readonly Color LogReceivedColor   = Color.FromRgb(0x2D, 0x2D, 0x2D);
         private static readonly Color StatusDotIdle      = Color.FromRgb(0xCC, 0xCC, 0xCC);
+
+        // ——— 日志行数上限 ———
+
+        private const int MaxLogLines = 2000;
 
         public MainWindow()
         {
@@ -71,9 +53,6 @@ namespace 串口助手
         //  窗口初始化
         // ==================================================================
 
-        /// <summary>
-        /// 填充各下拉框的可选项
-        /// </summary>
         private void InitComboBoxItems()
         {
             cbBaudRate.Items.Add("4800");
@@ -107,9 +86,6 @@ namespace 串口助手
             cbSendCoding.Items.Add("UTF-8");
         }
 
-        /// <summary>
-        /// 控件状态初始化——设置各下拉框的默认选中项
-        /// </summary>
         private void SetDefaultValues()
         {
             cbBaudRate.SelectedIndex = 3;       // 115200
@@ -131,6 +107,89 @@ namespace 串口助手
         }
 
         // ==================================================================
+        //  RichTextBox 彩色日志 — 三种消息类型
+        // ==================================================================
+
+        /// <summary>
+        /// 系统消息（灰色）：打开/关闭串口等
+        /// </summary>
+        private void LogSystem(string text)
+        {
+            AppendColoredLine(text, LogSystemColor);
+        }
+
+        /// <summary>
+        /// 发送回显（蓝色）：显示已发送内容
+        /// </summary>
+        private void LogSent(string text)
+        {
+            if (chkShowEcho.IsChecked != true) return;
+
+            string timestamp = DateTime.Now.ToString("HH:mm:ss:fff");
+            string msg;
+
+            if (sendMode == "文本模式")
+            {
+                msg = $"{timestamp} ---- 已发送 {sendCoding.ToLower()} 编码消息: \"{text}\" ----";
+            }
+            else
+            {
+                // HEX 模式：显示字节数
+                msg = $"{timestamp} ---- 已发送 HEX 消息 ({text.Length / 3 + 1} 字节) ----";
+            }
+
+            // 额外追加 HEX 内容（如果是 HEX 模式）
+            if (sendMode == "HEX模式")
+            {
+                AppendColoredLine(msg, LogSentColor);
+                // HEX 原文单独一行
+                string hexPreview = text.Length > 80 ? text.Substring(0, 80) + "..." : text;
+                AppendColoredLine("    " + hexPreview, LogSentColor);
+            }
+            else
+            {
+                AppendColoredLine(msg, LogSentColor);
+            }
+        }
+
+        /// <summary>
+        /// 接收数据（深色）：串口实际收到的数据
+        /// </summary>
+        private void LogReceived(string text)
+        {
+            if (chkShowTimestamp.IsChecked == true)
+            {
+                string timestamp = DateTime.Now.ToString("HH:mm:ss:fff");
+                AppendColoredLine($"{timestamp} -> {text}", LogReceivedColor);
+            }
+            else
+            {
+                AppendColoredLine(text, LogReceivedColor);
+            }
+        }
+
+        /// <summary>
+        /// 通用：向 RichTextBox 追加一行带颜色的文本
+        /// </summary>
+        private void AppendColoredLine(string text, Color color)
+        {
+            Paragraph para = new Paragraph();
+            para.Inlines.Add(new Run(text) { Foreground = new SolidColorBrush(color) });
+            para.Margin = new Thickness(0);
+            para.LineHeight = 2;
+
+            rtReceive.Document.Blocks.Add(para);
+
+            // 超行裁剪
+            while (rtReceive.Document.Blocks.Count > MaxLogLines)
+            {
+                rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
+            }
+
+            rtReceive.ScrollToEnd();
+        }
+
+        // ==================================================================
         //  USB 热插拔检测（WM_DEVICECHANGE）
         // ==================================================================
 
@@ -149,7 +208,7 @@ namespace 串口助手
                 {
                     if (isSerialOpen && !serialPort.IsOpen)
                     {
-                        CloseSerialPort(); // USB 异常拔出，自动关闭串口
+                        CloseSerialPort();
                     }
                 }
             }
@@ -160,9 +219,6 @@ namespace 串口助手
         //  串口打开 / 关闭
         // ==================================================================
 
-        /// <summary>
-        /// 打开串口
-        /// </summary>
         private void OpenSerialPort()
         {
             try
@@ -181,7 +237,6 @@ namespace 串口助手
 
                 isSerialOpen = true;
 
-                // 按钮切换为已连接状态
                 btnOpen.Content = "关闭串口";
                 btnOpen.Background = new SolidColorBrush(SuccessColor);
                 btnOpen.BorderBrush = new SolidColorBrush(SuccessColor);
@@ -198,6 +253,9 @@ namespace 串口助手
                 tbStatusText.Text = "已连接";
                 tbPortInfo.Text = $"{cbPortName.Text} @ {cbBaudRate.Text}";
                 tbPortInfo.Visibility = Visibility.Visible;
+
+                // 日志
+                LogSystem($"---- 已打开串行端口 {cbPortName.Text} ----");
             }
             catch
             {
@@ -206,16 +264,17 @@ namespace 串口助手
             }
         }
 
-        /// <summary>
-        /// 关闭串口
-        /// </summary>
         private void CloseSerialPort()
         {
+            if (isSerialOpen)
+            {
+                LogSystem($"---- 关闭串行端口 {cbPortName.Text} ----");
+            }
+
             serialPort.Close();
 
             isSerialOpen = false;
 
-            // 按钮恢复默认
             btnOpen.Content = "打开串口";
             btnOpen.Background = new SolidColorBrush(PrimaryColor);
             btnOpen.BorderBrush = new SolidColorBrush(PrimaryColor);
@@ -227,7 +286,6 @@ namespace 串口助手
             cbStopBits.IsEnabled = true;
             cbParity.IsEnabled = true;
 
-            // 状态栏恢复
             statusDot.Fill = new SolidColorBrush(StatusDotIdle);
             tbStatusText.Text = "就绪";
             tbPortInfo.Visibility = Visibility.Collapsed;
@@ -237,9 +295,6 @@ namespace 串口助手
         //  控件事件处理
         // ==================================================================
 
-        /// <summary>
-        /// 打开/关闭串口按钮
-        /// </summary>
         private void btnOpen_Click(object sender, RoutedEventArgs e)
         {
             if (isSerialOpen)
@@ -252,9 +307,6 @@ namespace 串口助手
             }
         }
 
-        /// <summary>
-        /// 串口号下拉——动态扫描可用串口
-        /// </summary>
         private void cbPortName_DropDownOpened(object sender, EventArgs e)
         {
             string currentName = cbPortName.Text;
@@ -267,9 +319,6 @@ namespace 串口助手
             cbPortName.Text = currentName;
         }
 
-        /// <summary>
-        /// 发送按钮
-        /// </summary>
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
             SendData();
@@ -287,25 +336,16 @@ namespace 串口助手
             }
         }
 
-        /// <summary>
-        /// 清空接收区
-        /// </summary>
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
-            tbReceive.Clear();
+            rtReceive.Document.Blocks.Clear();
         }
 
-        /// <summary>
-        /// 清空发送区
-        /// </summary>
         private void btnClearSend_Click(object sender, RoutedEventArgs e)
         {
             tbSend.Clear();
         }
 
-        /// <summary>
-        /// 接收模式切换
-        /// </summary>
         private void cbReceiveMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cbReceiveMode.SelectedItem == null) return;
@@ -324,9 +364,6 @@ namespace 串口助手
             byteBuffer.Clear();
         }
 
-        /// <summary>
-        /// 接收编码切换
-        /// </summary>
         private void cbReceiveCoding_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cbReceiveCoding.SelectedItem == null) return;
@@ -343,9 +380,6 @@ namespace 串口助手
             byteBuffer.Clear();
         }
 
-        /// <summary>
-        /// 发送模式切换
-        /// </summary>
         private void cbSendMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cbSendMode.SelectedItem == null) return;
@@ -363,9 +397,6 @@ namespace 串口助手
             }
         }
 
-        /// <summary>
-        /// 发送编码切换
-        /// </summary>
         private void cbSendCoding_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cbSendCoding.SelectedItem == null) return;
@@ -381,31 +412,67 @@ namespace 串口助手
             }
         }
 
-        // ==================================================================
-        //  串口数据收发
-        // ==================================================================
-
         /// <summary>
-        /// 执行串口数据发送
+        /// 显示时间戳 — 切换时写一条标记
         /// </summary>
-        private void SendData()
+        private void chkShowTimestamp_Changed(object sender, RoutedEventArgs e)
         {
-            if (!serialPort.IsOpen) return;
+            // 仅在用户操作后回写标记（初始化时不写）
+            if (!IsLoaded) return;
 
-            if (sendMode == "HEX模式")
+            if (chkShowTimestamp.IsChecked == true)
             {
-                byte[] dataSend = HexToBytes(tbSend.Text);
-                serialPort.Write(dataSend, 0, dataSend.Length);
+                LogSystem("---- 时间戳：开 ----");
             }
-            else if (sendMode == "文本模式")
+            else
             {
-                byte[] dataSend = TextToBytes(tbSend.Text, sendCoding);
-                serialPort.Write(dataSend, 0, dataSend.Length);
+                LogSystem("---- 时间戳：关 ----");
             }
         }
 
         /// <summary>
-        /// 串口接收数据事件（后台线程回调 → 通过 Dispatcher 分发到 UI 线程）
+        /// 消息回显 — 切换时写一条标记
+        /// </summary>
+        private void chkShowEcho_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+
+            if (chkShowEcho.IsChecked == true)
+            {
+                LogSystem("---- 消息回显：开 ----");
+            }
+            else
+            {
+                LogSystem("---- 消息回显：关 ----");
+            }
+        }
+
+        // ==================================================================
+        //  串口数据收发
+        // ==================================================================
+
+        private void SendData()
+        {
+            if (!serialPort.IsOpen) return;
+
+            string rawText = tbSend.Text;
+
+            if (sendMode == "HEX模式")
+            {
+                byte[] dataSend = HexToBytes(rawText);
+                serialPort.Write(dataSend, 0, dataSend.Length);
+                LogSent(rawText);
+            }
+            else if (sendMode == "文本模式")
+            {
+                byte[] dataSend = TextToBytes(rawText, sendCoding);
+                serialPort.Write(dataSend, 0, dataSend.Length);
+                LogSent(rawText);
+            }
+        }
+
+        /// <summary>
+        /// 串口接收数据事件（后台线程 → Dispatcher 分发到 UI 线程）
         /// </summary>
         private void serialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
@@ -419,22 +486,23 @@ namespace 串口助手
             {
                 if (receiveMode == "HEX模式")
                 {
-                    tbReceive.AppendText(BytesToHex(dataReceive));
+                    LogReceived(BytesToHex(dataReceive));
                 }
                 else if (receiveMode == "文本模式")
                 {
-                    tbReceive.AppendText(BytesToText(dataReceive, receiveCoding));
+                    string text = BytesToText(dataReceive, receiveCoding);
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        LogReceived(text);
+                    }
                 }
             });
         }
 
         // ==================================================================
-        //  数据转换——以下 4 个方法从原始 WinForms 版本直接移植，逻辑不变
+        //  数据转换 — 从原始 WinForms 版本直接移植，逻辑不变
         // ==================================================================
 
-        /// <summary>
-        /// 字节流 → 文本（GBK / UTF-8 多字节拼接）
-        /// </summary>
         private string BytesToText(byte[] bytes, string encoding)
         {
             List<byte> byteDecode = new List<byte>();
@@ -447,12 +515,12 @@ namespace 串口助手
 
                 if (encoding == "GBK")
                 {
-                    if (byteBuffer[0] < 0x80) // 1 字节字符
+                    if (byteBuffer[0] < 0x80)
                     {
                         byteDecode.Add(byteBuffer[0]);
                         byteBuffer.RemoveAt(0);
                     }
-                    else // 2 字节字符
+                    else
                     {
                         if (byteBuffer.Count >= 2)
                         {
@@ -465,12 +533,12 @@ namespace 串口助手
                 }
                 else if (encoding == "UTF-8")
                 {
-                    if ((byteBuffer[0] & 0x80) == 0x00) // 1 字节
+                    if ((byteBuffer[0] & 0x80) == 0x00)
                     {
                         byteDecode.Add(byteBuffer[0]);
                         byteBuffer.RemoveAt(0);
                     }
-                    else if ((byteBuffer[0] & 0xE0) == 0xC0) // 2 字节
+                    else if ((byteBuffer[0] & 0xE0) == 0xC0)
                     {
                         if (byteBuffer.Count >= 2)
                         {
@@ -478,7 +546,7 @@ namespace 串口助手
                             byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
                         }
                     }
-                    else if ((byteBuffer[0] & 0xF0) == 0xE0) // 3 字节
+                    else if ((byteBuffer[0] & 0xF0) == 0xE0)
                     {
                         if (byteBuffer.Count >= 3)
                         {
@@ -487,7 +555,7 @@ namespace 串口助手
                             byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
                         }
                     }
-                    else if ((byteBuffer[0] & 0xF8) == 0xF0) // 4 字节
+                    else if ((byteBuffer[0] & 0xF8) == 0xF0)
                     {
                         if (byteBuffer.Count >= 4)
                         {
@@ -508,9 +576,6 @@ namespace 串口助手
             return Encoding.GetEncoding(encoding).GetString(byteDecode.ToArray());
         }
 
-        /// <summary>
-        /// 字节流 → HEX 字符串
-        /// </summary>
         private string BytesToHex(byte[] bytes)
         {
             string hex = "";
@@ -521,23 +586,15 @@ namespace 串口助手
             return hex;
         }
 
-        /// <summary>
-        /// 文本 → 字节流
-        /// </summary>
         private byte[] TextToBytes(string str, string encoding)
         {
             return Encoding.GetEncoding(encoding).GetBytes(str);
         }
 
-        /// <summary>
-        /// HEX 字符串 → 字节流
-        /// </summary>
         private byte[] HexToBytes(string str)
         {
-            // 清除非法字符
             string str1 = Regex.Replace(str, "[^A-F^a-f^0-9]", "");
 
-            // 两两拆分
             double i = str1.Length;
             int len = 2;
             string[] strList = new string[int.Parse(Math.Ceiling(i / len).ToString())];
@@ -548,7 +605,6 @@ namespace 串口助手
                 str1 = str1.Substring(len, str1.Length - len);
             }
 
-            // 依次转为字节
             int count = strList.Length;
             byte[] bytes = new byte[count];
             for (int j = 0; j < count; j++)
