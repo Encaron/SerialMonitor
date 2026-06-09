@@ -87,6 +87,12 @@ namespace 串口助手
         // ——— HEX 输入格式化 ———
         private bool _isHexFormatting = false;
 
+        // ——— 自动重连 ———
+        private string lastPortName = "";
+        private DispatcherTimer reconnectTimer;
+        private const int MaxReconnectAttempts = 10;
+        private int _reconnectAttempts = 0;
+
         // ——— 动画画刷（非冻结，支持 ColorAnimation）———
         private SolidColorBrush statusDotBrush;
 
@@ -147,12 +153,40 @@ namespace 串口助手
             flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             flushTimer.Tick += FlushReceiveBuffer;
 
+            // 自动重连定时器：设备重新插入后延迟检测并重连
+            reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            reconnectTimer.Tick += (s, args) =>
+            {
+                string[] ports = SerialPort.GetPortNames();
+                if (ports.Contains(lastPortName))
+                {
+                    reconnectTimer.Stop();
+                    _reconnectAttempts = 0;
+                    cbPortName.Text = lastPortName;
+                    OpenSerialPort();
+                    LogSystem($"---- 自动重连：已重新连接 {lastPortName} ----");
+                }
+                else
+                {
+                    _reconnectAttempts++;
+                    if (_reconnectAttempts >= MaxReconnectAttempts)
+                    {
+                        reconnectTimer.Stop();
+                        _reconnectAttempts = 0;
+                        LogSystem($"---- 自动重连超时：未检测到 {lastPortName} ----");
+                    }
+                }
+            };
+
             // 定时发送计时器
             autoSendTimer = new DispatcherTimer();
             autoSendTimer.Tick += (s, args) => { if (serialPort.IsOpen) SendData(); };
 
             InitComboBoxItems();
             SetDefaultValues();
+
+            // 加载用户偏好（需在 InitComboBoxItems + SetDefaultValues 之后）
+            LoadPreferences();
 
             // 加载快捷发送按钮
             LoadQuickSends();
@@ -216,7 +250,11 @@ namespace 串口助手
                     $"Width={this.Width}",
                     $"Height={this.Height}",
                     $"State={this.WindowState}",
-                    $"Theme={(isDarkTheme ? "Dark" : "Light")}"
+                    $"Theme={(isDarkTheme ? "Dark" : "Light")}",
+                    $"LineEnding={cbLineEnding.SelectedItem}",
+                    $"AutoClear={(chkAutoClear.IsChecked == true ? "1" : "0")}",
+                    $"AutoReconnect={(chkAutoReconnect.IsChecked == true ? "1" : "0")}",
+                    $"PersistTraffic={(chkPersistTraffic.IsChecked == true ? "1" : "0")}",
                 };
                 System.IO.File.WriteAllLines(SettingsFilePath, lines);
             }
@@ -226,6 +264,38 @@ namespace 串口助手
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveWindowSettings();
+        }
+
+        /// <summary>
+        /// 从配置文件加载 UI 偏好（ComboBox 选择 + CheckBox 状态）
+        /// 需在 InitComboBoxItems + SetDefaultValues 之后调用
+        /// </summary>
+        private void LoadPreferences()
+        {
+            try
+            {
+                if (!System.IO.File.Exists(SettingsFilePath)) return;
+
+                var dict = new Dictionary<string, string>();
+                foreach (var line in System.IO.File.ReadAllLines(SettingsFilePath))
+                {
+                    int idx = line.IndexOf('=');
+                    if (idx > 0) dict[line.Substring(0, idx)] = line.Substring(idx + 1);
+                }
+
+                if (dict.TryGetValue("LineEnding", out string le))
+                {
+                    int idx = cbLineEnding.Items.IndexOf(le);
+                    if (idx >= 0) cbLineEnding.SelectedIndex = idx;
+                }
+                if (dict.TryGetValue("AutoClear", out string ac))
+                    chkAutoClear.IsChecked = ac == "1";
+                if (dict.TryGetValue("AutoReconnect", out string ar))
+                    chkAutoReconnect.IsChecked = ar == "1";
+                if (dict.TryGetValue("PersistTraffic", out string pt))
+                    chkPersistTraffic.IsChecked = pt == "1";
+            }
+            catch { /* 静默失败 */ }
         }
 
         // ==================================================================
@@ -306,6 +376,11 @@ namespace 串口助手
             cbTimestampFormat.Items.Add("不显示");
             cbTimestampFormat.Items.Add("HH:mm:ss");
             cbTimestampFormat.Items.Add("HH:mm:ss:fff");
+
+            cbLineEnding.Items.Add("\\r\\n");
+            cbLineEnding.Items.Add("\\n");
+            cbLineEnding.Items.Add("\\r");
+            cbLineEnding.Items.Add("无");
         }
 
         private void SetDefaultValues()
@@ -321,6 +396,7 @@ namespace 串口助手
             cbSendCoding.SelectedIndex = 1;     // UTF-8
 
             cbTimestampFormat.SelectedIndex = 2; // HH:mm:ss:fff
+            cbLineEnding.SelectedIndex = 0;      // \r\n
 
             btnSend.IsEnabled = false;
             cbPortName.IsEnabled = true;
@@ -834,7 +910,15 @@ namespace 串口助手
                 {
                     if (isSerialOpen && !serialPort.IsOpen)
                     {
+                        lastPortName = cbPortName.Text;
                         CloseSerialPort();
+                    }
+                }
+                else if (wParam.ToInt32() == 0x8000) // DBT_DEVICEARRIVAL
+                {
+                    if (chkAutoReconnect.IsChecked == true && !isSerialOpen && !string.IsNullOrEmpty(lastPortName))
+                    {
+                        reconnectTimer.Start();
                     }
                 }
             }
@@ -890,9 +974,12 @@ namespace 串口助手
                 tbPortInfo.Foreground = new SolidColorBrush(LogSystemColor);
                 tbPortInfo.Visibility = Visibility.Visible;
 
-                // 重置流量计数
-                txByteCount = 0;
-                rxByteCount = 0;
+                // 重置流量计数（除非用户选择持久化）
+                if (chkPersistTraffic.IsChecked != true)
+                {
+                    txByteCount = 0;
+                    rxByteCount = 0;
+                }
                 UpdateTrafficDisplay();
 
                 // 日志
@@ -1247,6 +1334,7 @@ namespace 串口助手
             }
         }
 
+        /// <summary>
         /// 消息回显 — 切换时写一条标记
         /// </summary>
         private void chkShowEcho_Changed(object sender, RoutedEventArgs e)
@@ -1278,6 +1366,32 @@ namespace 串口助手
                 LogSystem("---- 行号显示：关 ----");
         }
 
+        /// <summary>
+        /// 自动重连 — 切换时写一条标记
+        /// </summary>
+        private void chkAutoReconnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+
+            if (chkAutoReconnect.IsChecked == true)
+                LogSystem("---- 自动重连：开 ----");
+            else
+                LogSystem("---- 自动重连：关 ----");
+        }
+
+        /// <summary>
+        /// 流量持久化 — 切换时写一条标记
+        /// </summary>
+        private void chkPersistTraffic_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+
+            if (chkPersistTraffic.IsChecked == true)
+                LogSystem("---- 流量计数持久化：开 ----");
+            else
+                LogSystem("---- 流量计数持久化：关 ----");
+        }
+
         // ==================================================================
         //  串口数据收发
         // ==================================================================
@@ -1286,16 +1400,37 @@ namespace 串口助手
         {
             if (!serialPort.IsOpen) return;
             if (string.IsNullOrEmpty(tbSend.Text)) return;
-            SendRaw(tbSend.Text);
+
+            string content = tbSend.Text;
+            SendRaw(content, appendLineEnding: true);
+
+            // 发送后自动清空
+            if (chkAutoClear.IsChecked == true)
+                tbSend.Clear();
         }
 
         /// <summary>
         /// 发送原始内容（不依赖 TextBox，供快捷发送按钮复用）
+        /// appendLineEnding：是否追加拿前选中的换行符（仅主发送区使用）
         /// </summary>
-        private void SendRaw(string content)
+        private void SendRaw(string content, bool appendLineEnding = false)
         {
             if (!serialPort.IsOpen) return;
             if (string.IsNullOrEmpty(content)) return;
+
+            // 追加拿前选中的换行符（主发送区专用，快捷发送按钮已有内置换行）
+            if (appendLineEnding)
+            {
+                string leText = GetLineEndingText();
+                string leHex  = GetLineEndingHex();
+                if (!string.IsNullOrEmpty(leText))
+                {
+                    if (sendMode == "文本模式")
+                        content += leText;
+                    else if (sendMode == "HEX模式" && !string.IsNullOrEmpty(leHex))
+                        content += " " + leHex;
+                }
+            }
 
             RecordSendHistory(content);
 
@@ -1384,6 +1519,40 @@ namespace 串口助手
             {
                 LogReceived(receiveLineBuffer);
                 receiveLineBuffer = "";
+            }
+        }
+
+        // ==================================================================
+        //  换行符映射
+        // ==================================================================
+
+        /// <summary>
+        /// 当前选中的换行符 → 文本形式（文本模式发送时追加到内容末尾）
+        /// </summary>
+        private string GetLineEndingText()
+        {
+            string selected = cbLineEnding.SelectedItem?.ToString();
+            switch (selected)
+            {
+                case "\\r\\n": return "\r\n";
+                case "\\n":    return "\n";
+                case "\\r":    return "\r";
+                default:       return "";
+            }
+        }
+
+        /// <summary>
+        /// 当前选中的换行符 → HEX 形式（HEX 模式发送时追加拿字节）
+        /// </summary>
+        private string GetLineEndingHex()
+        {
+            string selected = cbLineEnding.SelectedItem?.ToString();
+            switch (selected)
+            {
+                case "\\r\\n": return "0D 0A";
+                case "\\n":    return "0A";
+                case "\\r":    return "0D";
+                default:       return "";
             }
         }
 
