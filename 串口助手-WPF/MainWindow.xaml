@@ -35,14 +35,27 @@
         <SolidColorBrush x:Key="LogSentBrush"    Color="#0078D4" />
         <SolidColorBrush x:Key="LogReceivedBrush" Color="#2D2D2D" />
 
+        <!-- 补充色值：消除硬编码 -->
+        <SolidColorBrush x:Key="TextSubtleBrush"           Color="#BBBBBB" />
+        <SolidColorBrush x:Key="TextFaintBrush"            Color="#CCCCCC" />
+        <SolidColorBrush x:Key="SecondaryHoverBgBrush"     Color="#F5F5F5" />
+        <SolidColorBrush x:Key="ButtonDisabledBgBrush"     Color="#E8E8E8" />
+        <SolidColorBrush x:Key="ReceiveAreaBgBrush"        Color="#FAFAFA" />
+        <SolidColorBrush x:Key="StatusDotIdleBrush"        Color="#CCCCCC" />
+
         <!-- ===== 卡片样式 ===== -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="Background"      Value="{StaticResource CardBgBrush}" />
             <Setter Property="BorderBrush"     Value="{StaticResource CardBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius"    Value="6" />
-            <Setter Property="Padding"         Value="14" />
+            <Setter Property="Padding"         Value="16" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Direction="270" Opacity="0.10" Color="Black" />
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ===== 卡片标题 ===== -->
@@ -50,7 +63,7 @@
             <Setter Property="FontSize"       Value="13" />
             <Setter Property="FontWeight"     Value="SemiBold" />
             <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Margin"          Value="0,0,0,10" />
+            <Setter Property="Margin"          Value="0,0,0,12" />
         </Style>
 
         <!-- ===== 表单标签 ===== -->
@@ -105,9 +118,9 @@
                                 <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryPressedBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#BBBBBB" />
-                                <Setter TargetName="border" Property="Background"  Value="#E8E8E8" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="#E0E0E0" />
+                                <Setter Property="Foreground" Value="{StaticResource TextSubtleBrush}" />
+                                <Setter TargetName="border" Property="Background"  Value="{StaticResource ButtonDisabledBgBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -117,7 +130,7 @@
 
         <!-- ===== 次要按钮 ===== -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Height"        Value="30" />
+            <Setter Property="Height"        Value="32" />
             <Setter Property="MinWidth"      Value="64" />
             <Setter Property="Padding"       Value="14,0" />
             <Setter Property="FontSize"      Value="12" />
@@ -144,11 +157,11 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                                <Setter TargetName="border" Property="Background"  Value="#F5F5F5" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="#CCCCCC" />
+                                <Setter TargetName="border" Property="Background"  Value="{StaticResource SecondaryHoverBgBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TextFaintBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#CCCCCC" />
+                                <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -196,7 +209,7 @@
         </Grid.RowDefinitions>
 
         <!-- ===== 工作区 ===== -->
-        <Grid Grid.Row="0" Margin="12,10,12,6">
+        <Grid Grid.Row="0" Margin="12,12,12,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="10" />
@@ -227,7 +240,7 @@
                         <RichTextBox Grid.Row="2"
                                      x:Name="rtReceive"
                                      IsReadOnly="True"
-                                     Background="#FAFAFA"
+                                     Background="{StaticResource ReceiveAreaBgBrush}"
                                      BorderBrush="{StaticResource InputBorderBrush}"
                                      BorderThickness="1"
                                      Padding="6,4"
@@ -265,10 +278,10 @@
                                  Style="{StaticResource SendTextBoxStyle}"
                                  KeyDown="tbSend_KeyDown" />
 
-                        <Grid Grid.Row="3" Margin="0,10,0,0">
+                        <Grid Grid.Row="3" Margin="0,12,0,0">
                             <TextBlock Text="Enter 发送  ·  Shift+Enter 换行"
                                        FontSize="10"
-                                       Foreground="#BBBBBB"
+                                       Foreground="{StaticResource TextSubtleBrush}"
                                        VerticalAlignment="Center" />
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Right">
@@ -300,12 +313,12 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="串口号" Style="{StaticResource FormLabelStyle}" />
@@ -345,8 +358,8 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="接收模式" Style="{StaticResource FormLabelStyle}" />
@@ -385,8 +398,8 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="34" />
-                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="32" />
+                                    <RowDefinition Height="32" />
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="发送模式" Style="{StaticResource FormLabelStyle}" />
@@ -406,13 +419,13 @@
         <!-- ===== 状态栏 ===== -->
         <Border Grid.Row="1"
                 Background="{StaticResource StatusBarBgBrush}"
-                Padding="14,4"
+                Padding="16,4"
                 SnapsToDevicePixels="True">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse x:Name="statusDot"
                              Width="8" Height="8"
-                             Fill="#CCCCCC"
+                             Fill="{StaticResource StatusDotIdleBrush}"
                              Margin="0,0,6,0"
                              VerticalAlignment="Center" />
                     <TextBlock x:Name="tbStatusText"
