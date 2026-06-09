@@ -185,7 +185,7 @@ namespace 串口助手
         {
             serialPort.Close();
 
-            btnOpen.BackColor = SystemColors.ControlLight;
+            btnOpen.BackColor = Color.White;
             btnOpen.Text = "打开串口";
             btnSend.Enabled = false;
             cbPortName.Enabled = true;
@@ -216,6 +216,33 @@ namespace 串口助手
             cbDataBits.Enabled = true;
             cbStopBits.Enabled = true;
             cbParity.Enabled = true;
+
+            // ——— 界面美化：扁平按钮 ———
+            // FlatAppearance 是只读子对象，Designer.cs 中无法直接赋值，统一在此处设置
+            // 主要操作（蓝色）：打开串口、发送
+            ConfigurePrimaryButton(btnOpen);
+            ConfigurePrimaryButton(btnSend);
+            // 次要操作（灰色）：清空
+            ConfigureSecondaryButton(btnClearReceive);
+            ConfigureSecondaryButton(btnClearSend);
+
+            // ——— 界面美化：GroupBox 标题统一深灰色 ———
+            ConfigureGroupBox(groupBox1);
+            ConfigureGroupBox(groupBox2);
+            ConfigureGroupBox(groupBox3);
+            ConfigureGroupBox(groupBox4);
+            ConfigureGroupBox(groupBox5);
+
+            // ComboBox Popup 风格（平时扁平，悬停时浮起）
+            ConfigurePopupComboBox(cbPortName);
+            ConfigurePopupComboBox(cbBaudRate);
+            ConfigurePopupComboBox(cbDataBits);
+            ConfigurePopupComboBox(cbStopBits);
+            ConfigurePopupComboBox(cbParity);
+            ConfigurePopupComboBox(cbReceiveMode);
+            ConfigurePopupComboBox(cbReceiveCoding);
+            ConfigurePopupComboBox(cbSendMode);
+            ConfigurePopupComboBox(cbSendCoding);
         }
 
         private void cbPortName_DropDown(object sender, EventArgs e)        //串口号下拉事件
@@ -359,6 +386,45 @@ namespace 串口助手
             {
                 sendCoding = "UTF-8";
             }
+        }
+
+        /// <summary>
+        /// 配置主要操作按钮（蓝色强调）：打开串口、发送
+        /// </summary>
+        private void ConfigurePrimaryButton(Button btn)
+        {
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderColor = Color.FromArgb(0, 120, 212);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 120, 212);
+            btn.BackColor = Color.White;
+        }
+
+        /// <summary>
+        /// 配置次要操作按钮（灰色低调）：清空接收区、清空发送区
+        /// </summary>
+        private void ConfigureSecondaryButton(Button btn)
+        {
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderColor = Color.FromArgb(153, 153, 153);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(153, 153, 153);
+            btn.BackColor = Color.White;
+        }
+
+        /// <summary>
+        /// 配置 GroupBox 标题文字为深灰色（和 Label 保持一致）
+        /// </summary>
+        private void ConfigureGroupBox(GroupBox gb)
+        {
+            gb.ForeColor = Color.FromArgb(51, 51, 51);
+        }
+
+        /// <summary>
+        /// 配置 ComboBox Popup 风格（平时扁平，悬停时浮起）
+        /// </summary>
+        private void ConfigurePopupComboBox(ComboBox cb)
+        {
+            cb.FlatStyle = FlatStyle.Popup;
+            cb.BackColor = Color.White;
         }
     }
 }

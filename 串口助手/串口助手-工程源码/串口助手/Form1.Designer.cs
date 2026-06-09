@@ -122,6 +122,7 @@
             // 
             this.groupBox2.Controls.Add(this.tableLayoutPanel5);
             this.groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.groupBox2.BackColor = System.Drawing.Color.White;
             this.groupBox2.Location = new System.Drawing.Point(3, 3);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(422, 254);
@@ -145,9 +146,12 @@
             this.tableLayoutPanel5.TabIndex = 0;
             // 
             // tbReceive
-            // 
+            //
+            this.tbReceive.BackColor = System.Drawing.Color.White;
+            this.tbReceive.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tbReceive.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tbReceive.Font = new System.Drawing.Font("宋体", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.tbReceive.Font = new System.Drawing.Font("Sarasa Mono SC", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tbReceive.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.tbReceive.Location = new System.Drawing.Point(3, 3);
             this.tbReceive.Multiline = true;
             this.tbReceive.Name = "tbReceive";
@@ -181,6 +185,7 @@
             // 
             this.groupBox3.Controls.Add(this.tableLayoutPanel6);
             this.groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.groupBox3.BackColor = System.Drawing.Color.White;
             this.groupBox3.Location = new System.Drawing.Point(3, 263);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(422, 124);
@@ -204,9 +209,12 @@
             this.tableLayoutPanel6.TabIndex = 0;
             // 
             // tbSend
-            // 
+            //
+            this.tbSend.BackColor = System.Drawing.Color.White;
+            this.tbSend.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tbSend.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tbSend.Font = new System.Drawing.Font("宋体", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.tbSend.Font = new System.Drawing.Font("Sarasa Mono SC", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tbSend.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.tbSend.Location = new System.Drawing.Point(3, 3);
             this.tbSend.Multiline = true;
             this.tbSend.Name = "tbSend";
@@ -271,6 +279,7 @@
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox1.Location = new System.Drawing.Point(3, 3);
             this.groupBox1.Name = "groupBox1";
+            this.groupBox1.BackColor = System.Drawing.Color.White;
             this.groupBox1.Size = new System.Drawing.Size(188, 202);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
@@ -310,6 +319,7 @@
             // 
             this.label3.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label3.AutoSize = true;
+            this.label3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label3.Location = new System.Drawing.Point(9, 9);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(41, 12);
@@ -320,6 +330,7 @@
             // 
             this.cbPortName.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbPortName.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbPortName.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbPortName.FormattingEnabled = true;
             this.cbPortName.Location = new System.Drawing.Point(63, 5);
             this.cbPortName.Name = "cbPortName";
@@ -331,6 +342,7 @@
             // 
             this.label4.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label4.AutoSize = true;
+            this.label4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label4.Location = new System.Drawing.Point(9, 39);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(41, 12);
@@ -341,6 +353,7 @@
             // 
             this.label5.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label5.AutoSize = true;
+            this.label5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label5.Location = new System.Drawing.Point(9, 69);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(41, 12);
@@ -351,6 +364,7 @@
             // 
             this.label6.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label6.AutoSize = true;
+            this.label6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label6.Location = new System.Drawing.Point(9, 99);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(41, 12);
@@ -361,6 +375,7 @@
             // 
             this.label7.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label7.AutoSize = true;
+            this.label7.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label7.Location = new System.Drawing.Point(9, 129);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(41, 12);
@@ -371,6 +386,7 @@
             // 
             this.label8.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label8.AutoSize = true;
+            this.label8.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label8.Location = new System.Drawing.Point(15, 159);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(29, 12);
@@ -380,6 +396,7 @@
             // cbBaudRate
             // 
             this.cbBaudRate.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.cbBaudRate.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbBaudRate.FormattingEnabled = true;
             this.cbBaudRate.Items.AddRange(new object[] {
             "4800",
@@ -395,6 +412,7 @@
             // 
             this.cbDataBits.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbDataBits.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbDataBits.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbDataBits.FormattingEnabled = true;
             this.cbDataBits.Items.AddRange(new object[] {
             "5",
@@ -410,6 +428,7 @@
             // 
             this.cbStopBits.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbStopBits.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbStopBits.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbStopBits.FormattingEnabled = true;
             this.cbStopBits.Items.AddRange(new object[] {
             "1",
@@ -424,6 +443,7 @@
             // 
             this.cbParity.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbParity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbParity.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbParity.FormattingEnabled = true;
             this.cbParity.Items.AddRange(new object[] {
             "无",
@@ -449,6 +469,7 @@
             // 
             this.groupBox4.Controls.Add(this.tableLayoutPanel7);
             this.groupBox4.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.groupBox4.BackColor = System.Drawing.Color.White;
             this.groupBox4.Location = new System.Drawing.Point(3, 211);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(188, 85);
@@ -478,6 +499,7 @@
             // 
             this.label1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label1.AutoSize = true;
+            this.label1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label1.Location = new System.Drawing.Point(3, 9);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(53, 12);
@@ -488,6 +510,7 @@
             // 
             this.cbReceiveMode.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbReceiveMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbReceiveMode.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbReceiveMode.FormattingEnabled = true;
             this.cbReceiveMode.Items.AddRange(new object[] {
             "HEX模式",
@@ -502,6 +525,7 @@
             // 
             this.label2.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label2.AutoSize = true;
+            this.label2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label2.Location = new System.Drawing.Point(3, 40);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(53, 12);
@@ -512,6 +536,7 @@
             // 
             this.cbReceiveCoding.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbReceiveCoding.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbReceiveCoding.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbReceiveCoding.FormattingEnabled = true;
             this.cbReceiveCoding.Items.AddRange(new object[] {
             "GBK",
@@ -526,6 +551,7 @@
             // 
             this.groupBox5.Controls.Add(this.tableLayoutPanel8);
             this.groupBox5.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.groupBox5.BackColor = System.Drawing.Color.White;
             this.groupBox5.Location = new System.Drawing.Point(3, 302);
             this.groupBox5.Name = "groupBox5";
             this.groupBox5.Size = new System.Drawing.Size(188, 85);
@@ -555,6 +581,7 @@
             // 
             this.label9.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label9.AutoSize = true;
+            this.label9.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label9.Location = new System.Drawing.Point(3, 9);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(53, 12);
@@ -565,6 +592,7 @@
             // 
             this.cbSendMode.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbSendMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbSendMode.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbSendMode.FormattingEnabled = true;
             this.cbSendMode.Items.AddRange(new object[] {
             "HEX模式",
@@ -579,6 +607,7 @@
             // 
             this.label10.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label10.AutoSize = true;
+            this.label10.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.label10.Location = new System.Drawing.Point(3, 40);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(53, 12);
@@ -589,6 +618,7 @@
             // 
             this.cbSendCoding.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.cbSendCoding.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbSendCoding.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
             this.cbSendCoding.FormattingEnabled = true;
             this.cbSendCoding.Items.AddRange(new object[] {
             "GBK",
@@ -607,7 +637,10 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(634, 396);
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
+            this.ClientSize = new System.Drawing.Size(800, 500);
+            this.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.MinimumSize = new System.Drawing.Size(634, 396);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
