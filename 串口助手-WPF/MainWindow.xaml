@@ -500,6 +500,12 @@
                                       IsChecked="True"
                                       Checked="chkShowEcho_Changed"
                                       Unchecked="chkShowEcho_Changed" />
+
+                            <CheckBox x:Name="chkShowTraffic"
+                                      Content="流量统计"
+                                      IsChecked="True"
+                                      Checked="chkShowTraffic_Changed"
+                                      Unchecked="chkShowTraffic_Changed" />
                         </StackPanel>
                     </Border>
 
@@ -572,6 +578,15 @@
                                FontSize="11"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center" />
+                    <TextBlock x:Name="tbTraffic"
+                               FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="16,0,0,0"
+                               Visibility="Collapsed"
+                               MouseRightButtonDown="tbTraffic_MouseRightButtonDown"
+                               Cursor="Hand"
+                               ToolTip="右键点击重置流量计数" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
