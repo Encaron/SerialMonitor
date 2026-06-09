@@ -66,6 +66,16 @@ namespace 串口助手
         private long txByteCount = 0;
         private long rxByteCount = 0;
 
+        // ——— 快捷发送 ———
+        /// <summary>
+        /// label → content（content 中的 \r\n 以字面量存储，发送时还原）
+        /// </summary>
+        private Dictionary<string, string> quickSends = new Dictionary<string, string>();
+
+        private string QuickSendsFilePath => System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "串口助手WPF", "quick_sends.cfg");
+
         // ——— 发送历史 ———
         private List<string> sendHistory = new List<string>();
         private const int MaxSendHistory = 20;
@@ -136,6 +146,10 @@ namespace 串口助手
 
             InitComboBoxItems();
             SetDefaultValues();
+
+            // 加载快捷发送按钮
+            LoadQuickSends();
+            RefreshQuickSendButtons();
 
             serialPort.DataReceived += serialPort_DataReceived;
         }
@@ -443,24 +457,17 @@ namespace 串口助手
         /// </summary>
         private void UpdateTrafficDisplay()
         {
-            if (chkShowTraffic.IsChecked != true)
-            {
-                tbTraffic.Visibility = Visibility.Collapsed;
-                return;
-            }
-
             if (isSerialOpen)
             {
                 tbTraffic.Text = $"TX: {FormatBytes(txByteCount)} ↑  RX: {FormatBytes(rxByteCount)} ↓";
                 tbTraffic.Foreground = FindResource("TextSecondaryBrush") as SolidColorBrush;
-                tbTraffic.Visibility = Visibility.Visible;
             }
             else
             {
                 tbTraffic.Text = "TX: -- ↑  RX: -- ↓";
                 tbTraffic.Foreground = new SolidColorBrush(LogSystemColor);
-                tbTraffic.Visibility = Visibility.Visible;
             }
+            tbTraffic.Visibility = Visibility.Visible;
         }
 
         /// <summary>
@@ -472,20 +479,6 @@ namespace 串口助手
             rxByteCount = 0;
             UpdateTrafficDisplay();
             LogSystem("---- 流量计数已重置 ----");
-        }
-
-        /// <summary>
-        /// 流量统计开关
-        /// </summary>
-        private void chkShowTraffic_Changed(object sender, RoutedEventArgs e)
-        {
-            if (!IsLoaded) return;
-            UpdateTrafficDisplay();
-
-            if (chkShowTraffic.IsChecked == true)
-                LogSystem("---- 流量统计：开 ----");
-            else
-                LogSystem("---- 流量统计：关 ----");
         }
 
         // ————————————————————————————————————————
@@ -523,6 +516,283 @@ namespace 串口助手
                 }
             }
             menu.IsOpen = true;
+        }
+
+        // ==================================================================
+        //  快捷发送按钮
+        // ==================================================================
+
+        private void LoadQuickSends()
+        {
+            try
+            {
+                if (!System.IO.File.Exists(QuickSendsFilePath))
+                {
+                    // 首次启动：加载预置 AT 指令模板
+                    quickSends = new Dictionary<string, string>
+                    {
+                        ["AT"]          = "AT\\r\\n",
+                        ["AT+CWLAP"]    = "AT+CWLAP\\r\\n",
+                        ["AT+CWMODE=1"] = "AT+CWMODE=1\\r\\n",
+                        ["AT+CIFSR"]    = "AT+CIFSR\\r\\n",
+                        ["AT+RST"]      = "AT+RST\\r\\n",
+                    };
+                    SaveQuickSends();
+                    return;
+                }
+
+                quickSends.Clear();
+                foreach (var line in System.IO.File.ReadAllLines(QuickSendsFilePath))
+                {
+                    int idx = line.IndexOf('\t');
+                    if (idx > 0)
+                    {
+                        string label = line.Substring(0, idx);
+                        string content = line.Substring(idx + 1);
+                        quickSends[label] = content;
+                    }
+                }
+            }
+            catch { /* 静默失败 */ }
+        }
+
+        private void SaveQuickSends()
+        {
+            try
+            {
+                string dir = System.IO.Path.GetDirectoryName(QuickSendsFilePath);
+                System.IO.Directory.CreateDirectory(dir);
+
+                var lines = new List<string>();
+                foreach (var kv in quickSends)
+                    lines.Add($"{kv.Key}\t{kv.Value}");
+                System.IO.File.WriteAllLines(QuickSendsFilePath, lines);
+            }
+            catch { /* 静默失败 */ }
+        }
+
+        /// <summary>
+        /// 重建快捷发送按钮面板
+        /// </summary>
+        private void RefreshQuickSendButtons()
+        {
+            quickSendPanel.Children.Clear();
+
+            foreach (var kv in quickSends)
+            {
+                var btn = new Button
+                {
+                    Content = kv.Key,
+                    Tag = kv.Value,
+                    Style = FindResource("QuickSendChipStyle") as Style,
+                };
+
+                // 左键 → 立即发送
+                btn.Click += (s, e) =>
+                {
+                    string content = (s as Button)?.Tag?.ToString();
+                    if (string.IsNullOrEmpty(content)) return;
+                    // 还原 \r\n 字面量为真实换行
+                    content = content.Replace("\\r\\n", "\r\n").Replace("\\n", "\r\n");
+                    SendRaw(content);
+                };
+
+                // 右键 → 编辑 / 删除
+                btn.MouseRightButtonDown += (s, e) =>
+                {
+                    var menu = new ContextMenu();
+
+                    var editItem = new MenuItem { Header = "编辑标签" };
+                    string oldLabel = kv.Key;
+                    editItem.Click += (s2, e2) =>
+                    {
+                        string newLabel = ShowInputDialog("编辑标签", "按钮名称：", oldLabel);
+                        if (!string.IsNullOrEmpty(newLabel) && newLabel != oldLabel)
+                        {
+                            string val = quickSends[oldLabel];
+                            quickSends.Remove(oldLabel);
+                            quickSends[newLabel] = val;
+                            SaveQuickSends();
+                            RefreshQuickSendButtons();
+                        }
+                    };
+                    menu.Items.Add(editItem);
+
+                    var deleteItem = new MenuItem { Header = "删除" };
+                    deleteItem.Click += (s2, e2) =>
+                    {
+                        quickSends.Remove(oldLabel);
+                        SaveQuickSends();
+                        RefreshQuickSendButtons();
+                        LogSystem($"---- 快捷发送「{oldLabel}」已删除 ----");
+                    };
+                    menu.Items.Add(deleteItem);
+
+                    menu.IsOpen = true;
+                    e.Handled = true;
+                };
+
+                quickSendPanel.Children.Add(btn);
+            }
+
+            // "+" 添加按钮
+            var addBtn = new Button
+            {
+                Content = "＋",
+                Width = 24, Height = 24,
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                Padding = new Thickness(0),
+                Margin = new Thickness(0, 0, 0, 4),
+                Background = Brushes.Transparent,
+                BorderBrush = FindResource("CardBorderBrush") as Brush,
+                BorderThickness = new Thickness(1),
+                Foreground = FindResource("TextMutedBrush") as Brush,
+                Cursor = Cursors.Hand,
+                ToolTip = "将当前输入区内容添加为快捷发送按钮",
+                SnapsToDevicePixels = true,
+            };
+            // "+" 按钮模板（虚线边框风格表示"添加"语义）
+            var addTemplate = new ControlTemplate(typeof(Button));
+            var addBorder = new FrameworkElementFactory(typeof(Border));
+            addBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+            addBorder.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(Button.BorderBrushProperty));
+            addBorder.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(Button.BorderThicknessProperty));
+            addBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
+            addBorder.SetValue(Border.SnapsToDevicePixelsProperty, true);
+            var addCP = new FrameworkElementFactory(typeof(ContentPresenter));
+            addCP.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            addCP.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            addBorder.AppendChild(addCP);
+            addTemplate.VisualTree = addBorder;
+
+            var addHoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+            addHoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, FindResource("SecondaryHoverBgBrush") as Brush));
+            addHoverTrigger.Setters.Add(new Setter(Button.BorderBrushProperty, FindResource("PrimaryBrush") as Brush));
+            addHoverTrigger.Setters.Add(new Setter(Button.ForegroundProperty, FindResource("PrimaryBrush") as Brush));
+            addTemplate.Triggers.Add(addHoverTrigger);
+            addBtn.Template = addTemplate;
+
+            addBtn.Click += (s, e) =>
+            {
+                string content = tbSend.Text;
+                if (string.IsNullOrEmpty(content))
+                {
+                    LogSystem("---- 快捷发送：请先在发送区输入内容再添加 ----");
+                    return;
+                }
+
+                string defaultLabel = content.Length > 15 ? content.Substring(0, 15) + "…" : content;
+                string label = ShowInputDialog("添加快捷发送", "按钮名称：", defaultLabel);
+                if (!string.IsNullOrEmpty(label))
+                {
+                    // 以字面量存储换行
+                    content = content.Replace("\r\n", "\\r\\n").Replace("\n", "\\r\\n");
+                    quickSends[label] = content;
+                    SaveQuickSends();
+                    RefreshQuickSendButtons();
+                    LogSystem($"---- 快捷发送「{label}」已添加 ----");
+                }
+            };
+
+            quickSendPanel.Children.Add(addBtn);
+
+            // 有按钮时显示面板
+            quickSendPanel.Visibility = quickSends.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 简易输入对话框（ToolWindow，居中于主窗口）
+        /// </summary>
+        private string ShowInputDialog(string title, string prompt, string defaultText)
+        {
+            var dialog = new Window
+            {
+                Title = title,
+                Width = 320,
+                Height = 145,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStyle = WindowStyle.ToolWindow,
+                FontFamily = new FontFamily("Microsoft YaHei"),
+                FontSize = 12,
+                Background = FindResource("CardBgBrush") as Brush,
+                Foreground = FindResource("TextPrimaryBrush") as Brush,
+            };
+
+            var grid = new Grid { Margin = new Thickness(16) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var promptText = new TextBlock
+            {
+                Text = prompt,
+                Margin = new Thickness(0, 0, 0, 8),
+                Foreground = FindResource("TextSecondaryBrush") as Brush,
+            };
+            Grid.SetRow(promptText, 0);
+            grid.Children.Add(promptText);
+
+            var input = new TextBox
+            {
+                Text = defaultText,
+                Height = 28,
+                Margin = new Thickness(0, 0, 0, 12),
+                Background = FindResource("CardBgBrush") as Brush,
+                Foreground = FindResource("TextPrimaryBrush") as Brush,
+                BorderBrush = FindResource("InputBorderBrush") as Brush,
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 2, 6, 2),
+                FontFamily = new FontFamily("Microsoft YaHei"),
+                FontSize = 12,
+            };
+            input.SelectAll();
+            input.Loaded += (s, e2) => input.Focus();
+            Grid.SetRow(input, 1);
+            grid.Children.Add(input);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
+
+            var cancelBtn = new Button
+            {
+                Content = "取消",
+                Width = 64,
+                Height = 28,
+                Margin = new Thickness(0, 0, 8, 0),
+                Style = FindResource("SecondaryButtonStyle") as Style,
+            };
+            cancelBtn.Click += (s, e2) => { dialog.DialogResult = false; dialog.Close(); };
+            buttonPanel.Children.Add(cancelBtn);
+
+            var okBtn = new Button
+            {
+                Content = "确定",
+                Width = 64,
+                Height = 28,
+                Style = FindResource("PrimaryButtonStyle") as Style,
+            };
+            okBtn.Click += (s, e2) => { dialog.DialogResult = true; dialog.Close(); };
+            buttonPanel.Children.Add(okBtn);
+
+            Grid.SetRow(buttonPanel, 2);
+            grid.Children.Add(buttonPanel);
+
+            dialog.Content = grid;
+            input.KeyDown += (s, e2) =>
+            {
+                if (e2.Key == Key.Enter) { dialog.DialogResult = true; dialog.Close(); }
+            };
+
+            if (dialog.ShowDialog() == true)
+                return input.Text.Trim();
+            else
+                return null;
         }
 
         // ==================================================================
@@ -924,27 +1194,35 @@ namespace 串口助手
         private void SendData()
         {
             if (!serialPort.IsOpen) return;
+            if (string.IsNullOrEmpty(tbSend.Text)) return;
+            SendRaw(tbSend.Text);
+        }
 
-            string rawText = tbSend.Text;
-            if (string.IsNullOrEmpty(rawText)) return;
+        /// <summary>
+        /// 发送原始内容（不依赖 TextBox，供快捷发送按钮复用）
+        /// </summary>
+        private void SendRaw(string content)
+        {
+            if (!serialPort.IsOpen) return;
+            if (string.IsNullOrEmpty(content)) return;
 
-            RecordSendHistory(rawText);
+            RecordSendHistory(content);
 
             if (sendMode == "HEX模式")
             {
-                byte[] dataSend = HexToBytes(rawText);
+                byte[] dataSend = HexToBytes(content);
                 serialPort.Write(dataSend, 0, dataSend.Length);
                 txByteCount += dataSend.Length;
                 UpdateTrafficDisplay();
-                LogSent(rawText);
+                LogSent(content);
             }
             else if (sendMode == "文本模式")
             {
-                byte[] dataSend = TextToBytes(rawText, sendCoding);
+                byte[] dataSend = TextToBytes(content, sendCoding);
                 serialPort.Write(dataSend, 0, dataSend.Length);
                 txByteCount += dataSend.Length;
                 UpdateTrafficDisplay();
-                LogSent(rawText);
+                LogSent(content);
             }
         }
 
