@@ -80,6 +80,9 @@ namespace 串口助手
         private List<string> sendHistory = new List<string>();
         private const int MaxSendHistory = 20;
 
+        // ——— HEX 输入格式化 ———
+        private bool _isHexFormatting = false;
+
         // ——— 动画画刷（非冻结，支持 ColorAnimation）———
         private SolidColorBrush statusDotBrush;
 
@@ -986,6 +989,54 @@ namespace 串口助手
             }
         }
 
+        /// <summary>
+        /// HEX 模式输入自动格式化：过滤非法字符、每两个字符插空格、转大写
+        /// </summary>
+        private void AutoFormatHexInput()
+        {
+            if (_isHexFormatting) return;
+
+            string text = tbSend.Text;
+            if (string.IsNullOrEmpty(text)) return;
+
+            int oldCursor = tbSend.CaretIndex;
+
+            // 统计原文本中光标之前的有效 hex 字符数
+            int hexBefore = 0;
+            for (int i = 0; i < oldCursor && i < text.Length; i++)
+                if (!char.IsWhiteSpace(text[i])) hexBefore++;
+
+            // 过滤：只保留 [0-9A-Fa-f]
+            string clean = Regex.Replace(text, "[^A-Fa-f0-9]", "");
+            if (clean.Length == 0) return;
+
+            // 大写 + 每两个字符插空格
+            var sb = new StringBuilder();
+            for (int i = 0; i < clean.Length; i++)
+            {
+                if (i > 0 && i % 2 == 0)
+                    sb.Append(' ');
+                sb.Append(char.ToUpperInvariant(clean[i]));
+            }
+            string formatted = sb.ToString();
+
+            if (text == formatted) return; // 无需修改
+
+            _isHexFormatting = true;
+            tbSend.Text = formatted;
+
+            // 映射光标：在格式化字符串中找到第 hexBefore 个 hex 字符的位置
+            int hexCount = 0;
+            int newCursor = formatted.Length;
+            for (int i = 0; i < formatted.Length; i++)
+            {
+                if (hexCount == hexBefore) { newCursor = i; break; }
+                if (!char.IsWhiteSpace(formatted[i])) hexCount++;
+            }
+            tbSend.CaretIndex = newCursor;
+            _isHexFormatting = false;
+        }
+
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
             rtReceive.Document.Blocks.Clear();
@@ -999,12 +1050,16 @@ namespace 串口助手
 
         /// <summary>
         /// 发送区 placeholder：有内容时隐藏水印文字
+        /// HEX 模式下自动格式化（每两个字符插空格）
         /// </summary>
         private void tbSend_TextChanged(object sender, TextChangedEventArgs e)
         {
             tbSendPlaceholder.Visibility = string.IsNullOrEmpty(tbSend.Text)
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+            if (sendMode == "HEX模式")
+                AutoFormatHexInput();
         }
 
         /// <summary>
@@ -1084,6 +1139,9 @@ namespace 串口助手
             {
                 cbSendCoding.IsEnabled = false;
                 sendMode = "HEX模式";
+                // 切换到 HEX 时自动格式化现有内容
+                if (IsLoaded)
+                    AutoFormatHexInput();
             }
             else if (mode == "文本模式")
             {
