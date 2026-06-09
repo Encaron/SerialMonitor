@@ -394,11 +394,15 @@
 
                             <Border Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,8" />
 
-                            <CheckBox x:Name="chkShowTimestamp"
-                                      Content="显示时间戳"
-                                      IsChecked="True"
-                                      Checked="chkShowTimestamp_Changed"
-                                      Unchecked="chkShowTimestamp_Changed" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="时间戳" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Column="1" x:Name="cbTimestampFormat"
+                                          SelectionChanged="cbTimestampFormat_SelectionChanged" />
+                            </Grid>
 
                             <CheckBox x:Name="chkShowEcho"
                                       Content="消息回显"
@@ -430,6 +434,29 @@
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{StaticResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbSendCoding"
                                           SelectionChanged="cbSendCoding_SelectionChanged" />
+                            </Grid>
+
+                            <Border Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,8" />
+
+                            <CheckBox x:Name="chkAutoRepeat"
+                                      Content="定时发送"
+                                      Checked="chkAutoRepeat_Changed"
+                                      Unchecked="chkAutoRepeat_Changed" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="间隔(ms)" Style="{StaticResource FormLabelStyle}" />
+                                <TextBox Grid.Column="1" x:Name="tbRepeatInterval"
+                                         Height="28"
+                                         FontFamily="Microsoft YaHei" FontSize="12"
+                                         Foreground="{StaticResource TextPrimaryBrush}"
+                                         Background="{StaticResource CardBgBrush}"
+                                         BorderBrush="{StaticResource InputBorderBrush}"
+                                         BorderThickness="1" Padding="6,2"
+                                         Text="1000"
+                                         LostFocus="tbRepeatInterval_LostFocus" />
                             </Grid>
                         </StackPanel>
                     </Border>

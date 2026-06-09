@@ -49,6 +49,9 @@ namespace 串口助手
         /// </summary>
         private DispatcherTimer flushTimer;
 
+        // ——— 定时发送 ———
+        private DispatcherTimer autoSendTimer;
+
         // ——— 日志行数上限 ———
 
         private const int MaxLogLines = 2000;
@@ -85,6 +88,10 @@ namespace 串口助手
             // 空闲刷新定时器：数据停止到达 100ms 后输出缓冲区剩余文本
             flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             flushTimer.Tick += FlushReceiveBuffer;
+
+            // 定时发送计时器
+            autoSendTimer = new DispatcherTimer();
+            autoSendTimer.Tick += (s, args) => { if (serialPort.IsOpen) SendData(); };
 
             InitComboBoxItems();
             SetDefaultValues();
@@ -127,6 +134,10 @@ namespace 串口助手
 
             cbSendCoding.Items.Add("GBK");
             cbSendCoding.Items.Add("UTF-8");
+
+            cbTimestampFormat.Items.Add("不显示");
+            cbTimestampFormat.Items.Add("HH:mm:ss");
+            cbTimestampFormat.Items.Add("HH:mm:ss:fff");
         }
 
         private void SetDefaultValues()
@@ -140,6 +151,8 @@ namespace 串口助手
             cbReceiveCoding.SelectedIndex = 1;  // UTF-8
             cbSendMode.SelectedIndex = 1;       // 文本模式
             cbSendCoding.SelectedIndex = 1;     // UTF-8
+
+            cbTimestampFormat.SelectedIndex = 2; // HH:mm:ss:fff
 
             btnSend.IsEnabled = false;
             cbPortName.IsEnabled = true;
@@ -200,9 +213,10 @@ namespace 串口助手
         /// </summary>
         private void LogReceived(string text)
         {
-            if (chkShowTimestamp.IsChecked == true)
+            string format = cbTimestampFormat.SelectedItem?.ToString() ?? "不显示";
+            if (format != "不显示")
             {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss:fff");
+                string timestamp = DateTime.Now.ToString(format);
                 AppendColoredLine($"{timestamp} -> {text}", LogReceivedColor);
             }
             else
@@ -357,6 +371,14 @@ namespace 串口助手
                 cbStopBits.IsEnabled = false;
                 cbParity.IsEnabled = false;
 
+                // 若勾选定时发送，启动定时器
+                if (chkAutoRepeat.IsChecked == true &&
+                    int.TryParse(tbRepeatInterval.Text, out int repeatMs) && repeatMs > 0)
+                {
+                    autoSendTimer.Interval = TimeSpan.FromMilliseconds(repeatMs);
+                    autoSendTimer.Start();
+                }
+
                 // 状态栏
                 AnimateBrushColor(statusDotBrush, SuccessColor);
                 tbStatusText.Text = "已连接";
@@ -391,6 +413,7 @@ namespace 串口助手
 
             serialPort.Close();
 
+            autoSendTimer.Stop();
             isSerialOpen = false;
 
             btnOpen.Content = "打开串口";
@@ -594,24 +617,69 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 显示时间戳 — 切换时写一条标记
+        /// 时间戳格式 — 切换时写一条标记
         /// </summary>
-        private void chkShowTimestamp_Changed(object sender, RoutedEventArgs e)
+        private void cbTimestampFormat_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // 仅在用户操作后回写标记（初始化时不写）
+            if (!IsLoaded) return;
+            if (cbTimestampFormat.SelectedItem == null) return;
+
+            string format = cbTimestampFormat.SelectedItem.ToString();
+            if (format == "不显示")
+                LogSystem("---- 时间戳：关 ----");
+            else
+                LogSystem($"---- 时间戳：{format} ----");
+        }
+
+        /// <summary>
+        /// 定时发送 — 切换时启动/停止定时器
+        /// </summary>
+        private void chkAutoRepeat_Changed(object sender, RoutedEventArgs e)
+        {
             if (!IsLoaded) return;
 
-            if (chkShowTimestamp.IsChecked == true)
+            if (chkAutoRepeat.IsChecked == true)
             {
-                LogSystem("---- 时间戳：开 ----");
+                if (int.TryParse(tbRepeatInterval.Text, out int ms) && ms > 0)
+                {
+                    autoSendTimer.Interval = TimeSpan.FromMilliseconds(ms);
+                    autoSendTimer.Start();
+                    LogSystem($"---- 定时发送：开（每 {ms} ms）----");
+                }
+                else
+                {
+                    chkAutoRepeat.IsChecked = false;
+                    MessageBox.Show("请输入有效的间隔时间（正整数，单位毫秒）", "提示",
+                                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
             else
             {
-                LogSystem("---- 时间戳：关 ----");
+                autoSendTimer.Stop();
+                LogSystem("---- 定时发送：关 ----");
             }
         }
 
         /// <summary>
+        /// 定时发送间隔更新
+        /// </summary>
+        private void tbRepeatInterval_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (chkAutoRepeat.IsChecked == true)
+            {
+                if (int.TryParse(tbRepeatInterval.Text, out int ms) && ms > 0)
+                {
+                    autoSendTimer.Stop();
+                    autoSendTimer.Interval = TimeSpan.FromMilliseconds(ms);
+                    autoSendTimer.Start();
+                }
+                else
+                {
+                    tbRepeatInterval.Text = "1000";
+                }
+            }
+        }
+
         /// 消息回显 — 切换时写一条标记
         /// </summary>
         private void chkShowEcho_Changed(object sender, RoutedEventArgs e)
