@@ -62,6 +62,10 @@ namespace 串口助手
 
         private const int MaxLogLines = 2000;
 
+        // ——— 行号 ———
+        private int _lineCount = 0;
+        private bool _showLineNumbers = true;
+
         // ——— 流量统计 ———
         private long txByteCount = 0;
         private long rxByteCount = 0;
@@ -390,14 +394,27 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 通用：向 RichTextBox 追加一行带颜色的文本
+        /// 通用：向 RichTextBox 追加一行带颜色的文本，可选行号
         /// </summary>
         private void AppendColoredLine(string text, Color color)
         {
+            _lineCount++;
+
             Paragraph para = new Paragraph();
-            para.Inlines.Add(new Run(text) { Foreground = new SolidColorBrush(color) });
             para.Margin = new Thickness(0);
             para.LineHeight = 2;
+
+            if (_showLineNumbers)
+            {
+                // 行号：右对齐 5 位，灰色
+                para.Inlines.Add(new Run($"{_lineCount,5}  ")
+                {
+                    Foreground = FindResource("TextMutedBrush") as Brush,
+                    FontWeight = FontWeights.Normal,
+                });
+            }
+
+            para.Inlines.Add(new Run(text) { Foreground = new SolidColorBrush(color) });
 
             rtReceive.Document.Blocks.Add(para);
 
@@ -1039,6 +1056,7 @@ namespace 串口助手
 
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
+            _lineCount = 0;
             rtReceive.Document.Blocks.Clear();
         }
 
@@ -1243,6 +1261,21 @@ namespace 串口助手
             {
                 LogSystem("---- 消息回显：关 ----");
             }
+        }
+
+        /// <summary>
+        /// 行号显示 — 切换时写一条标记
+        /// </summary>
+        private void chkShowLineNumbers_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+
+            _showLineNumbers = chkShowLineNumbers.IsChecked == true;
+
+            if (_showLineNumbers)
+                LogSystem("---- 行号显示：开 ----");
+            else
+                LogSystem("---- 行号显示：关 ----");
         }
 
         // ==================================================================

@@ -542,6 +542,12 @@
                                       IsChecked="True"
                                       Checked="chkShowEcho_Changed"
                                       Unchecked="chkShowEcho_Changed" />
+
+                            <CheckBox x:Name="chkShowLineNumbers"
+                                      Content="行号显示"
+                                      IsChecked="True"
+                                      Checked="chkShowLineNumbers_Changed"
+                                      Unchecked="chkShowLineNumbers_Changed" />
                         </StackPanel>
                     </Border>
 
