@@ -12,3 +12,12 @@ E:\教程\STM32入门教程\资料\工具软件\串口助手\串口助手-工程
 E:\教程\STM32入门教程\资料\工具软件\串口助手\串口助手-工程源码\串口助手\bin\Release\串口助手 V1.1.pdb
 E:\教程\STM32入门教程\资料\工具软件\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手 V1.1.exe
 E:\教程\STM32入门教程\资料\工具软件\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手 V1.1.pdb
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\bin\Release\串口助手 V1.1.exe
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\bin\Release\串口助手 V1.1.pdb
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手.Form1.resources
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手.Properties.Resources.resources
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手.csproj.GenerateResource.Cache
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手 V1.1.exe
+d:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手 V1.1.pdb
+D:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手.csproj.AssemblyReference.cache
+D:\360MoveData\Users\fengy\Desktop\1111\串口助手\串口助手-工程源码\串口助手\obj\Release\串口助手.csproj.CoreCompileInputs.cache
