@@ -10,6 +10,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace 串口助手
 {
@@ -35,6 +36,18 @@ namespace 串口助手
         private static readonly Color LogReceivedColor   = Color.FromRgb(0x2D, 0x2D, 0x2D);
         private static readonly Color StatusDotIdle      = Color.FromRgb(0xCC, 0xCC, 0xCC);
 
+        // ——— 接收缓冲：跨 DataReceived 碎片拼成完整行 ———
+
+        /// <summary>
+        /// 文本模式接收缓冲区：累积碎片直到遇到换行符再输出
+        /// </summary>
+        private string receiveLineBuffer = "";
+
+        /// <summary>
+        /// 空闲定时器：100ms 无新数据到达时，强制输出缓冲区剩余文本
+        /// </summary>
+        private DispatcherTimer flushTimer;
+
         // ——— 日志行数上限 ———
 
         private const int MaxLogLines = 2000;
@@ -42,6 +55,10 @@ namespace 串口助手
         public MainWindow()
         {
             InitializeComponent();
+
+            // 空闲刷新定时器：数据停止到达 100ms 后输出缓冲区剩余文本
+            flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            flushTimer.Tick += FlushReceiveBuffer;
 
             InitComboBoxItems();
             SetDefaultValues();
@@ -268,6 +285,14 @@ namespace 串口助手
         {
             if (isSerialOpen)
             {
+                // 强制输出缓冲区残留文本再关
+                flushTimer.Stop();
+                if (!string.IsNullOrEmpty(receiveLineBuffer))
+                {
+                    LogReceived(receiveLineBuffer);
+                    receiveLineBuffer = "";
+                }
+
                 LogSystem($"---- 关闭串行端口 {cbPortName.Text} ----");
             }
 
@@ -325,14 +350,22 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// Ctrl+Enter 快捷发送
+        /// Enter = 发送    Shift+Enter = 换行
         /// </summary>
         private void tbSend_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+            if (e.Key == Key.Enter)
             {
-                SendData();
-                e.Handled = true;
+                if (Keyboard.Modifiers == ModifierKeys.Shift)
+                {
+                    // Shift+Enter → 换行，TextBox 自然处理
+                }
+                else
+                {
+                    // Enter → 发送
+                    SendData();
+                    e.Handled = true; // 阻止 TextBox 插入换行
+                }
             }
         }
 
@@ -362,6 +395,14 @@ namespace 串口助手
                 receiveMode = "文本模式";
             }
             byteBuffer.Clear();
+
+            // 模式切换时强制输出缓冲区残留
+            flushTimer.Stop();
+            if (!string.IsNullOrEmpty(receiveLineBuffer))
+            {
+                LogReceived(receiveLineBuffer);
+                receiveLineBuffer = "";
+            }
         }
 
         private void cbReceiveCoding_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -378,6 +419,13 @@ namespace 串口助手
                 receiveCoding = "UTF-8";
             }
             byteBuffer.Clear();
+
+            flushTimer.Stop();
+            if (!string.IsNullOrEmpty(receiveLineBuffer))
+            {
+                LogReceived(receiveLineBuffer);
+                receiveLineBuffer = "";
+            }
         }
 
         private void cbSendMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -473,6 +521,8 @@ namespace 串口助手
 
         /// <summary>
         /// 串口接收数据事件（后台线程 → Dispatcher 分发到 UI 线程）
+        /// 文本模式：碎片拼成完整行后再输出，避免 "Rece\nived: LED\nON" 这种断裂
+        /// HEX 模式：直接追加输出
         /// </summary>
         private void serialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
@@ -486,17 +536,53 @@ namespace 串口助手
             {
                 if (receiveMode == "HEX模式")
                 {
+                    // HEX 模式照原样直接输出
                     LogReceived(BytesToHex(dataReceive));
                 }
                 else if (receiveMode == "文本模式")
                 {
                     string text = BytesToText(dataReceive, receiveCoding);
-                    if (!string.IsNullOrEmpty(text))
+                    if (string.IsNullOrEmpty(text)) return;
+
+                    receiveLineBuffer += text;
+
+                    // 按换行符拆分，输出完整行
+                    int idx;
+                    bool hasNewline = false;
+                    while ((idx = receiveLineBuffer.IndexOf('\n')) >= 0)
                     {
-                        LogReceived(text);
+                        string line = receiveLineBuffer.Substring(0, idx).TrimEnd('\r');
+                        receiveLineBuffer = receiveLineBuffer.Substring(idx + 1);
+                        hasNewline = true;
+
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            LogReceived(line);
+                        }
+                    }
+
+                    if (hasNewline || receiveLineBuffer.Length > 0)
+                    {
+                        // 重置空闲定时器：100ms 内无新数据就强制输出剩余碎片
+                        flushTimer.Stop();
+                        flushTimer.Start();
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// 空闲刷新：100ms 无新数据到达时，强制输出缓冲区残留文本
+        /// </summary>
+        private void FlushReceiveBuffer(object sender, EventArgs e)
+        {
+            flushTimer.Stop();
+
+            if (!string.IsNullOrEmpty(receiveLineBuffer))
+            {
+                LogReceived(receiveLineBuffer);
+                receiveLineBuffer = "";
+            }
         }
 
         // ==================================================================
