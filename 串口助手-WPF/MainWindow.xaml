@@ -289,9 +289,17 @@
                                         Style="{StaticResource SecondaryButtonStyle}"
                                         Margin="0,0,8,0"
                                         Click="btnClearSend_Click" />
+                                <Button Content="▾"
+                                        x:Name="btnSendHistory"
+                                        Width="26" Height="32"
+                                        FontSize="10"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Click="btnSendHistory_Click"
+                                        ToolTip="发送历史" />
                                 <Button Content="发送"
                                         x:Name="btnSend"
                                         Style="{StaticResource PrimaryButtonStyle}"
+                                        Margin="4,0,0,0"
                                         Click="btnSend_Click" />
                             </StackPanel>
                         </Grid>
