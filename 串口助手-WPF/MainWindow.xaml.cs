@@ -70,6 +70,9 @@ namespace 串口助手
         {
             InitializeComponent();
 
+            // 恢复上次窗口位置和大小
+            LoadWindowSettings();
+
             // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
             statusDotBrush = new SolidColorBrush(StatusDotIdle);
             statusDot.Fill = statusDotBrush;
@@ -97,6 +100,66 @@ namespace 串口助手
             SetDefaultValues();
 
             serialPort.DataReceived += serialPort_DataReceived;
+        }
+
+        // ==================================================================
+        //  窗口位置记忆
+        // ==================================================================
+
+        private string SettingsFilePath => System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "串口助手WPF", "window.cfg");
+
+        private void LoadWindowSettings()
+        {
+            try
+            {
+                if (!System.IO.File.Exists(SettingsFilePath)) return;
+
+                var dict = new Dictionary<string, string>();
+                foreach (var line in System.IO.File.ReadAllLines(SettingsFilePath))
+                {
+                    int idx = line.IndexOf('=');
+                    if (idx > 0) dict[line.Substring(0, idx)] = line.Substring(idx + 1);
+                }
+
+                if (dict.TryGetValue("Left",   out string l) && double.TryParse(l, out double left))
+                    this.Left = Math.Max(0, Math.Min(left, SystemParameters.PrimaryScreenWidth - 100));
+                if (dict.TryGetValue("Top",    out string t) && double.TryParse(t, out double top))
+                    this.Top  = Math.Max(0, Math.Min(top,  SystemParameters.PrimaryScreenHeight - 100));
+                if (dict.TryGetValue("Width",  out string w) && double.TryParse(w, out double width))
+                    this.Width  = Math.Max(MinWidth,  Math.Min(width,  SystemParameters.PrimaryScreenWidth));
+                if (dict.TryGetValue("Height", out string h) && double.TryParse(h, out double height))
+                    this.Height = Math.Max(MinHeight, Math.Min(height, SystemParameters.PrimaryScreenHeight));
+                if (dict.TryGetValue("State",  out string s) && s == "Maximized")
+                    this.WindowState = WindowState.Maximized;
+            }
+            catch { /* 静默失败，使用默认值 */ }
+        }
+
+        private void SaveWindowSettings()
+        {
+            try
+            {
+                string dir = System.IO.Path.GetDirectoryName(SettingsFilePath);
+                System.IO.Directory.CreateDirectory(dir);
+
+                var lines = new[]
+                {
+                    $"Left={this.Left}",
+                    $"Top={this.Top}",
+                    $"Width={this.Width}",
+                    $"Height={this.Height}",
+                    $"State={this.WindowState}"
+                };
+                System.IO.File.WriteAllLines(SettingsFilePath, lines);
+            }
+            catch { /* 静默失败，不影响关闭 */ }
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            SaveWindowSettings();
         }
 
         // ==================================================================
