@@ -473,6 +473,7 @@
                                     <RowDefinition Height="32" />
                                     <RowDefinition Height="32" />
                                     <RowDefinition Height="32" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="串口号" Style="{StaticResource FormLabelStyle}" />
@@ -497,6 +498,11 @@
                                         Style="{StaticResource PrimaryButtonStyle}"
                                         Height="32"
                                         Click="btnOpen_Click" />
+                                <CheckBox Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                                          x:Name="chkAutoReconnect"
+                                          Content="自动重连"
+                                          Checked="chkAutoReconnect_Changed"
+                                          Unchecked="chkAutoReconnect_Changed" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -548,6 +554,11 @@
                                       IsChecked="True"
                                       Checked="chkShowLineNumbers_Changed"
                                       Unchecked="chkShowLineNumbers_Changed" />
+
+                            <CheckBox x:Name="chkPersistTraffic"
+                                      Content="串口打开时不重置流量计数"
+                                      Checked="chkPersistTraffic_Changed"
+                                      Unchecked="chkPersistTraffic_Changed" />
                         </StackPanel>
                     </Border>
 
@@ -577,6 +588,15 @@
 
                             <Border Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,8" />
 
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="换行符" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Column="1" x:Name="cbLineEnding" />
+                            </Grid>
+
                             <CheckBox x:Name="chkAutoRepeat"
                                       Content="定时发送"
                                       Checked="chkAutoRepeat_Changed"
@@ -597,6 +617,9 @@
                                          Text="1000"
                                          LostFocus="tbRepeatInterval_LostFocus" />
                             </Grid>
+
+                            <CheckBox x:Name="chkAutoClear"
+                                      Content="发送后清空发送区" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
