@@ -556,16 +556,16 @@ namespace 串口助手
         {
             if (cb == null) return;
             cb.ApplyTemplate();
-            var translate = cb.Template.FindName("KnobTranslate", cb) as TranslateTransform;
-            if (translate == null) return;
+            var knob = cb.Template.FindName("Knob", cb) as System.Windows.Shapes.Ellipse;
+            if (knob == null) return;
 
-            double toX = cb.IsChecked == true ? 18 : 0;
+            double toLeft = cb.IsChecked == true ? 20 : 2;
             var anim = new System.Windows.Media.Animation.DoubleAnimation(
-                toX, TimeSpan.FromMilliseconds(200))
+                toLeft, TimeSpan.FromMilliseconds(200))
             {
                 FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
             };
-            translate.BeginAnimation(TranslateTransform.XProperty, anim);
+            knob.BeginAnimation(Canvas.LeftProperty, anim);
         }
 
         // ————————————————————————————————————————
