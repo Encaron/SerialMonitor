@@ -1,0 +1,392 @@
+<Window x:Class="串口助手.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="串口助手 WPF"
+        Width="920" Height="560"
+        MinWidth="720" MinHeight="460"
+        FontFamily="Microsoft YaHei"
+        FontSize="12"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- ===== 调色板 ===== -->
+        <SolidColorBrush x:Key="WindowBgBrush"      Color="#F0F0F0" />
+        <SolidColorBrush x:Key="CardBgBrush"         Color="#FFFFFF" />
+        <SolidColorBrush x:Key="CardBorderBrush"     Color="#E0E0E0" />
+        <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#2D2D2D" />
+        <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#555555" />
+        <SolidColorBrush x:Key="TextMutedBrush"      Color="#999999" />
+        <SolidColorBrush x:Key="PrimaryBrush"        Color="#0078D4" />
+        <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#106EBE" />
+        <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#005A9E" />
+        <SolidColorBrush x:Key="SecondaryBrush"      Color="#888888" />
+        <SolidColorBrush x:Key="SecondaryHoverBrush" Color="#666666" />
+        <SolidColorBrush x:Key="SuccessBrush"        Color="#10B981" />
+        <SolidColorBrush x:Key="SuccessHoverBrush"   Color="#059669" />
+        <SolidColorBrush x:Key="StatusBarBgBrush"    Color="#E6E6E6" />
+        <SolidColorBrush x:Key="SeparatorBrush"      Color="#EEEEEE" />
+        <SolidColorBrush x:Key="InputBorderBrush"    Color="#D0D0D0" />
+        <SolidColorBrush x:Key="InputFocusBrush"     Color="#0078D4" />
+
+        <!-- ===== 卡片样式 ===== -->
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="Background"      Value="{StaticResource CardBgBrush}" />
+            <Setter Property="BorderBrush"     Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius"    Value="6" />
+            <Setter Property="Padding"         Value="14" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <!-- ===== 卡片标题 ===== -->
+        <Style x:Key="CardHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize"       Value="13" />
+            <Setter Property="FontWeight"     Value="SemiBold" />
+            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Margin"          Value="0,0,0,10" />
+        </Style>
+
+        <!-- ===== 表单标签 ===== -->
+        <Style x:Key="FormLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize"       Value="12" />
+            <Setter Property="Foreground"      Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- ===== 主要按钮 ===== -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height"        Value="32" />
+            <Setter Property="MinWidth"      Value="72" />
+            <Setter Property="Padding"       Value="16,0" />
+            <Setter Property="FontSize"      Value="12" />
+            <Setter Property="FontWeight"    Value="Normal" />
+            <Setter Property="Foreground"    Value="White" />
+            <Setter Property="Background"    Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderBrush"   Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor"        Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background"  Value="{StaticResource PrimaryHoverBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background"  Value="{StaticResource PrimaryPressedBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryPressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#BBBBBB" />
+                                <Setter TargetName="border" Property="Background"  Value="#E8E8E8" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="#E0E0E0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== 次要按钮 ===== -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Height"        Value="30" />
+            <Setter Property="MinWidth"      Value="64" />
+            <Setter Property="Padding"       Value="14,0" />
+            <Setter Property="FontSize"      Value="12" />
+            <Setter Property="Foreground"    Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Background"    Value="{StaticResource CardBgBrush}" />
+            <Setter Property="BorderBrush"   Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor"        Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter TargetName="border" Property="Background"  Value="#F5F5F5" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="#CCCCCC" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#CCCCCC" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ===== ComboBox 扁平样式 ===== -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Height"          Value="28" />
+            <Setter Property="FontSize"        Value="12" />
+            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background"      Value="{StaticResource CardBgBrush}" />
+            <Setter Property="BorderBrush"     Value="{StaticResource InputBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding"         Value="6,2" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <!-- ===== 数据区 TextBox ===== -->
+        <Style x:Key="DataTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily"     Value="Sarasa Mono SC, Consolas, Courier New" />
+            <Setter Property="FontSize"       Value="10" />
+            <Setter Property="Foreground"     Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background"     Value="#FAFAFA" />
+            <Setter Property="BorderBrush"    Value="{StaticResource InputBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding"        Value="6,4" />
+            <Setter Property="AcceptsReturn"  Value="True" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="SpellCheck.IsEnabled" Value="False" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+    </Window.Resources>
+
+    <!-- ===== 主布局 ===== -->
+    <Grid Background="{StaticResource WindowBgBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ===== 工作区 ===== -->
+        <Grid Grid.Row="0" Margin="12,10,12,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="236" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ========== 左侧：数据收发区 ========== -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- 接收区卡片 -->
+                <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="接收区" Style="{StaticResource CardHeaderStyle}" />
+                        <Border Grid.Row="1" Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,0,0,10" />
+
+                        <TextBox Grid.Row="2"
+                                 x:Name="tbReceive"
+                                 Style="{StaticResource DataTextBoxStyle}"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap" />
+
+                        <StackPanel Grid.Row="3" HorizontalAlignment="Right" Margin="0,10,0,0">
+                            <Button Content="清空接收区"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="btnClearReceive_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- 发送区卡片 -->
+                <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="发送区" Style="{StaticResource CardHeaderStyle}" />
+                        <Border Grid.Row="1" Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,0,0,10" />
+
+                        <TextBox Grid.Row="2"
+                                 x:Name="tbSend"
+                                 Style="{StaticResource DataTextBoxStyle}"
+                                 Background="White"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 KeyDown="tbSend_KeyDown" />
+
+                        <StackPanel Grid.Row="3" Orientation="Horizontal"
+                                    HorizontalAlignment="Right" Margin="0,10,0,0">
+                            <Button Content="清空发送区"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0"
+                                    Click="btnClearSend_Click" />
+                            <Button Content="发送"
+                                    x:Name="btnSend"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Click="btnSend_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ========== 右侧：参数配置区 ========== -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- 串口配置卡片 -->
+                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="串口配置" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="串口号" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbPortName"
+                                          DropDownOpened="cbPortName_DropDownOpened" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="波特率" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbBaudRate" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="数据位" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbDataBits" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="停止位" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbStopBits" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="校验位" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="4" Grid.Column="1" x:Name="cbParity" />
+
+                                <Button Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                        x:Name="btnOpen"
+                                        Content="打开串口"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Height="32"
+                                        Click="btnOpen_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 接收设置卡片 -->
+                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="接收设置" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="接收模式" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbReceiveMode"
+                                          SelectionChanged="cbReceiveMode_SelectionChanged" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbReceiveCoding"
+                                          SelectionChanged="cbReceiveCoding_SelectionChanged" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 发送设置卡片 -->
+                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="发送设置" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="34" />
+                                    <RowDefinition Height="34" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="发送模式" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbSendMode"
+                                          SelectionChanged="cbSendMode_SelectionChanged" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{StaticResource FormLabelStyle}" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbSendCoding"
+                                          SelectionChanged="cbSendCoding_SelectionChanged" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ===== 状态栏 ===== -->
+        <Border Grid.Row="1"
+                Background="{StaticResource StatusBarBgBrush}"
+                Padding="14,4"
+                SnapsToDevicePixels="True">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="statusDot"
+                             Width="8" Height="8"
+                             Fill="#CCCCCC"
+                             Margin="0,0,6,0"
+                             VerticalAlignment="Center" />
+                    <TextBlock x:Name="tbStatusText"
+                               Text="就绪"
+                               FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <TextBlock x:Name="tbPortInfo"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           FontSize="11"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           Visibility="Collapsed" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
