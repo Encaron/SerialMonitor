@@ -266,6 +266,29 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
 
+        <!-- ===== ListBox 只读日志样式（无选中高亮）===== -->
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="SelectionMode" Value="Single" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Center" />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ===== 快捷发送 Chip 按钮 ===== -->
         <Style x:Key="QuickSendChipStyle" TargetType="Button">
             <Setter Property="Height"        Value="24" />
@@ -364,20 +387,35 @@
                         <TextBlock Grid.Row="0" Text="接收区" Style="{StaticResource CardHeaderStyle}" />
                         <Border Grid.Row="1" Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,0,0,10" />
 
-                        <RichTextBox Grid.Row="2"
-                                     x:Name="rtReceive"
-                                     IsReadOnly="True"
+                        <DockPanel Grid.Row="2">
+                            <ListBox x:Name="lbSystemLog"
+                                     DockPanel.Dock="Top"
+                                     Height="36"
+                                     MinHeight="18"
+                                     MaxHeight="72"
                                      Background="{StaticResource ReceiveAreaBgBrush}"
                                      BorderBrush="{StaticResource InputBorderBrush}"
                                      BorderThickness="1"
-                                     Padding="6,4"
-                                     VerticalScrollBarVisibility="Auto"
-                                     SnapsToDevicePixels="True">
-                            <FlowDocument FontFamily="Sarasa Mono SC, Consolas, Courier New"
-                                          FontSize="12"
-                                          Foreground="{StaticResource LogReceivedBrush}"
-                                          LineHeight="2" />
-                        </RichTextBox>
+                                     FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                     FontSize="11"
+                                     Foreground="{StaticResource TextMutedBrush}"
+                                     Padding="4,2"
+                                     Margin="0,0,0,4"
+                                     Visibility="Collapsed" />
+                            <RichTextBox x:Name="rtReceive"
+                                         IsReadOnly="True"
+                                         Background="{StaticResource ReceiveAreaBgBrush}"
+                                         BorderBrush="{StaticResource InputBorderBrush}"
+                                         BorderThickness="1"
+                                         Padding="6,4"
+                                         VerticalScrollBarVisibility="Auto"
+                                         SnapsToDevicePixels="True">
+                                <FlowDocument FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                              FontSize="12"
+                                              Foreground="{StaticResource LogReceivedBrush}"
+                                              LineHeight="2" />
+                            </RichTextBox>
+                        </DockPanel>
 
                         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
                             <Button Content="导出日志"
@@ -554,6 +592,12 @@
                                       IsChecked="True"
                                       Checked="chkShowLineNumbers_Changed"
                                       Unchecked="chkShowLineNumbers_Changed" />
+
+                            <CheckBox x:Name="chkSeparateSystemLog"
+                                      Content="系统消息独立显示"
+                                      IsChecked="True"
+                                      Checked="chkSeparateSystemLog_Changed"
+                                      Unchecked="chkSeparateSystemLog_Changed" />
 
                             <CheckBox x:Name="chkPersistTraffic"
                                       Content="串口打开时不重置流量计数"
