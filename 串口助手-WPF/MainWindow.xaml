@@ -5,6 +5,7 @@
         Width="920" Height="560"
         MinWidth="720" MinHeight="500"
         FontFamily="Microsoft YaHei"
+        Closing="MainWindow_Closing"
         FontSize="12"
         Icon="icon.ico"
         TextOptions.TextFormattingMode="Display"
@@ -212,9 +213,15 @@
         <Grid Grid.Row="0" Margin="12,12,12,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="10" />
-                <ColumnDefinition Width="236" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="236" MinWidth="200" MaxWidth="400" />
             </Grid.ColumnDefinitions>
+
+            <GridSplitter Grid.Column="1" Width="4"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch"
+                          Background="{StaticResource SeparatorBrush}"
+                          ResizeBehavior="PreviousAndNext" />
 
             <!-- ========== 左侧：数据收发区 ========== -->
             <Grid Grid.Column="0">
