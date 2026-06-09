@@ -713,7 +713,7 @@ namespace 串口助手
             {
                 Title = title,
                 Width = 320,
-                Height = 145,
+                Height = 170,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this,
                 ResizeMode = ResizeMode.NoResize,
