@@ -34,8 +34,14 @@ namespace 串口助手
         private static readonly Color SuccessColor       = Color.FromRgb(0x10, 0xB9, 0x81);
         private static readonly Color LogSystemColor     = Color.FromRgb(0x99, 0x99, 0x99);
         private static readonly Color LogSentColor       = Color.FromRgb(0x00, 0x78, 0xD4);
-        private static readonly Color LogReceivedColor   = Color.FromRgb(0x2D, 0x2D, 0x2D);
-        private static readonly Color StatusDotIdle      = Color.FromRgb(0xCC, 0xCC, 0xCC);
+        private static readonly Color LogReceivedColorLight = Color.FromRgb(0x2D, 0x2D, 0x2D);
+        private static readonly Color LogReceivedColorDark  = Color.FromRgb(0xE0, 0xE0, 0xE0);
+        private static readonly Color StatusDotIdleLight    = Color.FromRgb(0xCC, 0xCC, 0xCC);
+        private static readonly Color StatusDotIdleDark     = Color.FromRgb(0x66, 0x66, 0x66);
+
+        //  运行时根据主题切换 ↓
+        private static Color LogReceivedColor = LogReceivedColorLight;
+        private static Color StatusDotIdle    = StatusDotIdleLight;
 
         // ——— 接收缓冲：跨 DataReceived 碎片拼成完整行 ———
 
@@ -65,6 +71,34 @@ namespace 串口助手
 
         // ——— 字体检测 ———
         private bool fontMissing = false;
+
+        // ——— 暗色主题 ———
+        private bool isDarkTheme = false;
+
+        private static readonly Dictionary<string, (Color Light, Color Dark)> ThemeMap =
+            new Dictionary<string, (Color, Color)>
+        {
+            ["WindowBgBrush"]      = (Color.FromRgb(0xF0,0xF0,0xF0), Color.FromRgb(0x1E,0x1E,0x1E)),
+            ["CardBgBrush"]        = (Color.FromRgb(0xFF,0xFF,0xFF), Color.FromRgb(0x2D,0x2D,0x2D)),
+            ["CardBorderBrush"]    = (Color.FromRgb(0xE0,0xE0,0xE0), Color.FromRgb(0x40,0x40,0x40)),
+            ["TextPrimaryBrush"]   = (Color.FromRgb(0x2D,0x2D,0x2D), Color.FromRgb(0xE0,0xE0,0xE0)),
+            ["TextSecondaryBrush"] = (Color.FromRgb(0x55,0x55,0x55), Color.FromRgb(0xBB,0xBB,0xBB)),
+            ["TextMutedBrush"]     = (Color.FromRgb(0x99,0x99,0x99), Color.FromRgb(0x88,0x88,0x88)),
+            ["PrimaryHoverBrush"]  = (Color.FromRgb(0x10,0x6E,0xBE), Color.FromRgb(0x1A,0x8C,0xE8)),
+            ["SecondaryBrush"]     = (Color.FromRgb(0x88,0x88,0x88), Color.FromRgb(0xAA,0xAA,0xAA)),
+            ["SecondaryHoverBrush"]= (Color.FromRgb(0x66,0x66,0x66), Color.FromRgb(0xBB,0xBB,0xBB)),
+            ["StatusBarBgBrush"]   = (Color.FromRgb(0xE6,0xE6,0xE6), Color.FromRgb(0x25,0x25,0x25)),
+            ["SeparatorBrush"]     = (Color.FromRgb(0xEE,0xEE,0xEE), Color.FromRgb(0x38,0x38,0x38)),
+            ["InputBorderBrush"]   = (Color.FromRgb(0xD0,0xD0,0xD0), Color.FromRgb(0x50,0x50,0x50)),
+            ["LogSystemBrush"]     = (Color.FromRgb(0x99,0x99,0x99), Color.FromRgb(0x88,0x88,0x88)),
+            ["LogReceivedBrush"]   = (Color.FromRgb(0x2D,0x2D,0x2D), Color.FromRgb(0xE0,0xE0,0xE0)),
+            ["TextSubtleBrush"]    = (Color.FromRgb(0xBB,0xBB,0xBB), Color.FromRgb(0x66,0x66,0x66)),
+            ["TextFaintBrush"]     = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x55,0x55,0x55)),
+            ["SecondaryHoverBgBrush"]   = (Color.FromRgb(0xF5,0xF5,0xF5), Color.FromRgb(0x38,0x38,0x38)),
+            ["ButtonDisabledBgBrush"]   = (Color.FromRgb(0xE8,0xE8,0xE8), Color.FromRgb(0x33,0x33,0x33)),
+            ["ReceiveAreaBgBrush"]      = (Color.FromRgb(0xFA,0xFA,0xFA), Color.FromRgb(0x22,0x22,0x22)),
+            ["StatusDotIdleBrush"]      = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x66,0x66,0x66)),
+        };
 
         public MainWindow()
         {
@@ -133,6 +167,12 @@ namespace 串口助手
                     this.Height = Math.Max(MinHeight, Math.Min(height, SystemParameters.PrimaryScreenHeight));
                 if (dict.TryGetValue("State",  out string s) && s == "Maximized")
                     this.WindowState = WindowState.Maximized;
+
+                // 加载主题偏好
+                if (dict.TryGetValue("Theme", out string theme) && theme == "Dark")
+                {
+                    ApplyTheme(true);
+                }
             }
             catch { /* 静默失败，使用默认值 */ }
         }
@@ -150,7 +190,8 @@ namespace 串口助手
                     $"Top={this.Top}",
                     $"Width={this.Width}",
                     $"Height={this.Height}",
-                    $"State={this.WindowState}"
+                    $"State={this.WindowState}",
+                    $"Theme={(isDarkTheme ? "Dark" : "Light")}"
                 };
                 System.IO.File.WriteAllLines(SettingsFilePath, lines);
             }
@@ -160,6 +201,45 @@ namespace 串口助手
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveWindowSettings();
+        }
+
+        // ==================================================================
+        //  暗色主题
+        // ==================================================================
+
+        private void ApplyTheme(bool dark)
+        {
+            isDarkTheme = dark;
+
+            foreach (var kv in ThemeMap)
+            {
+                var brush = FindResource(kv.Key) as SolidColorBrush;
+                if (brush == null) continue;
+
+                Color target = dark ? kv.Value.Dark : kv.Value.Light;
+                if (brush.IsFrozen)
+                    Resources[kv.Key] = new SolidColorBrush(target);
+                else
+                    brush.Color = target;
+            }
+
+            // 同步 C# 常量
+            LogReceivedColor = dark ? LogReceivedColorDark : LogReceivedColorLight;
+            StatusDotIdle    = dark ? StatusDotIdleDark    : StatusDotIdleLight;
+
+            // 同步代码创建的状态圆点画刷
+            if (statusDotBrush != null && !statusDotBrush.IsFrozen)
+                statusDotBrush.Color = isSerialOpen ? SuccessColor : StatusDotIdle;
+
+            // 切换按钮图标
+            btnThemeToggle.Content = dark ? "☀" : "🌙";
+
+            LogSystem($"---- 主题切换：{(dark ? "暗色" : "亮色")} ----");
+        }
+
+        private void btnThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyTheme(!isDarkTheme);
         }
 
         // ==================================================================

@@ -187,7 +187,7 @@
             <Setter Property="FontFamily"     Value="Sarasa Mono SC, Consolas, Courier New" />
             <Setter Property="FontSize"       Value="12" />
             <Setter Property="Foreground"     Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background"     Value="White" />
+            <Setter Property="Background"     Value="{StaticResource CardBgBrush}" />
             <Setter Property="BorderBrush"    Value="{StaticResource InputBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding"        Value="6,4" />
@@ -490,12 +490,24 @@
                                VerticalAlignment="Center" />
                 </StackPanel>
 
-                <TextBlock x:Name="tbPortInfo"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center"
-                           FontSize="11"
-                           Foreground="{StaticResource TextMutedBrush}"
-                           Visibility="Collapsed" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <Button x:Name="btnThemeToggle"
+                            Content="🌙"
+                            Width="26" Height="20"
+                            FontSize="11"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{StaticResource TextMutedBrush}"
+                            Cursor="Hand"
+                            Click="btnThemeToggle_Click"
+                            ToolTip="亮色 / 暗色主题" />
+                    <TextBlock x:Name="tbPortInfo"
+                               FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>
