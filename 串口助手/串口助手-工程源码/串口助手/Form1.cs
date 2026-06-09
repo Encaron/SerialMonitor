@@ -202,14 +202,14 @@ namespace 串口助手
         
         private void Form1_Load(object sender, EventArgs e)        //窗口加载事件
         {
-            cbBaudRate.SelectedIndex = 1;       //控件状态初始化
+            cbBaudRate.SelectedIndex = 3;       //控件状态初始化
             cbDataBits.SelectedIndex = 3;
             cbStopBits.SelectedIndex = 0;
             cbParity.SelectedIndex = 0;
-            cbReceiveMode.SelectedIndex = 0;
-            cbReceiveCoding.SelectedIndex = 0;
-            cbSendMode.SelectedIndex = 0;
-            cbSendCoding.SelectedIndex = 0;
+            cbReceiveMode.SelectedIndex = 1;
+            cbReceiveCoding.SelectedIndex = 1;
+            cbSendMode.SelectedIndex = 1;
+            cbSendCoding.SelectedIndex = 1;
             btnSend.Enabled = false;
             cbPortName.Enabled = true;
             cbBaudRate.Enabled = true;

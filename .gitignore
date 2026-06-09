@@ -1,3 +1,19 @@
 # Windows
 Thumbs.db
 Desktop.ini
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build artifacts
+bin/
+obj/
+*.pdb
+*.cache
+*.dll
+*.nlp
+zh-Hans/
