@@ -276,7 +276,7 @@
                         <TextBox Grid.Row="2"
                                  x:Name="tbSend"
                                  Style="{StaticResource SendTextBoxStyle}"
-                                 KeyDown="tbSend_KeyDown" />
+                                 PreviewKeyDown="tbSend_PreviewKeyDown" />
 
                         <Grid Grid.Row="3" Margin="0,12,0,0">
                             <TextBlock Text="Enter 发送  ·  Shift+Enter 换行"
