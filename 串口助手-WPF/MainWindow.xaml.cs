@@ -549,6 +549,25 @@ namespace 串口助手
             element.BeginAnimation(UIElement.OpacityProperty, anim);
         }
 
+        /// <summary>
+        /// 滑动开关动画：圆钮左→右 / 右→左（200ms）
+        /// </summary>
+        private void AnimateToggleSwitch(CheckBox cb)
+        {
+            if (cb == null) return;
+            cb.ApplyTemplate();
+            var translate = cb.Template.FindName("KnobTranslate", cb) as TranslateTransform;
+            if (translate == null) return;
+
+            double toX = cb.IsChecked == true ? 18 : 0;
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(
+                toX, TimeSpan.FromMilliseconds(200))
+            {
+                FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
+            };
+            translate.BeginAnimation(TranslateTransform.XProperty, anim);
+        }
+
         // ————————————————————————————————————————
         //  流量统计
         // ————————————————————————————————————————
@@ -1309,6 +1328,7 @@ namespace 串口助手
         private void chkAutoRepeat_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
 
             if (chkAutoRepeat.IsChecked == true)
             {
@@ -1358,6 +1378,7 @@ namespace 串口助手
         private void chkShowEcho_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
 
             if (chkShowEcho.IsChecked == true)
             {
@@ -1375,6 +1396,7 @@ namespace 串口助手
         private void chkShowLineNumbers_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
 
             _showLineNumbers = chkShowLineNumbers.IsChecked == true;
 
@@ -1390,6 +1412,7 @@ namespace 串口助手
         private void chkSeparateSystemLog_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
 
             bool separate = chkSeparateSystemLog.IsChecked == true;
 
@@ -1430,6 +1453,7 @@ namespace 串口助手
         private void chkAutoReconnect_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
 
             if (chkAutoReconnect.IsChecked == true)
                 LogSystem("---- 自动重连：开 ----");
@@ -1443,6 +1467,7 @@ namespace 串口助手
         private void chkPersistTraffic_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
 
             if (chkPersistTraffic.IsChecked == true)
                 LogSystem("---- 流量计数持久化：开 ----");
