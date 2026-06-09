@@ -255,6 +255,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Text="发送区" Style="{StaticResource CardHeaderStyle}" />
@@ -265,7 +266,13 @@
                                  Style="{StaticResource SendTextBoxStyle}"
                                  KeyDown="tbSend_KeyDown" />
 
-                        <StackPanel Grid.Row="3" Orientation="Horizontal"
+                        <TextBlock Grid.Row="3"
+                                   Text="Enter 发送  ·  Shift+Enter 换行"
+                                   FontSize="10"
+                                   Foreground="#BBBBBB"
+                                   Margin="0,4,0,0" />
+
+                        <StackPanel Grid.Row="4" Orientation="Horizontal"
                                     HorizontalAlignment="Right" Margin="0,10,0,0">
                             <Button Content="清空发送区"
                                     Style="{StaticResource SecondaryButtonStyle}"
