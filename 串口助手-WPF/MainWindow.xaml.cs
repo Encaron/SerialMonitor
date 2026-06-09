@@ -1385,19 +1385,43 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 系统消息独立显示 — 切换时写一条标记 + 控制 ListBox 显隐
+        /// 系统消息独立显示 — 淡入淡出 + 写标记
         /// </summary>
         private void chkSeparateSystemLog_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
 
             bool separate = chkSeparateSystemLog.IsChecked == true;
-            lbSystemLog.Visibility = separate ? Visibility.Visible : Visibility.Collapsed;
 
             if (separate)
+            {
+                // 显示：透明→不透明
+                lbSystemLog.Visibility = Visibility.Visible;
+                lbSystemLog.Opacity = 0;
+                var fadeIn = new System.Windows.Media.Animation.DoubleAnimation(
+                    1.0, TimeSpan.FromMilliseconds(200))
+                {
+                    FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
+                };
+                lbSystemLog.BeginAnimation(UIElement.OpacityProperty, fadeIn);
                 LogSystem("---- 系统消息独立显示：开 ----");
+            }
             else
+            {
+                // 隐藏：不透明→透明，完成后收起
+                var fadeOut = new System.Windows.Media.Animation.DoubleAnimation(
+                    0.0, TimeSpan.FromMilliseconds(200))
+                {
+                    FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
+                };
+                fadeOut.Completed += (s2, e2) =>
+                {
+                    lbSystemLog.Visibility = Visibility.Collapsed;
+                    lbSystemLog.BeginAnimation(UIElement.OpacityProperty, null);
+                };
+                lbSystemLog.BeginAnimation(UIElement.OpacityProperty, fadeOut);
                 LogSystem("---- 系统消息独立显示：关 ----");
+            }
         }
 
         /// <summary>
