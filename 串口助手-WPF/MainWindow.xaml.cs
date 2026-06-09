@@ -258,6 +258,8 @@ namespace 串口助手
                     $"LineEnding={cbLineEnding.SelectedItem}",
                     $"AutoClear={(chkAutoClear.IsChecked == true ? "1" : "0")}",
                     $"AutoReconnect={(chkAutoReconnect.IsChecked == true ? "1" : "0")}",
+                    $"ShowEcho={(chkShowEcho.IsChecked == true ? "1" : "0")}",
+                    $"ShowLineNumbers={(chkShowLineNumbers.IsChecked == true ? "1" : "0")}",
                     $"PersistTraffic={(chkPersistTraffic.IsChecked == true ? "1" : "0")}",
                     $"SeparateSystemLog={(chkSeparateSystemLog.IsChecked == true ? "1" : "0")}",
                 };
@@ -299,6 +301,10 @@ namespace 串口助手
                     chkAutoReconnect.IsChecked = ar == "1";
                 if (dict.TryGetValue("PersistTraffic", out string pt))
                     chkPersistTraffic.IsChecked = pt == "1";
+                if (dict.TryGetValue("ShowEcho", out string se))
+                    chkShowEcho.IsChecked = se == "1";
+                if (dict.TryGetValue("ShowLineNumbers", out string sln))
+                    chkShowLineNumbers.IsChecked = sln == "1";
                 if (dict.TryGetValue("SeparateSystemLog", out string ssl))
                     chkSeparateSystemLog.IsChecked = ssl == "1";
             }
