@@ -252,7 +252,11 @@
                                           LineHeight="2" />
                         </RichTextBox>
 
-                        <StackPanel Grid.Row="3" HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                            <Button Content="导出日志"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,8,0"
+                                    Click="btnExportLog_Click" />
                             <Button Content="清空接收区"
                                     Style="{StaticResource SecondaryButtonStyle}"
                                     Click="btnClearReceive_Click" />
@@ -273,12 +277,21 @@
                         <TextBlock Grid.Row="0" Text="发送区" Style="{StaticResource CardHeaderStyle}" />
                         <Border Grid.Row="1" Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,0,0,10" />
 
-                        <TextBox Grid.Row="2"
-                                 x:Name="tbSend"
-                                 Style="{StaticResource SendTextBoxStyle}"
-                                 PreviewKeyDown="tbSend_PreviewKeyDown" />
+                        <Grid Grid.Row="2">
+                            <TextBox x:Name="tbSend"
+                                     Style="{StaticResource SendTextBoxStyle}"
+                                     PreviewKeyDown="tbSend_PreviewKeyDown"
+                                     TextChanged="tbSend_TextChanged" />
+                            <TextBlock x:Name="tbSendPlaceholder"
+                                       Text="输入要发送的内容…"
+                                       Foreground="{StaticResource TextSubtleBrush}"
+                                       FontFamily="Microsoft YaHei"
+                                       FontSize="12"
+                                       Padding="8,6,0,0"
+                                       IsHitTestVisible="False" />
+                        </Grid>
 
-                        <Grid Grid.Row="3" Margin="0,12,0,0">
+                        <Grid Grid.Row="3" Margin="0,8,0,0">
                             <TextBlock Text="Enter 发送  ·  Shift+Enter 换行"
                                        FontSize="10"
                                        Foreground="{StaticResource TextSubtleBrush}"

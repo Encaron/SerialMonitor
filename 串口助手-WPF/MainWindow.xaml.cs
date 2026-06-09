@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Linq;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -59,6 +60,9 @@ namespace 串口助手
         // ——— 动画画刷（非冻结，支持 ColorAnimation）———
         private SolidColorBrush statusDotBrush;
 
+        // ——— 字体检测 ———
+        private bool fontMissing = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -66,6 +70,17 @@ namespace 串口助手
             // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
             statusDotBrush = new SolidColorBrush(StatusDotIdle);
             statusDot.Fill = statusDotBrush;
+
+            // 检测更纱黑体是否安装（未安装 → 状态栏琥珀色提示）
+            bool hasSarasa = Fonts.SystemFontFamilies.Any(f =>
+                f.Source.IndexOf("Sarasa Mono SC", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!hasSarasa)
+            {
+                fontMissing = true;
+                tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
+                tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
+                tbPortInfo.Visibility = Visibility.Visible;
+            }
 
             // 空闲刷新定时器：数据停止到达 100ms 后输出缓冲区剩余文本
             flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -346,6 +361,7 @@ namespace 串口助手
                 AnimateBrushColor(statusDotBrush, SuccessColor);
                 tbStatusText.Text = "已连接";
                 tbPortInfo.Text = $"{cbPortName.Text} @ {cbBaudRate.Text}";
+                tbPortInfo.Foreground = new SolidColorBrush(LogSystemColor);
                 tbPortInfo.Visibility = Visibility.Visible;
 
                 // 日志
@@ -391,7 +407,16 @@ namespace 串口助手
 
             AnimateBrushColor(statusDotBrush, StatusDotIdle);
             tbStatusText.Text = "就绪";
-            tbPortInfo.Visibility = Visibility.Collapsed;
+            if (fontMissing)
+            {
+                tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
+                tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
+                tbPortInfo.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                tbPortInfo.Visibility = Visibility.Collapsed;
+            }
         }
 
         // ==================================================================
@@ -455,6 +480,36 @@ namespace 串口助手
         private void btnClearSend_Click(object sender, RoutedEventArgs e)
         {
             tbSend.Clear();
+            tbSendPlaceholder.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// 发送区 placeholder：有内容时隐藏水印文字
+        /// </summary>
+        private void tbSend_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            tbSendPlaceholder.Visibility = string.IsNullOrEmpty(tbSend.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 导出接收区日志为 .txt 文件
+        /// </summary>
+        private void btnExportLog_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "文本文件 (*.txt)|*.txt|日志文件 (*.log)|*.log|所有文件 (*.*)|*.*",
+                DefaultExt = "txt",
+                FileName = $"串口日志_{DateTime.Now:yyyyMMdd_HHmmss}"
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                var range = new TextRange(rtReceive.Document.ContentStart, rtReceive.Document.ContentEnd);
+                System.IO.File.WriteAllText(dialog.FileName, range.Text, System.Text.Encoding.UTF8);
+                LogSystem($"---- 日志已导出至 {dialog.FileName} ----");
+            }
         }
 
         private void cbReceiveMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
