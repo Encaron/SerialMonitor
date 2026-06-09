@@ -493,15 +493,16 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <Button x:Name="btnThemeToggle"
                             Content="🌙"
-                            Width="26" Height="20"
-                            FontSize="11"
+                            Width="30" Height="22"
+                            FontSize="13"
                             Padding="0"
                             Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="{StaticResource TextMutedBrush}"
+                            BorderBrush="{StaticResource CardBorderBrush}"
+                            BorderThickness="1"
+                            Foreground="{StaticResource TextSecondaryBrush}"
                             Cursor="Hand"
                             Click="btnThemeToggle_Click"
-                            ToolTip="亮色 / 暗色主题" />
+                            ToolTip="切换亮色 / 暗色主题" />
                     <TextBlock x:Name="tbPortInfo"
                                FontSize="11"
                                Foreground="{StaticResource TextMutedBrush}"
