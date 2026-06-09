@@ -188,6 +188,10 @@ namespace 串口助手
             // 加载用户偏好（需在 InitComboBoxItems + SetDefaultValues 之后）
             LoadPreferences();
 
+            // 应用系统消息独立显示的初始可见性
+            lbSystemLog.Visibility = chkSeparateSystemLog.IsChecked == true
+                ? Visibility.Visible : Visibility.Collapsed;
+
             // 加载快捷发送按钮
             LoadQuickSends();
             RefreshQuickSendButtons();
@@ -255,6 +259,7 @@ namespace 串口助手
                     $"AutoClear={(chkAutoClear.IsChecked == true ? "1" : "0")}",
                     $"AutoReconnect={(chkAutoReconnect.IsChecked == true ? "1" : "0")}",
                     $"PersistTraffic={(chkPersistTraffic.IsChecked == true ? "1" : "0")}",
+                    $"SeparateSystemLog={(chkSeparateSystemLog.IsChecked == true ? "1" : "0")}",
                 };
                 System.IO.File.WriteAllLines(SettingsFilePath, lines);
             }
@@ -294,6 +299,8 @@ namespace 串口助手
                     chkAutoReconnect.IsChecked = ar == "1";
                 if (dict.TryGetValue("PersistTraffic", out string pt))
                     chkPersistTraffic.IsChecked = pt == "1";
+                if (dict.TryGetValue("SeparateSystemLog", out string ssl))
+                    chkSeparateSystemLog.IsChecked = ssl == "1";
             }
             catch { /* 静默失败 */ }
         }
@@ -412,10 +419,21 @@ namespace 串口助手
 
         /// <summary>
         /// 系统消息（灰色）：打开/关闭串口等
+        /// 独立显示模式 → lbSystemLog；否则回退到 RichTextBox
         /// </summary>
         private void LogSystem(string text)
         {
-            AppendColoredLine(text, LogSystemColor);
+            if (chkSeparateSystemLog.IsChecked == true)
+            {
+                lbSystemLog.Items.Add(text);
+                while (lbSystemLog.Items.Count > 50)
+                    lbSystemLog.Items.RemoveAt(0);
+                lbSystemLog.ScrollIntoView(lbSystemLog.Items[lbSystemLog.Items.Count - 1]);
+            }
+            else
+            {
+                AppendColoredLine(text, LogSystemColor);
+            }
         }
 
         /// <summary>
@@ -1364,6 +1382,22 @@ namespace 串口助手
                 LogSystem("---- 行号显示：开 ----");
             else
                 LogSystem("---- 行号显示：关 ----");
+        }
+
+        /// <summary>
+        /// 系统消息独立显示 — 切换时写一条标记 + 控制 ListBox 显隐
+        /// </summary>
+        private void chkSeparateSystemLog_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+
+            bool separate = chkSeparateSystemLog.IsChecked == true;
+            lbSystemLog.Visibility = separate ? Visibility.Visible : Visibility.Collapsed;
+
+            if (separate)
+                LogSystem("---- 系统消息独立显示：开 ----");
+            else
+                LogSystem("---- 系统消息独立显示：关 ----");
         }
 
         /// <summary>
