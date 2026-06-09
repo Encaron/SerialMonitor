@@ -62,6 +62,10 @@ namespace 串口助手
 
         private const int MaxLogLines = 2000;
 
+        // ——— 流量统计 ———
+        private long txByteCount = 0;
+        private long rxByteCount = 0;
+
         // ——— 发送历史 ———
         private List<string> sendHistory = new List<string>();
         private const int MaxSendHistory = 20;
@@ -418,6 +422,73 @@ namespace 串口助手
         }
 
         // ————————————————————————————————————————
+        //  流量统计
+        // ————————————————————————————————————————
+
+        /// <summary>
+        /// 字节数 → 可读格式：B / KB / MB
+        /// </summary>
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes < 1024)
+                return $"{bytes} B";
+            else if (bytes < 1024 * 1024)
+                return $"{bytes / 1024.0:F1} KB";
+            else
+                return $"{bytes / (1024.0 * 1024.0):F1} MB";
+        }
+
+        /// <summary>
+        /// 更新状态栏流量显示，串口关闭时显示 --
+        /// </summary>
+        private void UpdateTrafficDisplay()
+        {
+            if (chkShowTraffic.IsChecked != true)
+            {
+                tbTraffic.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (isSerialOpen)
+            {
+                tbTraffic.Text = $"TX: {FormatBytes(txByteCount)} ↑  RX: {FormatBytes(rxByteCount)} ↓";
+                tbTraffic.Foreground = FindResource("TextSecondaryBrush") as SolidColorBrush;
+                tbTraffic.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                tbTraffic.Text = "TX: -- ↑  RX: -- ↓";
+                tbTraffic.Foreground = new SolidColorBrush(LogSystemColor);
+                tbTraffic.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>
+        /// 右键点击流量文字 → 重置计数
+        /// </summary>
+        private void tbTraffic_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            txByteCount = 0;
+            rxByteCount = 0;
+            UpdateTrafficDisplay();
+            LogSystem("---- 流量计数已重置 ----");
+        }
+
+        /// <summary>
+        /// 流量统计开关
+        /// </summary>
+        private void chkShowTraffic_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            UpdateTrafficDisplay();
+
+            if (chkShowTraffic.IsChecked == true)
+                LogSystem("---- 流量统计：开 ----");
+            else
+                LogSystem("---- 流量统计：关 ----");
+        }
+
+        // ————————————————————————————————————————
         //  发送历史
         // ————————————————————————————————————————
 
@@ -529,6 +600,11 @@ namespace 串口助手
                 tbPortInfo.Foreground = new SolidColorBrush(LogSystemColor);
                 tbPortInfo.Visibility = Visibility.Visible;
 
+                // 重置流量计数
+                txByteCount = 0;
+                rxByteCount = 0;
+                UpdateTrafficDisplay();
+
                 // 日志
                 LogSystem($"---- 已打开串行端口 {cbPortName.Text} ----");
             }
@@ -558,6 +634,8 @@ namespace 串口助手
 
             autoSendTimer.Stop();
             isSerialOpen = false;
+
+            UpdateTrafficDisplay();
 
             btnOpen.Content = "打开串口";
             btnOpen.Background = new SolidColorBrush(PrimaryColor);
@@ -856,12 +934,16 @@ namespace 串口助手
             {
                 byte[] dataSend = HexToBytes(rawText);
                 serialPort.Write(dataSend, 0, dataSend.Length);
+                txByteCount += dataSend.Length;
+                UpdateTrafficDisplay();
                 LogSent(rawText);
             }
             else if (sendMode == "文本模式")
             {
                 byte[] dataSend = TextToBytes(rawText, sendCoding);
                 serialPort.Write(dataSend, 0, dataSend.Length);
+                txByteCount += dataSend.Length;
+                UpdateTrafficDisplay();
                 LogSent(rawText);
             }
         }
@@ -878,6 +960,8 @@ namespace 串口助手
             int count = serialPort.BytesToRead;
             byte[] dataReceive = new byte[count];
             serialPort.Read(dataReceive, 0, count);
+
+            rxByteCount += count;
 
             Dispatcher.Invoke(() =>
             {
@@ -915,6 +999,8 @@ namespace 串口助手
                         flushTimer.Start();
                     }
                 }
+
+                UpdateTrafficDisplay();
             });
         }
 
