@@ -158,7 +158,7 @@ namespace 串口助手
             flushTimer.Tick += FlushReceiveBuffer;
 
             // 日志批量刷新定时器：高频接收时合并 UI 更新，避免 RichTextBox 逐行布局卡顿
-            _batchFlushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            _batchFlushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
             _batchFlushTimer.Tick += (s, args) => FlushLogBatch();
 
             // 自动重连定时器：设备重新插入后延迟检测并重连
