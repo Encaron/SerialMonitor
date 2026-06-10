@@ -46,8 +46,8 @@
 
         <!-- ===== 卡片样式 ===== -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
-            <Setter Property="Background"      Value="{StaticResource CardBgBrush}" />
-            <Setter Property="BorderBrush"     Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="Background"      Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush"     Value="{DynamicResource CardBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius"    Value="6" />
             <Setter Property="Padding"         Value="16" />
@@ -63,21 +63,21 @@
         <Style x:Key="CardHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize"       Value="13" />
             <Setter Property="FontWeight"     Value="SemiBold" />
-            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Margin"          Value="0,0,0,12" />
         </Style>
 
         <!-- ===== 表单标签 ===== -->
         <Style x:Key="FormLabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize"       Value="12" />
-            <Setter Property="Foreground"      Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Foreground"      Value="{DynamicResource TextSecondaryBrush}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <!-- ===== CheckBox → Toggle Switch（滑动开关）===== -->
         <Style TargetType="CheckBox">
             <Setter Property="FontSize"       Value="11" />
-            <Setter Property="Foreground"     Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Foreground"     Value="{DynamicResource TextSecondaryBrush}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Margin"         Value="0,4,0,0" />
             <Setter Property="Template">
@@ -95,7 +95,7 @@
                                 <Border x:Name="SwitchTrack"
                                         Width="40" Height="22"
                                         CornerRadius="11"
-                                        Background="{StaticResource InputBorderBrush}"
+                                        Background="{DynamicResource InputBorderBrush}"
                                         SnapsToDevicePixels="True" />
                                 <Ellipse x:Name="Knob"
                                          Width="18" Height="18"
@@ -111,7 +111,7 @@
 
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="SwitchTrack" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                                <Setter TargetName="SwitchTrack" Property="Background" Value="{DynamicResource PrimaryBrush}" />
                                 <Setter TargetName="Knob" Property="Canvas.Left" Value="20" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -128,8 +128,8 @@
             <Setter Property="FontSize"      Value="12" />
             <Setter Property="FontWeight"    Value="Normal" />
             <Setter Property="Foreground"    Value="White" />
-            <Setter Property="Background"    Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="BorderBrush"   Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Background"    Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="BorderBrush"   Value="{DynamicResource PrimaryBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor"        Value="Hand" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -149,17 +149,17 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background"  Value="{StaticResource PrimaryHoverBrush}" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}" />
+                                <Setter TargetName="border" Property="Background"  Value="{DynamicResource PrimaryHoverBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background"  Value="{StaticResource PrimaryPressedBrush}" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryPressedBrush}" />
+                                <Setter TargetName="border" Property="Background"  Value="{DynamicResource PrimaryPressedBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryPressedBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{StaticResource TextSubtleBrush}" />
-                                <Setter TargetName="border" Property="Background"  Value="{StaticResource ButtonDisabledBgBrush}" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextSubtleBrush}" />
+                                <Setter TargetName="border" Property="Background"  Value="{DynamicResource ButtonDisabledBgBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -173,9 +173,9 @@
             <Setter Property="MinWidth"      Value="64" />
             <Setter Property="Padding"       Value="14,0" />
             <Setter Property="FontSize"      Value="12" />
-            <Setter Property="Foreground"    Value="{StaticResource TextSecondaryBrush}" />
-            <Setter Property="Background"    Value="{StaticResource CardBgBrush}" />
-            <Setter Property="BorderBrush"   Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="Foreground"    Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="Background"    Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush"   Value="{DynamicResource CardBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor"        Value="Hand" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -195,12 +195,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                                <Setter TargetName="border" Property="Background"  Value="{StaticResource SecondaryHoverBgBrush}" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TextFaintBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter TargetName="border" Property="Background"  Value="{DynamicResource SecondaryHoverBgBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource TextFaintBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFaintBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -212,9 +212,9 @@
         <Style TargetType="ComboBox">
             <Setter Property="Height"          Value="28" />
             <Setter Property="FontSize"        Value="12" />
-            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background"      Value="{StaticResource CardBgBrush}" />
-            <Setter Property="BorderBrush"     Value="{StaticResource InputBorderBrush}" />
+            <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"      Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush"     Value="{DynamicResource InputBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding"         Value="6,2" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -240,7 +240,7 @@
                                                                   VerticalAlignment="Center"
                                                                   Margin="6,0,20,0" />
                                                 <TextBlock Text="▾" FontSize="10"
-                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           Foreground="{DynamicResource TextMutedBrush}"
                                                            HorizontalAlignment="Right"
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,6,0" />
@@ -265,8 +265,8 @@
                                 <Grid MinWidth="{TemplateBinding ActualWidth}"
                                       MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                     <Border x:Name="DropDownBorder"
-                                            Background="{StaticResource CardBgBrush}"
-                                            BorderBrush="{StaticResource CardBorderBrush}"
+                                            Background="{DynamicResource CardBgBrush}"
+                                            BorderBrush="{DynamicResource CardBorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="3"
                                             Margin="0,1,0,0"
@@ -286,16 +286,16 @@
 
         <!-- ===== 暗色 ContextMenu / MenuItem ===== -->
         <Style TargetType="ContextMenu">
-            <Setter Property="Background"      Value="{StaticResource CardBgBrush}" />
-            <Setter Property="BorderBrush"     Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="Background"      Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush"     Value="{DynamicResource CardBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Padding"         Value="2" />
         </Style>
 
         <Style TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Padding"    Value="8,4" />
         </Style>
 
@@ -333,9 +333,9 @@
             <Setter Property="FontSize"      Value="11" />
             <Setter Property="Padding"       Value="8,0" />
             <Setter Property="Margin"        Value="0,0,4,4" />
-            <Setter Property="Foreground"    Value="{StaticResource TextSecondaryBrush}" />
-            <Setter Property="Background"    Value="{StaticResource SecondaryHoverBgBrush}" />
-            <Setter Property="BorderBrush"   Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="Foreground"    Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="Background"    Value="{DynamicResource SecondaryHoverBgBrush}" />
+            <Setter Property="BorderBrush"   Value="{DynamicResource CardBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor"        Value="Hand" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -354,8 +354,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="chip" Property="Background"  Value="{StaticResource CardBorderBrush}" />
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter TargetName="chip" Property="Background"  Value="{DynamicResource CardBorderBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -367,9 +367,9 @@
         <Style x:Key="SendTextBoxStyle" TargetType="TextBox">
             <Setter Property="FontFamily"     Value="Sarasa Mono SC, Consolas, Courier New" />
             <Setter Property="FontSize"       Value="12" />
-            <Setter Property="Foreground"     Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Background"     Value="{StaticResource CardBgBrush}" />
-            <Setter Property="BorderBrush"    Value="{StaticResource InputBorderBrush}" />
+            <Setter Property="Foreground"     Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background"     Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush"    Value="{DynamicResource InputBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding"        Value="6,4" />
             <Setter Property="AcceptsReturn"  Value="True" />
@@ -384,7 +384,7 @@
     </Window.Resources>
 
     <!-- ===== 主布局 ===== -->
-    <Grid Background="{StaticResource WindowBgBrush}">
+    <Grid Background="{DynamicResource WindowBgBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -401,7 +401,7 @@
             <GridSplitter Grid.Column="1" Width="4"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Stretch"
-                          Background="{StaticResource SeparatorBrush}"
+                          Background="{DynamicResource SeparatorBrush}"
                           ResizeBehavior="PreviousAndNext" />
 
             <!-- ========== 左侧：数据收发区 ========== -->
@@ -413,7 +413,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- 接收区卡片 -->
-                <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}">
+                <Border Grid.Row="0" Style="{DynamicResource CardBorderStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -422,8 +422,8 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Text="接收区" Style="{StaticResource CardHeaderStyle}" />
-                        <Border Grid.Row="1" Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,0,0,10" />
+                        <TextBlock Grid.Row="0" Text="接收区" Style="{DynamicResource CardHeaderStyle}" />
+                        <Border Grid.Row="1" Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,0,0,10" />
 
                         <DockPanel Grid.Row="2">
                             <ListBox x:Name="lbSystemLog"
@@ -431,44 +431,44 @@
                                      Height="36"
                                      MinHeight="18"
                                      MaxHeight="72"
-                                     Background="{StaticResource SecondaryHoverBgBrush}"
-                                     BorderBrush="{StaticResource InputBorderBrush}"
+                                     Background="{DynamicResource SecondaryHoverBgBrush}"
+                                     BorderBrush="{DynamicResource InputBorderBrush}"
                                      BorderThickness="3,1,1,1"
                                      FontFamily="Sarasa Mono SC, Consolas, Courier New"
                                      FontSize="11"
-                                     Foreground="{StaticResource TextMutedBrush}"
+                                     Foreground="{DynamicResource TextMutedBrush}"
                                      Padding="4,2"
                                      Margin="0,0,0,4"
                                      Visibility="Collapsed" />
                             <RichTextBox x:Name="rtReceive"
                                          IsReadOnly="True"
-                                         Background="{StaticResource ReceiveAreaBgBrush}"
-                                         BorderBrush="{StaticResource InputBorderBrush}"
+                                         Background="{DynamicResource ReceiveAreaBgBrush}"
+                                         BorderBrush="{DynamicResource InputBorderBrush}"
                                          BorderThickness="1"
                                          Padding="6,4"
                                          VerticalScrollBarVisibility="Auto"
                                          SnapsToDevicePixels="True">
                                 <FlowDocument FontFamily="Sarasa Mono SC, Consolas, Courier New"
                                               FontSize="12"
-                                              Foreground="{StaticResource LogReceivedBrush}"
+                                              Foreground="{DynamicResource LogReceivedBrush}"
                                               LineHeight="2" />
                             </RichTextBox>
                         </DockPanel>
 
                         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
                             <Button Content="导出日志"
-                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
                                     Margin="0,0,8,0"
                                     Click="btnExportLog_Click" />
                             <Button Content="清空接收区"
-                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
                                     Click="btnClearReceive_Click" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
                 <!-- 发送区卡片 -->
-                <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+                <Border Grid.Row="2" Style="{DynamicResource CardBorderStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -478,8 +478,8 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Text="发送区" Style="{StaticResource CardHeaderStyle}" />
-                        <Border Grid.Row="1" Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,0,0,10" />
+                        <TextBlock Grid.Row="0" Text="发送区" Style="{DynamicResource CardHeaderStyle}" />
+                        <Border Grid.Row="1" Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,0,0,10" />
 
                         <!-- 快捷发送按钮条 -->
                         <WrapPanel Grid.Row="2" x:Name="quickSendPanel"
@@ -488,12 +488,12 @@
 
                         <Grid Grid.Row="3">
                             <TextBox x:Name="tbSend"
-                                     Style="{StaticResource SendTextBoxStyle}"
+                                     Style="{DynamicResource SendTextBoxStyle}"
                                      PreviewKeyDown="tbSend_PreviewKeyDown"
                                      TextChanged="tbSend_TextChanged" />
                             <TextBlock x:Name="tbSendPlaceholder"
                                        Text="输入要发送的内容…"
-                                       Foreground="{StaticResource TextSubtleBrush}"
+                                       Foreground="{DynamicResource TextSubtleBrush}"
                                        FontFamily="Microsoft YaHei"
                                        FontSize="12"
                                        Padding="8,6,0,0"
@@ -503,24 +503,24 @@
                         <Grid Grid.Row="4" Margin="0,8,0,0">
                             <TextBlock Text="Enter 发送  ·  Shift+Enter 换行"
                                        FontSize="10"
-                                       Foreground="{StaticResource TextSubtleBrush}"
+                                       Foreground="{DynamicResource TextSubtleBrush}"
                                        VerticalAlignment="Center" />
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Right">
                                 <Button Content="清空发送区"
-                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Style="{DynamicResource SecondaryButtonStyle}"
                                         Margin="0,0,8,0"
                                         Click="btnClearSend_Click" />
                                 <Button Content="▾"
                                         x:Name="btnSendHistory"
                                         Width="26" Height="32"
                                         FontSize="10"
-                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Style="{DynamicResource SecondaryButtonStyle}"
                                         Click="btnSendHistory_Click"
                                         ToolTip="发送历史" />
                                 <Button Content="发送"
                                         x:Name="btnSend"
-                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
                                         Margin="4,0,0,0"
                                         Click="btnSend_Click" />
                             </StackPanel>
@@ -533,9 +533,9 @@
             <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <!-- 串口配置卡片 -->
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                    <Border Style="{DynamicResource CardBorderStyle}" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="串口配置" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+                            <TextBlock Text="串口配置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12" />
 
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -552,26 +552,26 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="串口号" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="串口号" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbPortName"
                                           DropDownOpened="cbPortName_DropDownOpened" />
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="波特率" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="波特率" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbBaudRate" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="数据位" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="数据位" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbDataBits" />
 
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="停止位" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="停止位" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbStopBits" />
 
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="校验位" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="校验位" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="4" Grid.Column="1" x:Name="cbParity" />
 
                                 <Button Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                                         x:Name="btnOpen"
                                         Content="打开串口"
-                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
                                         Height="32"
                                         Click="btnOpen_Click" />
                                 <CheckBox Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
@@ -584,9 +584,9 @@
                     </Border>
 
                     <!-- 接收设置卡片 -->
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                    <Border Style="{DynamicResource CardBorderStyle}" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="接收设置" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+                            <TextBlock Text="接收设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12" />
 
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -598,23 +598,23 @@
                                     <RowDefinition Height="32" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="接收模式" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="接收模式" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbReceiveMode"
                                           SelectionChanged="cbReceiveMode_SelectionChanged" />
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbReceiveCoding"
                                           SelectionChanged="cbReceiveCoding_SelectionChanged" />
                             </Grid>
 
-                            <Border Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,8" />
+                            <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8" />
 
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="时间戳" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Column="0" Text="时间戳" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Column="1" x:Name="cbTimestampFormat"
                                           SelectionChanged="cbTimestampFormat_SelectionChanged" />
                             </Grid>
@@ -645,9 +645,9 @@
                     </Border>
 
                     <!-- 发送设置卡片 -->
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                    <Border Style="{DynamicResource CardBorderStyle}" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="发送设置" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+                            <TextBlock Text="发送设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12" />
 
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -659,23 +659,23 @@
                                     <RowDefinition Height="32" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="发送模式" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="发送模式" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbSendMode"
                                           SelectionChanged="cbSendMode_SelectionChanged" />
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="文本编码" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbSendCoding"
                                           SelectionChanged="cbSendCoding_SelectionChanged" />
                             </Grid>
 
-                            <Border Height="1" Background="{StaticResource SeparatorBrush}" Margin="0,8" />
+                            <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8" />
 
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="换行符" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Column="0" Text="换行符" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Column="1" x:Name="cbLineEnding" />
                             </Grid>
 
@@ -688,13 +688,13 @@
                                     <ColumnDefinition Width="56" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="间隔(ms)" Style="{StaticResource FormLabelStyle}" />
+                                <TextBlock Grid.Column="0" Text="间隔(ms)" Style="{DynamicResource FormLabelStyle}" />
                                 <TextBox Grid.Column="1" x:Name="tbRepeatInterval"
                                          Height="28"
                                          FontFamily="Microsoft YaHei" FontSize="12"
-                                         Foreground="{StaticResource TextPrimaryBrush}"
-                                         Background="{StaticResource CardBgBrush}"
-                                         BorderBrush="{StaticResource InputBorderBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         Background="{DynamicResource CardBgBrush}"
+                                         BorderBrush="{DynamicResource InputBorderBrush}"
                                          BorderThickness="1" Padding="6,2"
                                          Text="1000"
                                          LostFocus="tbRepeatInterval_LostFocus" />
@@ -706,14 +706,14 @@
                     </Border>
 
                     <!-- 外观卡片 -->
-                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                    <Border Style="{DynamicResource CardBorderStyle}" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="外观" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+                            <TextBlock Text="外观" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12" />
                             <Button x:Name="btnThemeSwitch"
                                     Height="36"
                                     FontSize="13"
                                     Content="🌙 暗色模式"
-                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
                                     Click="btnThemeSwitch_Click" />
                         </StackPanel>
                     </Border>
@@ -723,24 +723,24 @@
 
         <!-- ===== 状态栏 ===== -->
         <Border Grid.Row="1"
-                Background="{StaticResource StatusBarBgBrush}"
+                Background="{DynamicResource StatusBarBgBrush}"
                 Padding="16,4"
                 SnapsToDevicePixels="True">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse x:Name="statusDot"
                              Width="8" Height="8"
-                             Fill="{StaticResource StatusDotIdleBrush}"
+                             Fill="{DynamicResource StatusDotIdleBrush}"
                              Margin="0,0,6,0"
                              VerticalAlignment="Center" />
                     <TextBlock x:Name="tbStatusText"
                                Text="就绪"
                                FontSize="11"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" />
                     <TextBlock x:Name="tbTraffic"
                                FontSize="11"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"
                                Margin="16,0,0,0"
                                Visibility="Collapsed"
@@ -752,7 +752,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <TextBlock x:Name="tbPortInfo"
                                FontSize="11"
-                               Foreground="{StaticResource TextMutedBrush}"
+                               Foreground="{DynamicResource TextMutedBrush}"
                                VerticalAlignment="Center"
                                Visibility="Collapsed" />
                 </StackPanel>
