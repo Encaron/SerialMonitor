@@ -339,13 +339,13 @@ namespace 串口助手
             if (statusDotBrush != null && !statusDotBrush.IsFrozen)
                 statusDotBrush.Color = isSerialOpen ? SuccessColor : StatusDotIdle;
 
-            // 切换按钮图标
-            btnThemeToggle.Content = dark ? "☀" : "🌙";
+            // 切换按钮文字
+            btnThemeSwitch.Content = dark ? "☀ 亮色模式" : "🌙 暗色模式";
 
             LogSystem($"---- 主题切换：{(dark ? "暗色" : "亮色")} ----");
         }
 
-        private void btnThemeToggle_Click(object sender, RoutedEventArgs e)
+        private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)
         {
             ApplyTheme(!isDarkTheme);
         }

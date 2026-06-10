@@ -704,6 +704,19 @@
                                       Content="发送后清空发送区" />
                         </StackPanel>
                     </Border>
+
+                    <!-- 外观卡片 -->
+                    <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="外观" Style="{StaticResource CardHeaderStyle}" Margin="0,0,0,12" />
+                            <Button x:Name="btnThemeSwitch"
+                                    Height="36"
+                                    FontSize="13"
+                                    Content="🌙 暗色模式"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="btnThemeSwitch_Click" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
@@ -737,18 +750,6 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <Button x:Name="btnThemeToggle"
-                            Content="🌙"
-                            Width="30" Height="22"
-                            FontSize="13"
-                            Padding="0"
-                            Background="Transparent"
-                            BorderBrush="{StaticResource CardBorderBrush}"
-                            BorderThickness="1"
-                            Foreground="{StaticResource TextSecondaryBrush}"
-                            Cursor="Hand"
-                            Click="btnThemeToggle_Click"
-                            ToolTip="切换亮色 / 暗色主题" />
                     <TextBlock x:Name="tbPortInfo"
                                FontSize="11"
                                Foreground="{StaticResource TextMutedBrush}"
