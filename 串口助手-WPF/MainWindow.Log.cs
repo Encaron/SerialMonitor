@@ -126,12 +126,12 @@ namespace 串口助手
             // 入队而非立即写 RichTextBox：高频率下合并 UI 更新可减少 ~90% 布局重算
             _logBatch.Add(new LogEntry { Text = text, Color = color, Role = role ?? "received" });
 
-            // 重置定时器：100ms 无新数据后批量写入
-            _batchFlushTimer.Stop();
-            _batchFlushTimer.Start();
+            // 首次入队时启动固定间隔定时器，之后不重置——保证持续高速数据也能定期刷新
+            if (!_batchFlushTimer.IsEnabled)
+                _batchFlushTimer.Start();
 
-            // 极端高速下队列积压过多 → 强制立即刷新，防止内存堆积
-            if (_logBatch.Count >= 200)
+            // 极端高速下队列积压过多 → 强制立即刷新，防止长时间不更新
+            if (_logBatch.Count >= 50)
                 FlushLogBatch();
         }
 
@@ -217,15 +217,15 @@ namespace 串口助手
 
         /// <summary>
         /// 批量刷新：将队列中积累的日志一次性写入 RichTextBox。
-        /// 由 _batchFlushTimer 触发（100ms 无新数据后），或队列积压 ≥200 条时强制调用。
-        /// 只做一次滚动检测 + 一次裁剪 + 一次滚底，替代逐行操作，大幅降低布局开销。
+        /// 由 _batchFlushTimer 固定间隔触发（80ms），或队列积压 ≥50 条时强制调用。
+        /// 只做一次滚动检测 + 一次裁剪 + 一次滚底，替代逐行操作。
+        /// 刷新后若队列已空则停止定时器，否则等待下一个周期。
         /// </summary>
         private void FlushLogBatch()
         {
-            _batchFlushTimer.Stop();
             if (_logBatch.Count == 0) return;
 
-            // 取出队列并立即替换为新队列（防止重入）
+            // 取出队列并立即替换为新队列（防止重入，后续入队的新数据写入新队列）
             var batch = _logBatch;
             _logBatch = new List<LogEntry>();
 
@@ -263,6 +263,10 @@ namespace 串口助手
             // 仅在用户此前在底部时才自动滚底
             if (atBottom)
                 rtReceive.ScrollToEnd();
+
+            // 队列空了则停止定时器，否则保持运行等待下一轮
+            if (_logBatch.Count == 0)
+                _batchFlushTimer.Stop();
         }
 
         /// <summary>
