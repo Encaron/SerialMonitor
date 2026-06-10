@@ -252,12 +252,19 @@ namespace 串口助手
                     icLineNumbers.Items.Add(_lineCount.ToString());
             }
 
-            // 统一裁剪（只做一次）
-            while (rtReceive.Document.Blocks.Count > MaxLogLines)
+            // 超出上限时一次性批量裁剪（清理到 MaxLogLines-500，留 500 行余量避免频繁触发）
+            int target = MaxLogLines - 500;
+            if (target < 100) target = 100;
+            int excess = rtReceive.Document.Blocks.Count - target;
+            if (excess > 0)
             {
-                rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
-                if (_showLineNumbers && icLineNumbers.Items.Count > 0)
-                    icLineNumbers.Items.RemoveAt(0);
+                for (int i = 0; i < excess; i++)
+                    rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
+                if (_showLineNumbers)
+                {
+                    while (icLineNumbers.Items.Count > rtReceive.Document.Blocks.Count)
+                        icLineNumbers.Items.RemoveAt(0);
+                }
             }
 
             // 仅在用户此前在底部时才自动滚底

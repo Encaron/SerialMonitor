@@ -507,6 +507,7 @@ namespace 串口助手
                 serialPort.RtsEnable = chkRts.IsChecked == true;
 
                 serialPort.Open();
+                serialPort.DiscardInBuffer(); // 丢弃打开前硬件缓冲区堆积的旧数据
 
                 isSerialOpen = true;
                 _lastSuccessfulPort = cbPortName.Text; // 记住本次成功打开的端口
