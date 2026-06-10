@@ -117,8 +117,18 @@ namespace 串口助手
             // 暂停期间：写入暂停缓冲区，不更新界面
             if (_isPaused)
             {
+                bool bufferWasFull = _pausedLines.Count >= MaxPausedLines;
                 while (_pausedLines.Count >= MaxPausedLines)
                     _pausedLines.RemoveAt(0);
+                if (bufferWasFull)
+                {
+                    // 缓冲已满 → 直接写入系统消息框（无论 "独立显示" 开关状态，确保用户可见）
+                    lbSystemLog.Items.Add("---- ⚠ 暂停缓冲已满，最早的数据已被丢弃 ----");
+                    while (lbSystemLog.Items.Count > 50)
+                        lbSystemLog.Items.RemoveAt(0);
+                    if (lbSystemLog.Items.Count > 0)
+                        lbSystemLog.ScrollIntoView(lbSystemLog.Items[lbSystemLog.Items.Count - 1]);
+                }
                 _pausedLines.Add(new PausedLine { Text = text, Color = color, Role = role });
                 return;
             }
@@ -131,7 +141,7 @@ namespace 串口助手
                 _batchFlushTimer.Start();
 
             // 极端高速下队列积压过多 → 强制立即刷新，防止长时间不更新
-            if (_logBatch.Count >= 50)
+            if (_logBatch.Count >= EmergencyFlushThreshold)
                 FlushLogBatch();
         }
 
@@ -210,7 +220,7 @@ namespace 串口助手
                     icLineNumbers.Items.RemoveAt(0);
             }
 
-            bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
+            bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - SmartScrollLockPixels;
             if (isAtBottom)
                 rtReceive.ScrollToEnd();
         }
@@ -230,7 +240,7 @@ namespace 串口助手
             _logBatch = new List<LogEntry>();
 
             // 批量写入前检测用户是否在底部（只测一次）
-            bool atBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
+            bool atBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - SmartScrollLockPixels;
 
             foreach (var entry in batch)
             {
@@ -252,14 +262,15 @@ namespace 串口助手
                     icLineNumbers.Items.Add(_lineCount.ToString());
             }
 
-            // 超出上限时一次性批量裁剪（清理到 MaxLogLines-500，留 500 行余量避免频繁触发）
-            int target = MaxLogLines - 500;
-            if (target < 100) target = 100;
-            int excess = rtReceive.Document.Blocks.Count - target;
-            if (excess > 0)
+            // 超出上限时一次性批量裁剪 CropMargin 行，留足余量避免频繁触发
+            if (rtReceive.Document.Blocks.Count > MaxLogLines)
             {
-                for (int i = 0; i < excess; i++)
+                int removeCount = CropMargin;
+                for (int i = 0; i < removeCount; i++)
+                {
+                    if (rtReceive.Document.Blocks.Count == 0) break;
                     rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
+                }
                 if (_showLineNumbers)
                 {
                     while (icLineNumbers.Items.Count > rtReceive.Document.Blocks.Count)
