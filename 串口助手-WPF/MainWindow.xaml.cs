@@ -58,9 +58,17 @@ namespace 串口助手
         // ——— 定时发送 ———
         private DispatcherTimer autoSendTimer;
 
-        // ——— 日志行数上限 ———
+        // ——— 日志/批量操作常量 ———
 
         private const int MaxLogLines = 2000;
+        /// <summary>批量队列 ≥ 此值时强制立即刷新，防止极端高速下内存堆积</summary>
+        private const int EmergencyFlushThreshold = 50;
+        /// <summary>超出 MaxLogLines 时一次性裁剪的行数（留余量避免频繁触发）</summary>
+        private const int CropMargin = 500;
+        /// <summary>距底部 ≤ 此像素视为"用户在底部"，自动滚屏</summary>
+        private const int SmartScrollLockPixels = 8;
+        /// <summary>批量刷新定时器间隔</summary>
+        private const int BatchFlushIntervalMs = 80;
 
         // ——— 行号 ———
         private int _lineCount = 0;
@@ -158,7 +166,7 @@ namespace 串口助手
             flushTimer.Tick += FlushReceiveBuffer;
 
             // 日志批量刷新定时器：高频接收时合并 UI 更新，避免 RichTextBox 逐行布局卡顿
-            _batchFlushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+            _batchFlushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(BatchFlushIntervalMs) };
             _batchFlushTimer.Tick += (s, args) => FlushLogBatch();
 
             // 自动重连定时器：设备重新插入后延迟检测并重连
