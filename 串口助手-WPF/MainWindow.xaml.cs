@@ -87,8 +87,15 @@ namespace 串口助手
         // ——— HEX 输入格式化 ———
         private bool _isHexFormatting = false;
 
+        // ——— 暂停显示 ———
+        private bool _isPaused = false;
+        private class PausedLine { public string Text; public Color Color; public string Role; }
+        private List<PausedLine> _pausedLines = new List<PausedLine>();
+        private const int MaxPausedLines = 2000;
+
         // ——— 自动重连 ———
         private string lastPortName = "";
+        private string _lastSuccessfulPort = "";
         private DispatcherTimer reconnectTimer;
         private const int MaxReconnectAttempts = 10;
         private int _reconnectAttempts = 0;
@@ -186,6 +193,9 @@ namespace 串口助手
             InitComboBoxItems();
             SetDefaultValues();
 
+            // 扫描可用串口并自动选中（在 SetDefaultValues 之后、LoadPreferences 之前）
+            ScanPortsAndAutoSelect();
+
             // 加载用户偏好（需在 InitComboBoxItems + SetDefaultValues 之后）
             LoadPreferences();
 
@@ -241,6 +251,10 @@ namespace 串口助手
                 {
                     ApplyTheme(true);
                 }
+
+                // 加载上次成功打开的串口号
+                if (dict.TryGetValue("LastPort", out string lastPort))
+                    _lastSuccessfulPort = lastPort;
             }
             catch { /* 静默失败，使用默认值 */ }
         }
@@ -260,6 +274,7 @@ namespace 串口助手
                     $"Height={this.Height}",
                     $"State={this.WindowState}",
                     $"Theme={(isDarkTheme ? "Dark" : "Light")}",
+                    $"LastPort={_lastSuccessfulPort}",
                     $"LineEnding={cbLineEnding.SelectedItem}",
                     $"AutoClear={(chkAutoClear.IsChecked == true ? "1" : "0")}",
                     $"AutoReconnect={(chkAutoReconnect.IsChecked == true ? "1" : "0")}",
@@ -276,6 +291,44 @@ namespace 串口助手
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveWindowSettings();
+        }
+
+        /// <summary>
+        /// 全局快捷键
+        /// </summary>
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // Ctrl+Enter → 打开/关闭串口
+            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                btnOpen_Click(sender, e);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+L → 清空接收区
+            if (e.Key == Key.L && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                btnClearReceive_Click(sender, e);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+Shift+L → 清空发送区
+            if (e.Key == Key.L && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                btnClearSend_Click(sender, e);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl+P → 暂停/继续显示
+            if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                btnPauseDisplay_Click(sender, e);
+                e.Handled = true;
+                return;
+            }
         }
 
         /// <summary>
@@ -430,6 +483,10 @@ namespace 串口助手
             cbLineEnding.Items.Add("\\n");
             cbLineEnding.Items.Add("\\r");
             cbLineEnding.Items.Add("无");
+
+            cbFlowControl.Items.Add("无");
+            cbFlowControl.Items.Add("RTS/CTS");
+            cbFlowControl.Items.Add("XON/XOFF");
         }
 
         private void SetDefaultValues()
@@ -446,6 +503,7 @@ namespace 串口助手
 
             cbTimestampFormat.SelectedIndex = 2; // HH:mm:ss:fff
             cbLineEnding.SelectedIndex = 0;      // \r\n
+            cbFlowControl.SelectedIndex = 0;     // 无
 
             btnSend.IsEnabled = false;
             cbPortName.IsEnabled = true;
@@ -453,6 +511,51 @@ namespace 串口助手
             cbDataBits.IsEnabled = true;
             cbStopBits.IsEnabled = true;
             cbParity.IsEnabled = true;
+        }
+
+        /// <summary>
+        /// 启动时扫描可用串口并自动选中上次使用的端口。
+        /// 优先级：上次记录的端口 > 仅有一个串口时自动选 > 多串口时选数字最小的 > 空白
+        /// </summary>
+        private void ScanPortsAndAutoSelect()
+        {
+            string[] ports = SerialPort.GetPortNames();
+            if (ports.Length == 0) return;
+
+            // 填充串口号列表
+            cbPortName.Items.Clear();
+            foreach (string p in ports)
+                cbPortName.Items.Add(p);
+
+            string selected = "";
+
+            // 1) 上次成功打开的端口仍存在 → 优先
+            if (!string.IsNullOrEmpty(_lastSuccessfulPort) &&
+                Array.IndexOf(ports, _lastSuccessfulPort) >= 0)
+            {
+                selected = _lastSuccessfulPort;
+            }
+            // 2) 只有一个串口 → 直接选
+            else if (ports.Length == 1)
+            {
+                selected = ports[0];
+            }
+            // 3) 多个串口 → 选数字最小的
+            else
+            {
+                selected = ports[0];
+                foreach (string p in ports)
+                {
+                    if (string.Compare(p, selected, StringComparison.OrdinalIgnoreCase) < 0)
+                        selected = p;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(selected))
+            {
+                cbPortName.Text = selected;
+                LogSystem($"---- 已自动选中 {selected} ----");
+            }
         }
 
         // ==================================================================
@@ -535,6 +638,15 @@ namespace 串口助手
         /// </summary>
         private void AppendColoredLine(string text, Color color, string role = null)
         {
+            // 暂停期间：写入缓冲区，不更新界面
+            if (_isPaused)
+            {
+                while (_pausedLines.Count >= MaxPausedLines)
+                    _pausedLines.RemoveAt(0);
+                _pausedLines.Add(new PausedLine { Text = text, Color = color, Role = role });
+                return;
+            }
+
             _lineCount++;
 
             // 行号扩容：10000→52px  100000→58px  1000000→64px（封顶）
@@ -1074,9 +1186,18 @@ namespace 串口助手
                 Parity[] pt = { Parity.None, Parity.Odd, Parity.Even };
                 serialPort.Parity = pt[cbParity.SelectedIndex];
 
+                // 硬件流控
+                Handshake[] hs = { Handshake.None, Handshake.RequestToSend, Handshake.XOnXOff };
+                serialPort.Handshake = hs[cbFlowControl.SelectedIndex];
+
+                // DTR / RTS 控制信号
+                serialPort.DtrEnable = chkDtr.IsChecked == true;
+                serialPort.RtsEnable = chkRts.IsChecked == true;
+
                 serialPort.Open();
 
                 isSerialOpen = true;
+                _lastSuccessfulPort = cbPortName.Text; // 记住本次成功打开的端口
 
                 btnOpen.Content = "关闭串口";
                 btnOpen.Background = new SolidColorBrush(SuccessColor);
@@ -1089,6 +1210,7 @@ namespace 串口助手
                 cbDataBits.IsEnabled = false;
                 cbStopBits.IsEnabled = false;
                 cbParity.IsEnabled = false;
+                cbFlowControl.IsEnabled = false;
 
                 // 若勾选定时发送，启动定时器
                 if (chkAutoRepeat.IsChecked == true &&
@@ -1116,10 +1238,30 @@ namespace 串口助手
                 // 日志
                 LogSystem($"---- 已打开串行端口 {cbPortName.Text} ----");
             }
-            catch
+            catch (UnauthorizedAccessException)
             {
-                MessageBox.Show("串口打开失败", "提示",
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("串口被其他程序占用，或没有访问权限。\n请关闭其他串口工具后重试。",
+                                "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (System.IO.IOException ex)
+            {
+                MessageBox.Show($"串口硬件通信错误：\n{ex.Message}",
+                                "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (ArgumentException ex)
+            {
+                MessageBox.Show($"串口参数无效（端口名或波特率）：\n{ex.Message}",
+                                "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show($"串口已被占用：\n{ex.Message}",
+                                "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"串口打开失败：\n{ex.Message}",
+                                "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1156,6 +1298,7 @@ namespace 串口助手
             cbDataBits.IsEnabled = true;
             cbStopBits.IsEnabled = true;
             cbParity.IsEnabled = true;
+            cbFlowControl.IsEnabled = true;
 
             AnimateBrushColor(statusDotBrush, StatusDotIdle);
             tbStatusText.Text = "就绪";
@@ -1272,11 +1415,81 @@ namespace 串口助手
             _isHexFormatting = false;
         }
 
+        /// <summary>
+        /// 暂停/继续接收区显示。串口后台照常接收，界面冻结便于分析。
+        /// 恢复时补回暂停期间积压的全部数据。
+        /// </summary>
+        private void btnPauseDisplay_Click(object sender, RoutedEventArgs e)
+        {
+            _isPaused = !_isPaused;
+
+            if (_isPaused)
+            {
+                btnPauseDisplay.Content = "▶ 继续显示";
+                btnPauseDisplay.Style = FindResource("PrimaryButtonStyle") as Style;
+                LogSystem("---- 暂停显示：界面已冻结，后台照常接收 ----");
+            }
+            else
+            {
+                int bufferedCount = _pausedLines.Count;
+
+                // 一次性补回积压数据
+                foreach (var line in _pausedLines)
+                    AppendColoredLineUnbuffered(line.Text, line.Color, line.Role);
+                _pausedLines.Clear();
+
+                if (bufferedCount > 0)
+                    LogSystem($"---- 继续显示：补回暂停期间的 {bufferedCount} 条数据 ----");
+                else
+                    LogSystem("---- 继续显示 ----");
+
+                btnPauseDisplay.Content = "暂停显示";
+                btnPauseDisplay.Style = FindResource("SecondaryButtonStyle") as Style;
+            }
+        }
+
+        /// <summary>
+        /// 绕过暂停检查的直接追加（暂停恢复回放时使用）
+        /// </summary>
+        private void AppendColoredLineUnbuffered(string text, Color color, string role)
+        {
+            _lineCount++;
+
+            if (_lineCount == 10000 || _lineCount == 100000 || _lineCount == 1000000)
+                UpdateLineNumberColumnWidth();
+
+            Paragraph para = new Paragraph();
+            para.Margin = new Thickness(0);
+            para.LineHeight = 2;
+            if (role != null)
+                para.Tag = role;
+            else
+                para.Tag = "received";
+            para.Inlines.Add(new Run(text) { Foreground = new SolidColorBrush(color) });
+            rtReceive.Document.Blocks.Add(para);
+
+            if (_showLineNumbers)
+                icLineNumbers.Items.Add(_lineCount.ToString());
+
+            while (rtReceive.Document.Blocks.Count > MaxLogLines)
+            {
+                rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
+                if (_showLineNumbers && icLineNumbers.Items.Count > 0)
+                    icLineNumbers.Items.RemoveAt(0);
+            }
+
+            bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
+            if (isAtBottom)
+                rtReceive.ScrollToEnd();
+        }
+
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
             _lineCount = 0;
             rtReceive.Document.Blocks.Clear();
             icLineNumbers.Items.Clear();
+            // 清空接收区时也清空暂停缓冲
+            _pausedLines.Clear();
         }
 
         private void btnClearSend_Click(object sender, RoutedEventArgs e)
@@ -1555,6 +1768,36 @@ namespace 串口助手
                 LogSystem("---- 自动重连：开 ----");
             else
                 LogSystem("---- 自动重连：关 ----");
+        }
+
+        /// <summary>
+        /// DTR — 数据终端就绪信号；连接中可即时切换
+        /// </summary>
+        private void chkDtr_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
+
+            bool enable = chkDtr.IsChecked == true;
+            if (isSerialOpen && serialPort.IsOpen)
+                serialPort.DtrEnable = enable;
+
+            LogSystem($"---- DTR：{(enable ? "开" : "关")} ----");
+        }
+
+        /// <summary>
+        /// RTS — 请求发送信号；连接中可即时切换
+        /// </summary>
+        private void chkRts_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            AnimateToggleSwitch(sender as CheckBox);
+
+            bool enable = chkRts.IsChecked == true;
+            if (isSerialOpen && serialPort.IsOpen)
+                serialPort.RtsEnable = enable;
+
+            LogSystem($"---- RTS：{(enable ? "开" : "关")} ----");
         }
 
         /// <summary>
