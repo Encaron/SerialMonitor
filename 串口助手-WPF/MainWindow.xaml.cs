@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Linq;
@@ -71,7 +70,6 @@ namespace 串口助手
         private const int BatchFlushIntervalMs = 80;
 
         // ——— 行号 ———
-        private int _lineCount = 0;
         private bool _showLineNumbers = true;
 
         // ——— 流量统计 ———
@@ -165,9 +163,8 @@ namespace 串口助手
             flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             flushTimer.Tick += FlushReceiveBuffer;
 
-            // 日志批量刷新定时器：高频接收时合并 UI 更新，避免 RichTextBox 逐行布局卡顿
-            _batchFlushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(BatchFlushIntervalMs) };
-            _batchFlushTimer.Tick += (s, args) => FlushLogBatch();
+            // 初始化 AvalonEdit（着色器 + 行号样式）
+            InitEditor();
 
             // 自动重连定时器：设备重新插入后延迟检测并重连
             reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -213,7 +210,7 @@ namespace 串口助手
 
             // 同步行号面板初始可见性（LoadPreferences 可能改了 chkShowLineNumbers）
             _showLineNumbers = chkShowLineNumbers.IsChecked == true;
-            svLineNumbers.Visibility = _showLineNumbers ? Visibility.Visible : Visibility.Collapsed;
+            editor.ShowLineNumbers = _showLineNumbers;
 
             // 加载快捷发送按钮
             LoadQuickSends();
@@ -590,9 +587,6 @@ namespace 串口助手
         {
             if (isSerialOpen)
             {
-                // 先刷新待处理的批量日志
-                FlushLogBatch();
-
                 // 强制输出缓冲区残留文本再关
                 flushTimer.Stop();
                 if (!string.IsNullOrEmpty(receiveLineBuffer))
@@ -604,6 +598,9 @@ namespace 串口助手
                 LogSystem($"---- 关闭串行端口 {cbPortName.Text} ----");
             }
 
+            // 先退订事件，避免 DataReceived 回调正卡在 Dispatcher.Invoke 时
+            // serialPort.Close() 等待回调退出形成死锁
+            serialPort.DataReceived -= serialPort_DataReceived;
             serialPort.Close();
 
             autoSendTimer.Stop();
@@ -759,7 +756,7 @@ namespace 串口助手
 
                 // 一次性补回积压数据
                 foreach (var line in _pausedLines)
-                    AppendColoredLineUnbuffered(line.Text, line.Color, line.Role);
+                    AppendColoredLine(line.Text, line.Color, line.Role, skipPause: true);
                 _pausedLines.Clear();
 
                 if (bufferedCount > 0)
@@ -775,13 +772,7 @@ namespace 串口助手
 
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
-            _batchFlushTimer.Stop();
-            _logBatch.Clear();
-            _lineCount = 0;
-            rtReceive.Document.Blocks.Clear();
-            icLineNumbers.Items.Clear();
-            // 清空接收区时也清空暂停缓冲
-            _pausedLines.Clear();
+            ClearEditorContent();
         }
 
         private void btnClearSend_Click(object sender, RoutedEventArgs e)
@@ -817,8 +808,7 @@ namespace 串口助手
             };
             if (dialog.ShowDialog() == true)
             {
-                var range = new TextRange(rtReceive.Document.ContentStart, rtReceive.Document.ContentEnd);
-                System.IO.File.WriteAllText(dialog.FileName, range.Text, System.Text.Encoding.UTF8);
+                System.IO.File.WriteAllText(dialog.FileName, editor.Document.Text, System.Text.Encoding.UTF8);
                 LogSystem($"---- 日志已导出至 {dialog.FileName} ----");
             }
         }
@@ -999,16 +989,10 @@ namespace 串口助手
             AnimateToggleSwitch(sender as CheckBox);
 
             _showLineNumbers = chkShowLineNumbers.IsChecked == true;
-            svLineNumbers.Visibility = _showLineNumbers ? Visibility.Visible : Visibility.Collapsed;
+            editor.ShowLineNumbers = _showLineNumbers;
 
             if (_showLineNumbers)
             {
-                // 重新打开时，根据 RichTextBox 实际段落数完整重建行号序列，
-                // 保证与段落一一对应，不受中途开关 / 裁剪影响
-                icLineNumbers.Items.Clear();
-                int startNum = _lineCount - rtReceive.Document.Blocks.Count + 1;
-                for (int i = 0; i < rtReceive.Document.Blocks.Count; i++)
-                    icLineNumbers.Items.Add((startNum + i).ToString());
                 LogSystem("---- 行号显示：开 ----");
             }
             else

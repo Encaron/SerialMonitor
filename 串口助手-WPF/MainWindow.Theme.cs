@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace 串口助手
@@ -43,8 +41,8 @@ namespace 串口助手
             // 切换按钮文字
             btnThemeSwitch.Content = dark ? "☀ 亮色模式" : "🌙 暗色模式";
 
-            // 刷新已有日志行的颜色
-            RefreshRichTextBoxColors();
+            // 触发 LogColorizer 重新着色所有可见行
+            editor.TextArea.TextView.Redraw();
 
             LogSystem($"---- 主题切换：{(dark ? "暗色" : "亮色")} ----");
         }
@@ -52,31 +50,6 @@ namespace 串口助手
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)
         {
             ApplyTheme(!isDarkTheme);
-        }
-
-        /// <summary>
-        /// 主题切换后，遍历 RichTextBox 中所有 Paragraph，
-        /// 根据角色标签更新文本颜色
-        /// </summary>
-        private void RefreshRichTextBoxColors()
-        {
-            foreach (Paragraph para in rtReceive.Document.Blocks)
-            {
-                string role = para.Tag as string ?? "received";
-                Color newColor;
-                switch (role)
-                {
-                    case "system":   newColor = LogSystemColor;   break;
-                    case "sent":     newColor = LogSentColor;     break;
-                    default:         newColor = LogReceivedColor; break;
-                }
-
-                var runs = para.Inlines.OfType<Run>().ToList();
-                if (runs.Count == 0) continue;
-
-                foreach (var run in runs)
-                    run.Foreground = new SolidColorBrush(newColor);
-            }
         }
     }
 }
