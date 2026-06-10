@@ -60,14 +60,10 @@ namespace 串口助手
         // ——— 日志/批量操作常量 ———
 
         private const int MaxLogLines = 2000;
-        /// <summary>批量队列 ≥ 此值时强制立即刷新，防止极端高速下内存堆积</summary>
-        private const int EmergencyFlushThreshold = 50;
         /// <summary>超出 MaxLogLines 时一次性裁剪的行数（留余量避免频繁触发）</summary>
         private const int CropMargin = 500;
         /// <summary>距底部 ≤ 此像素视为"用户在底部"，自动滚屏</summary>
         private const int SmartScrollLockPixels = 8;
-        /// <summary>批量刷新定时器间隔</summary>
-        private const int BatchFlushIntervalMs = 80;
 
         // ——— 行号 ———
         private bool _showLineNumbers = true;
