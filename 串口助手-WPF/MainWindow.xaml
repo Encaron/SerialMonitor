@@ -257,6 +257,17 @@
                                               Margin="8,0,20,0"
                                               VerticalAlignment="Center"
                                               HorizontalAlignment="Left" />
+                            <TextBox x:Name="PART_EditableTextBox"
+                                     HorizontalContentAlignment="Left"
+                                     VerticalContentAlignment="Center"
+                                     Margin="8,0,20,0"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="{TemplateBinding Foreground}"
+                                     FontSize="{TemplateBinding FontSize}"
+                                     FontFamily="{TemplateBinding FontFamily}"
+                                     CaretBrush="{TemplateBinding Foreground}"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}" />
                             <Popup x:Name="Popup"
                                    Placement="Bottom"
                                    IsOpen="{TemplateBinding IsDropDownOpen}"
