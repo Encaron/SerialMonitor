@@ -193,6 +193,10 @@ namespace 串口助手
             lbSystemLog.Visibility = chkSeparateSystemLog.IsChecked == true
                 ? Visibility.Visible : Visibility.Collapsed;
 
+            // 同步行号面板初始可见性（LoadPreferences 可能改了 chkShowLineNumbers）
+            _showLineNumbers = chkShowLineNumbers.IsChecked == true;
+            svLineNumbers.Visibility = _showLineNumbers ? Visibility.Visible : Visibility.Collapsed;
+
             // 加载快捷发送按钮
             LoadQuickSends();
             RefreshQuickSendButtons();
@@ -359,11 +363,10 @@ namespace 串口助手
 
         /// <summary>
         /// 主题切换后，遍历 RichTextBox 中所有 Paragraph，
-        /// 根据角色标签更新文本颜色和行号颜色
+        /// 根据角色标签更新文本颜色
         /// </summary>
         private void RefreshRichTextBoxColors()
         {
-            var mutedBrush = FindResource("TextMutedBrush") as Brush;
             foreach (Paragraph para in rtReceive.Document.Blocks)
             {
                 string role = para.Tag as string ?? "received";
@@ -378,15 +381,8 @@ namespace 串口助手
                 var runs = para.Inlines.OfType<Run>().ToList();
                 if (runs.Count == 0) continue;
 
-                int contentStart = (_showLineNumbers && runs.Count >= 2) ? 1 : 0;
-
-                // 行号 Run（位于第 0 个）
-                if (_showLineNumbers && runs.Count >= 1)
-                    runs[0].Foreground = mutedBrush;
-
-                // 内容 Run（位于 contentStart 及之后）
-                for (int i = contentStart; i < runs.Count; i++)
-                    runs[i].Foreground = new SolidColorBrush(newColor);
+                foreach (var run in runs)
+                    run.Foreground = new SolidColorBrush(newColor);
             }
         }
 
@@ -541,6 +537,10 @@ namespace 串口助手
         {
             _lineCount++;
 
+            // 行号扩容：10000→52px  100000→58px  1000000→64px（封顶）
+            if (_lineCount == 10000 || _lineCount == 100000 || _lineCount == 1000000)
+                UpdateLineNumberColumnWidth();
+
             Paragraph para = new Paragraph();
             para.Margin = new Thickness(0);
             para.LineHeight = 2;
@@ -551,30 +551,71 @@ namespace 串口助手
             else
                 para.Tag = "received"; // 默认当作接收数据
 
-            if (_showLineNumbers)
-            {
-                // 行号：右对齐 5 位，灰色
-                para.Inlines.Add(new Run($"{_lineCount,5}  ")
-                {
-                    Foreground = FindResource("TextMutedBrush") as Brush,
-                    FontWeight = FontWeights.Normal,
-                });
-            }
-
             para.Inlines.Add(new Run(text) { Foreground = new SolidColorBrush(color) });
 
             rtReceive.Document.Blocks.Add(para);
+
+            // 行号面板同步追加
+            if (_showLineNumbers)
+                icLineNumbers.Items.Add(_lineCount.ToString());
 
             // 超行裁剪
             while (rtReceive.Document.Blocks.Count > MaxLogLines)
             {
                 rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
+                if (_showLineNumbers && icLineNumbers.Items.Count > 0)
+                    icLineNumbers.Items.RemoveAt(0);
             }
 
             // 仅在用户已滚到底部时自动滚屏（避免打断手动翻阅历史）
             bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
             if (isAtBottom)
                 rtReceive.ScrollToEnd();
+        }
+
+        /// <summary>
+        /// 行号列宽随位数自动扩容：4位48px → 5位52px → 6位58px → 7位64px（封顶）
+        /// </summary>
+        private void UpdateLineNumberColumnWidth()
+        {
+            if (_lineCount >= 1000000)
+                svLineNumbers.MinWidth = 64;
+            else if (_lineCount >= 100000)
+                svLineNumbers.MinWidth = 58;
+            else if (_lineCount >= 10000)
+                svLineNumbers.MinWidth = 52;
+        }
+
+        /// <summary>
+        /// RichTextBox 加载后找到内部 ScrollViewer，hook 滚动事件同步行号面板
+        /// </summary>
+        private ScrollViewer _rtScrollViewer;
+        private void rtReceive_Loaded(object sender, RoutedEventArgs e)
+        {
+            _rtScrollViewer = FindVisualChild<ScrollViewer>(rtReceive);
+            if (_rtScrollViewer != null)
+            {
+                _rtScrollViewer.ScrollChanged += RtScrollViewer_ScrollChanged;
+            }
+        }
+
+        private void RtScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (svLineNumbers != null)
+                svLineNumbers.ScrollToVerticalOffset(e.VerticalOffset);
+        }
+
+        private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T result)
+                    return result;
+                var found = FindVisualChild<T>(child);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         // ————————————————————————————————————————
@@ -1235,6 +1276,7 @@ namespace 串口助手
         {
             _lineCount = 0;
             rtReceive.Document.Blocks.Clear();
+            icLineNumbers.Items.Clear();
         }
 
         private void btnClearSend_Click(object sender, RoutedEventArgs e)
@@ -1452,6 +1494,7 @@ namespace 串口助手
             AnimateToggleSwitch(sender as CheckBox);
 
             _showLineNumbers = chkShowLineNumbers.IsChecked == true;
+            svLineNumbers.Visibility = _showLineNumbers ? Visibility.Visible : Visibility.Collapsed;
 
             if (_showLineNumbers)
                 LogSystem("---- 行号显示：开 ----");
