@@ -994,9 +994,19 @@ namespace 串口助手
             svLineNumbers.Visibility = _showLineNumbers ? Visibility.Visible : Visibility.Collapsed;
 
             if (_showLineNumbers)
+            {
+                // 重新打开时，根据 RichTextBox 实际段落数完整重建行号序列，
+                // 保证与段落一一对应，不受中途开关 / 裁剪影响
+                icLineNumbers.Items.Clear();
+                int startNum = _lineCount - rtReceive.Document.Blocks.Count + 1;
+                for (int i = 0; i < rtReceive.Document.Blocks.Count; i++)
+                    icLineNumbers.Items.Add((startNum + i).ToString());
                 LogSystem("---- 行号显示：开 ----");
+            }
             else
+            {
                 LogSystem("---- 行号显示：关 ----");
+            }
         }
 
         /// <summary>
