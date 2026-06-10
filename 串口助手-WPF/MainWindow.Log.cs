@@ -89,7 +89,9 @@ namespace 串口助手
 
             if (sendMode == "文本模式")
             {
-                msg = $"{timestamp} ---- 已发送 {sendCoding.ToLower()} 编码消息: \"{text}\" ----";
+                // 转义真实换行符为字面量，避免换行符在编辑器中裂成多行导致着色失效
+                string safeText = text.Replace("\r\n", "\\r\\n").Replace("\n", "\\n").Replace("\r", "\\r");
+                msg = $"{timestamp} ---- 已发送 {sendCoding.ToLower()} 编码消息: \"{safeText}\" ----";
             }
             else
             {
