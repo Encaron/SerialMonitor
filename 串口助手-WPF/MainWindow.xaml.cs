@@ -514,6 +514,10 @@ namespace 串口助手
                 serialPort.Open();
                 serialPort.DiscardInBuffer(); // 丢弃打开前硬件缓冲区堆积的旧数据
 
+                // 重新订阅 DataReceived（CloseSerialPort 会退订以防死锁）
+                serialPort.DataReceived -= serialPort_DataReceived;
+                serialPort.DataReceived += serialPort_DataReceived;
+
                 isSerialOpen = true;
                 _lastSuccessfulPort = cbPortName.Text; // 记住本次成功打开的端口
 
