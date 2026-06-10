@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Rendering;
+using ICSharpCode.AvalonEdit.Search;
 
 namespace 串口助手
 {
@@ -54,6 +55,7 @@ namespace 串口助手
         private void InitEditor()
         {
             editor.TextArea.TextView.LineTransformers.Add(new LogColorizer(this));
+            SearchPanel.Install(editor.TextArea);
         }
 
         /// <summary>
@@ -169,7 +171,7 @@ namespace 串口助手
             _lineRoles.Add(role ?? "received");
 
             // 超出上限时裁剪最早的行（一次清 CropMargin 行，留余量避免频繁触发）
-            while (editor.Document.LineCount > MaxLogLines + CropMargin / 2)
+            if (editor.Document.LineCount > MaxLogLines)
             {
                 var firstLine = editor.Document.GetLineByNumber(1);
                 int removeCount = Math.Min(CropMargin, editor.Document.LineCount);
@@ -184,7 +186,6 @@ namespace 串口助手
                 editor.Document.Remove(firstLine.Offset, length);
                 for (int i = 0; i < removeCount && _lineRoles.Count > 0; i++)
                     _lineRoles.RemoveAt(0);
-                break;
             }
 
             // 自动滚底

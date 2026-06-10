@@ -23,7 +23,7 @@ namespace 串口助手
                 MessageBox.Show(
                     $"程序遇到未处理的错误：\n\n{args.Exception.Message}\n\n" +
                     $"详细日志已写入：\n{CrashLogPath}",
-                    "串口助手 — 错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Serial Monitor — Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 args.Handled = true;
             };
         }
