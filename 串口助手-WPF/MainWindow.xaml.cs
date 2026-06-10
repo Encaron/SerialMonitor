@@ -30,14 +30,14 @@ namespace 串口助手
 
         // ——— 颜色常量（与 XAML 资源保持一致）———
 
-        private static readonly Color PrimaryColor       = Color.FromRgb(0x00, 0x78, 0xD4);
-        private static readonly Color SuccessColor       = Color.FromRgb(0x10, 0xB9, 0x81);
-        private static readonly Color LogSystemColor     = Color.FromRgb(0x99, 0x99, 0x99);
-        private static readonly Color LogSentColor       = Color.FromRgb(0x00, 0x78, 0xD4);
+        private static Color PrimaryColor       = Color.FromRgb(0x00, 0x78, 0xD4);
+        private static Color SuccessColor       = Color.FromRgb(0x10, 0xB9, 0x81);
+        private static Color LogSystemColor     = Color.FromRgb(0x99, 0x99, 0x99);
+        private static Color LogSentColor       = Color.FromRgb(0x00, 0x78, 0xD4);
         private static readonly Color LogReceivedColorLight = Color.FromRgb(0x2D, 0x2D, 0x2D);
-        private static readonly Color LogReceivedColorDark  = Color.FromRgb(0xE0, 0xE0, 0xE0);
+        private static readonly Color LogReceivedColorDark  = Color.FromRgb(0xD4, 0xD4, 0xD4);
         private static readonly Color StatusDotIdleLight    = Color.FromRgb(0xCC, 0xCC, 0xCC);
-        private static readonly Color StatusDotIdleDark     = Color.FromRgb(0x66, 0x66, 0x66);
+        private static readonly Color StatusDotIdleDark     = Color.FromRgb(0x5A, 0x5A, 0x5A);
 
         //  运行时根据主题切换 ↓
         private static Color LogReceivedColor = LogReceivedColorLight;
@@ -105,26 +105,27 @@ namespace 串口助手
         private static readonly Dictionary<string, (Color Light, Color Dark)> ThemeMap =
             new Dictionary<string, (Color, Color)>
         {
-            ["WindowBgBrush"]      = (Color.FromRgb(0xF0,0xF0,0xF0), Color.FromRgb(0x1E,0x1E,0x1E)),
-            ["CardBgBrush"]        = (Color.FromRgb(0xFF,0xFF,0xFF), Color.FromRgb(0x2D,0x2D,0x2D)),
-            ["CardBorderBrush"]    = (Color.FromRgb(0xE0,0xE0,0xE0), Color.FromRgb(0x40,0x40,0x40)),
-            ["TextPrimaryBrush"]   = (Color.FromRgb(0x2D,0x2D,0x2D), Color.FromRgb(0xE0,0xE0,0xE0)),
-            ["TextSecondaryBrush"] = (Color.FromRgb(0x55,0x55,0x55), Color.FromRgb(0xBB,0xBB,0xBB)),
-            ["TextMutedBrush"]     = (Color.FromRgb(0x99,0x99,0x99), Color.FromRgb(0x88,0x88,0x88)),
-            ["PrimaryHoverBrush"]  = (Color.FromRgb(0x10,0x6E,0xBE), Color.FromRgb(0x1A,0x8C,0xE8)),
-            ["SecondaryBrush"]     = (Color.FromRgb(0x88,0x88,0x88), Color.FromRgb(0xAA,0xAA,0xAA)),
-            ["SecondaryHoverBrush"]= (Color.FromRgb(0x66,0x66,0x66), Color.FromRgb(0xBB,0xBB,0xBB)),
-            ["StatusBarBgBrush"]   = (Color.FromRgb(0xE6,0xE6,0xE6), Color.FromRgb(0x25,0x25,0x25)),
-            ["SeparatorBrush"]     = (Color.FromRgb(0xEE,0xEE,0xEE), Color.FromRgb(0x38,0x38,0x38)),
-            ["InputBorderBrush"]   = (Color.FromRgb(0xD0,0xD0,0xD0), Color.FromRgb(0x50,0x50,0x50)),
-            ["LogSystemBrush"]     = (Color.FromRgb(0x99,0x99,0x99), Color.FromRgb(0x88,0x88,0x88)),
-            ["LogReceivedBrush"]   = (Color.FromRgb(0x2D,0x2D,0x2D), Color.FromRgb(0xE0,0xE0,0xE0)),
-            ["TextSubtleBrush"]    = (Color.FromRgb(0xBB,0xBB,0xBB), Color.FromRgb(0x66,0x66,0x66)),
-            ["TextFaintBrush"]     = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x55,0x55,0x55)),
-            ["SecondaryHoverBgBrush"]   = (Color.FromRgb(0xF5,0xF5,0xF5), Color.FromRgb(0x38,0x38,0x38)),
-            ["ButtonDisabledBgBrush"]   = (Color.FromRgb(0xE8,0xE8,0xE8), Color.FromRgb(0x33,0x33,0x33)),
-            ["ReceiveAreaBgBrush"]      = (Color.FromRgb(0xFA,0xFA,0xFA), Color.FromRgb(0x22,0x22,0x22)),
-            ["StatusDotIdleBrush"]      = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x66,0x66,0x66)),
+            ["WindowBgBrush"]      = (Color.FromRgb(0xF0,0xF0,0xF0), Color.FromRgb(0x1A,0x1A,0x1C)),
+            ["CardBgBrush"]        = (Color.FromRgb(0xFF,0xFF,0xFF), Color.FromRgb(0x25,0x25,0x26)),
+            ["CardBorderBrush"]    = (Color.FromRgb(0xE0,0xE0,0xE0), Color.FromRgb(0x3E,0x3E,0x42)),
+            ["TextPrimaryBrush"]   = (Color.FromRgb(0x2D,0x2D,0x2D), Color.FromRgb(0xD4,0xD4,0xD4)),
+            ["TextSecondaryBrush"] = (Color.FromRgb(0x55,0x55,0x55), Color.FromRgb(0x9D,0x9D,0x9D)),
+            ["TextMutedBrush"]     = (Color.FromRgb(0x99,0x99,0x99), Color.FromRgb(0x6A,0x6A,0x6A)),
+            ["PrimaryBrush"]       = (Color.FromRgb(0x00,0x78,0xD4), Color.FromRgb(0x0E,0x63,0x9C)),
+            ["PrimaryHoverBrush"]  = (Color.FromRgb(0x10,0x6E,0xBE), Color.FromRgb(0x11,0x77,0xBB)),
+            ["SecondaryBrush"]     = (Color.FromRgb(0x88,0x88,0x88), Color.FromRgb(0x70,0x70,0x70)),
+            ["SecondaryHoverBrush"]= (Color.FromRgb(0x66,0x66,0x66), Color.FromRgb(0x8A,0x8A,0x8A)),
+            ["StatusBarBgBrush"]   = (Color.FromRgb(0xE6,0xE6,0xE6), Color.FromRgb(0x33,0x33,0x33)),
+            ["SeparatorBrush"]     = (Color.FromRgb(0xEE,0xEE,0xEE), Color.FromRgb(0x33,0x33,0x33)),
+            ["InputBorderBrush"]   = (Color.FromRgb(0xD0,0xD0,0xD0), Color.FromRgb(0x3E,0x3E,0x42)),
+            ["LogSystemBrush"]     = (Color.FromRgb(0x99,0x99,0x99), Color.FromRgb(0x6A,0x6A,0x6A)),
+            ["LogReceivedBrush"]   = (Color.FromRgb(0x2D,0x2D,0x2D), Color.FromRgb(0xD4,0xD4,0xD4)),
+            ["TextSubtleBrush"]    = (Color.FromRgb(0xBB,0xBB,0xBB), Color.FromRgb(0x5A,0x5A,0x5A)),
+            ["TextFaintBrush"]     = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x4F,0x4F,0x4F)),
+            ["SecondaryHoverBgBrush"]   = (Color.FromRgb(0xF5,0xF5,0xF5), Color.FromRgb(0x2A,0x2A,0x2D)),
+            ["ButtonDisabledBgBrush"]   = (Color.FromRgb(0xE8,0xE8,0xE8), Color.FromRgb(0x2D,0x2D,0x2D)),
+            ["ReceiveAreaBgBrush"]      = (Color.FromRgb(0xFA,0xFA,0xFA), Color.FromRgb(0x1A,0x1A,0x1C)),
+            ["StatusDotIdleBrush"]      = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x5A,0x5A,0x5A)),
         };
 
         public MainWindow()
@@ -331,9 +332,12 @@ namespace 串口助手
                     brush.Color = target;
             }
 
-            // 同步 C# 常量
+            // 同步 C# 颜色常量（暗色下改用 VS Code Dark+ 色值）
             LogReceivedColor = dark ? LogReceivedColorDark : LogReceivedColorLight;
             StatusDotIdle    = dark ? StatusDotIdleDark    : StatusDotIdleLight;
+            PrimaryColor     = dark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+            LogSystemColor   = dark ? Color.FromRgb(0x6A, 0x6A, 0x6A) : Color.FromRgb(0x99, 0x99, 0x99);
+            LogSentColor     = dark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
 
             // 同步代码创建的状态圆点画刷
             if (statusDotBrush != null && !statusDotBrush.IsFrozen)
@@ -342,12 +346,48 @@ namespace 串口助手
             // 切换按钮文字
             btnThemeSwitch.Content = dark ? "☀ 亮色模式" : "🌙 暗色模式";
 
+            // 刷新已有日志行的颜色
+            RefreshRichTextBoxColors();
+
             LogSystem($"---- 主题切换：{(dark ? "暗色" : "亮色")} ----");
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)
         {
             ApplyTheme(!isDarkTheme);
+        }
+
+        /// <summary>
+        /// 主题切换后，遍历 RichTextBox 中所有 Paragraph，
+        /// 根据角色标签更新文本颜色和行号颜色
+        /// </summary>
+        private void RefreshRichTextBoxColors()
+        {
+            var mutedBrush = FindResource("TextMutedBrush") as Brush;
+            foreach (Paragraph para in rtReceive.Document.Blocks)
+            {
+                string role = para.Tag as string ?? "received";
+                Color newColor;
+                switch (role)
+                {
+                    case "system":   newColor = LogSystemColor;   break;
+                    case "sent":     newColor = LogSentColor;     break;
+                    default:         newColor = LogReceivedColor; break;
+                }
+
+                var runs = para.Inlines.OfType<Run>().ToList();
+                if (runs.Count == 0) continue;
+
+                int contentStart = (_showLineNumbers && runs.Count >= 2) ? 1 : 0;
+
+                // 行号 Run（位于第 0 个）
+                if (_showLineNumbers && runs.Count >= 1)
+                    runs[0].Foreground = mutedBrush;
+
+                // 内容 Run（位于 contentStart 及之后）
+                for (int i = contentStart; i < runs.Count; i++)
+                    runs[i].Foreground = new SolidColorBrush(newColor);
+            }
         }
 
         // ==================================================================
@@ -438,7 +478,7 @@ namespace 串口助手
             }
             else
             {
-                AppendColoredLine(text, LogSystemColor);
+                AppendColoredLine(text, LogSystemColor, "system");
             }
         }
 
@@ -465,14 +505,14 @@ namespace 串口助手
             // 额外追加 HEX 内容（如果是 HEX 模式）
             if (sendMode == "HEX模式")
             {
-                AppendColoredLine(msg, LogSentColor);
+                AppendColoredLine(msg, LogSentColor, "sent");
                 // HEX 原文单独一行
                 string hexPreview = text.Length > 80 ? text.Substring(0, 80) + "..." : text;
-                AppendColoredLine("    " + hexPreview, LogSentColor);
+                AppendColoredLine("    " + hexPreview, LogSentColor, "sent");
             }
             else
             {
-                AppendColoredLine(msg, LogSentColor);
+                AppendColoredLine(msg, LogSentColor, "sent");
             }
         }
 
@@ -485,24 +525,31 @@ namespace 串口助手
             if (format != "不显示")
             {
                 string timestamp = DateTime.Now.ToString(format);
-                AppendColoredLine($"{timestamp} -> {text}", LogReceivedColor);
+                AppendColoredLine($"{timestamp} -> {text}", LogReceivedColor, "received");
             }
             else
             {
-                AppendColoredLine(text, LogReceivedColor);
+                AppendColoredLine(text, LogReceivedColor, "received");
             }
         }
 
         /// <summary>
         /// 通用：向 RichTextBox 追加一行带颜色的文本，可选行号
+        /// role 用于主题切换时重新着色："system" / "sent" / "received"
         /// </summary>
-        private void AppendColoredLine(string text, Color color)
+        private void AppendColoredLine(string text, Color color, string role = null)
         {
             _lineCount++;
 
             Paragraph para = new Paragraph();
             para.Margin = new Thickness(0);
             para.LineHeight = 2;
+
+            // 存储角色标签，供 RefreshRichTextBoxColors 使用
+            if (role != null)
+                para.Tag = role;
+            else
+                para.Tag = "received"; // 默认当作接收数据
 
             if (_showLineNumbers)
             {
