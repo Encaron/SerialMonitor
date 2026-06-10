@@ -440,19 +440,62 @@
                                      Padding="4,2"
                                      Margin="0,0,0,4"
                                      Visibility="Collapsed" />
-                            <RichTextBox x:Name="rtReceive"
-                                         IsReadOnly="True"
-                                         Background="{DynamicResource ReceiveAreaBgBrush}"
-                                         BorderBrush="{DynamicResource InputBorderBrush}"
-                                         BorderThickness="1"
-                                         Padding="6,4"
-                                         VerticalScrollBarVisibility="Auto"
-                                         SnapsToDevicePixels="True">
-                                <FlowDocument FontFamily="Sarasa Mono SC, Consolas, Courier New"
-                                              FontSize="12"
-                                              Foreground="{DynamicResource LogReceivedBrush}"
-                                              LineHeight="2" />
-                            </RichTextBox>
+                            <!-- 行号面板 + 接收区（两列，共享滚动） -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 行号列：独立 ScrollViewer + ItemsControl -->
+                                <ScrollViewer x:Name="svLineNumbers"
+                                              Grid.Column="0"
+                                              VerticalScrollBarVisibility="Hidden"
+                                              CanContentScroll="False"
+                                              Background="{DynamicResource ReceiveAreaBgBrush}"
+                                              Margin="0"
+                                              MinWidth="48"
+                                              Visibility="Visible">
+                                    <ItemsControl x:Name="icLineNumbers"
+                                                  Focusable="False"
+                                                  Margin="0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           TextAlignment="Right"
+                                                           FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                                           FontSize="12"
+                                                           LineHeight="2"
+                                                           Foreground="{DynamicResource TextMutedBrush}"
+                                                           Padding="4,0,8,0" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+
+                                <!-- 行号与内容之间的分隔线 -->
+                                <Border Grid.Column="0" Width="1"
+                                        Background="{DynamicResource InputBorderBrush}"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Stretch"
+                                        Visibility="{Binding Visibility, ElementName=svLineNumbers}" />
+
+                                <RichTextBox x:Name="rtReceive"
+                                             Grid.Column="1"
+                                             IsReadOnly="True"
+                                             Background="{DynamicResource ReceiveAreaBgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}"
+                                             BorderThickness="1"
+                                             Padding="6,4"
+                                             VerticalScrollBarVisibility="Auto"
+                                             SnapsToDevicePixels="True"
+                                             Loaded="rtReceive_Loaded">
+                                    <FlowDocument FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                                  FontSize="12"
+                                                  Foreground="{DynamicResource LogReceivedBrush}"
+                                                  LineHeight="2" />
+                                </RichTextBox>
+                            </Grid>
                         </DockPanel>
 
                         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
