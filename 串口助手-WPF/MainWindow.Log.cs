@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace 串口助手
 {
@@ -11,6 +13,28 @@ namespace 串口助手
         // ==================================================================
         //  RichTextBox 彩色日志 — 三种消息类型
         // ==================================================================
+
+        /// <summary>
+        /// 批量日志条目
+        /// </summary>
+        private struct LogEntry
+        {
+            public string Text;
+            public Color Color;
+            public string Role;
+        }
+
+        /// <summary>
+        /// 批量日志队列：高频接收时先入队，由定时器合并写入 RichTextBox，
+        /// 避免每条数据都触发一次 FlowDocument 全量布局导致界面卡死。
+        /// </summary>
+        private List<LogEntry> _logBatch = new List<LogEntry>();
+
+        /// <summary>
+        /// 批量刷新定时器：100ms 无新数据后一次性写入 RichTextBox。
+        /// 若队列积压超过 200 条则强制立即刷新（防止极端高速下的内存堆积）。
+        /// </summary>
+        private DispatcherTimer _batchFlushTimer;
 
         /// <summary>
         /// 系统消息（灰色）：打开/关闭串口等
@@ -83,12 +107,14 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 通用：向 RichTextBox 追加一行带颜色的文本，可选行号
+        /// 通用：追加一行带颜色的日志。
+        /// 数据先进入批量队列，由 _batchFlushTimer 合并写入 RichTextBox，
+        /// 避免高频接收时每条数据触发一次 FlowDocument 全量布局导致界面卡死。
         /// role 用于主题切换时重新着色："system" / "sent" / "received"
         /// </summary>
         private void AppendColoredLine(string text, Color color, string role = null)
         {
-            // 暂停期间：写入缓冲区，不更新界面
+            // 暂停期间：写入暂停缓冲区，不更新界面
             if (_isPaused)
             {
                 while (_pausedLines.Count >= MaxPausedLines)
@@ -97,42 +123,16 @@ namespace 串口助手
                 return;
             }
 
-            _lineCount++;
+            // 入队而非立即写 RichTextBox：高频率下合并 UI 更新可减少 ~90% 布局重算
+            _logBatch.Add(new LogEntry { Text = text, Color = color, Role = role ?? "received" });
 
-            // 行号扩容：10000→52px  100000→58px  1000000→64px（封顶）
-            if (_lineCount == 10000 || _lineCount == 100000 || _lineCount == 1000000)
-                UpdateLineNumberColumnWidth();
+            // 重置定时器：100ms 无新数据后批量写入
+            _batchFlushTimer.Stop();
+            _batchFlushTimer.Start();
 
-            Paragraph para = new Paragraph();
-            para.Margin = new Thickness(0);
-            para.LineHeight = 2;
-
-            // 存储角色标签，供 RefreshRichTextBoxColors 使用
-            if (role != null)
-                para.Tag = role;
-            else
-                para.Tag = "received"; // 默认当作接收数据
-
-            para.Inlines.Add(new Run(text) { Foreground = new SolidColorBrush(color) });
-
-            rtReceive.Document.Blocks.Add(para);
-
-            // 行号面板同步追加
-            if (_showLineNumbers)
-                icLineNumbers.Items.Add(_lineCount.ToString());
-
-            // 超行裁剪
-            while (rtReceive.Document.Blocks.Count > MaxLogLines)
-            {
-                rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
-                if (_showLineNumbers && icLineNumbers.Items.Count > 0)
-                    icLineNumbers.Items.RemoveAt(0);
-            }
-
-            // 仅在用户已滚到底部时自动滚屏（避免打断手动翻阅历史）
-            bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
-            if (isAtBottom)
-                rtReceive.ScrollToEnd();
+            // 极端高速下队列积压过多 → 强制立即刷新，防止内存堆积
+            if (_logBatch.Count >= 200)
+                FlushLogBatch();
         }
 
         /// <summary>
@@ -212,6 +212,56 @@ namespace 串口助手
 
             bool isAtBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
             if (isAtBottom)
+                rtReceive.ScrollToEnd();
+        }
+
+        /// <summary>
+        /// 批量刷新：将队列中积累的日志一次性写入 RichTextBox。
+        /// 由 _batchFlushTimer 触发（100ms 无新数据后），或队列积压 ≥200 条时强制调用。
+        /// 只做一次滚动检测 + 一次裁剪 + 一次滚底，替代逐行操作，大幅降低布局开销。
+        /// </summary>
+        private void FlushLogBatch()
+        {
+            _batchFlushTimer.Stop();
+            if (_logBatch.Count == 0) return;
+
+            // 取出队列并立即替换为新队列（防止重入）
+            var batch = _logBatch;
+            _logBatch = new List<LogEntry>();
+
+            // 批量写入前检测用户是否在底部（只测一次）
+            bool atBottom = rtReceive.VerticalOffset >= rtReceive.ExtentHeight - rtReceive.ViewportHeight - 8;
+
+            foreach (var entry in batch)
+            {
+                _lineCount++;
+
+                if (_lineCount == 10000 || _lineCount == 100000 || _lineCount == 1000000)
+                    UpdateLineNumberColumnWidth();
+
+                Paragraph para = new Paragraph();
+                para.Margin = new Thickness(0);
+                para.LineHeight = 2;
+                para.Tag = entry.Role;
+
+                para.Inlines.Add(new Run(entry.Text) { Foreground = new SolidColorBrush(entry.Color) });
+
+                rtReceive.Document.Blocks.Add(para);
+
+                if (_showLineNumbers)
+                    icLineNumbers.Items.Add(_lineCount.ToString());
+            }
+
+            // 统一裁剪（只做一次）
+            while (rtReceive.Document.Blocks.Count > MaxLogLines)
+            {
+                rtReceive.Document.Blocks.Remove(rtReceive.Document.Blocks.FirstBlock);
+                if (_showLineNumbers && icLineNumbers.Items.Count > 0)
+                    icLineNumbers.Items.RemoveAt(0);
+            }
+
+            // 仅在用户此前在底部时才自动滚底
+            if (atBottom)
                 rtReceive.ScrollToEnd();
         }
 

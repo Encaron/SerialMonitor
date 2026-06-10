@@ -157,6 +157,10 @@ namespace 串口助手
             flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             flushTimer.Tick += FlushReceiveBuffer;
 
+            // 日志批量刷新定时器：高频接收时合并 UI 更新，避免 RichTextBox 逐行布局卡顿
+            _batchFlushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            _batchFlushTimer.Tick += (s, args) => FlushLogBatch();
+
             // 自动重连定时器：设备重新插入后延迟检测并重连
             reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             reconnectTimer.Tick += (s, args) =>
@@ -258,10 +262,23 @@ namespace 串口助手
 
         private void InitComboBoxItems()
         {
+            cbBaudRate.Items.Add("2400");
             cbBaudRate.Items.Add("4800");
             cbBaudRate.Items.Add("9600");
+            cbBaudRate.Items.Add("14400");
+            cbBaudRate.Items.Add("19200");
             cbBaudRate.Items.Add("38400");
+            cbBaudRate.Items.Add("57600");
+            cbBaudRate.Items.Add("76800");
             cbBaudRate.Items.Add("115200");
+            cbBaudRate.Items.Add("128000");
+            cbBaudRate.Items.Add("230400");
+            cbBaudRate.Items.Add("256000");
+            cbBaudRate.Items.Add("460800");
+            cbBaudRate.Items.Add("500000");
+            cbBaudRate.Items.Add("921600");
+            cbBaudRate.Items.Add("1000000");
+            cbBaudRate.Items.Add("2000000");
 
             cbDataBits.Items.Add("5");
             cbDataBits.Items.Add("6");
@@ -304,7 +321,7 @@ namespace 串口助手
 
         private void SetDefaultValues()
         {
-            cbBaudRate.SelectedIndex = 3;       // 115200
+            cbBaudRate.SelectedIndex = 8;       // 115200
             cbDataBits.SelectedIndex = 3;       // 8
             cbStopBits.SelectedIndex = 0;       // 1
             cbParity.SelectedIndex = 0;         // 无
@@ -465,7 +482,14 @@ namespace 串口助手
             try
             {
                 serialPort.PortName = cbPortName.Text;
-                serialPort.BaudRate = Convert.ToInt32(cbBaudRate.Text);
+                // 校验自定义波特率
+                if (!int.TryParse(cbBaudRate.Text, out int baudRate) || baudRate <= 0)
+                {
+                    MessageBox.Show($"波特率「{cbBaudRate.Text}」无效，请输入正整数（如 9600、115200、921600）。",
+                                    "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                serialPort.BaudRate = baudRate;
                 serialPort.DataBits = Convert.ToInt32(cbDataBits.Text);
 
                 StopBits[] sb = { StopBits.One, StopBits.OnePointFive, StopBits.Two };
@@ -557,6 +581,9 @@ namespace 串口助手
         {
             if (isSerialOpen)
             {
+                // 先刷新待处理的批量日志
+                FlushLogBatch();
+
                 // 强制输出缓冲区残留文本再关
                 flushTimer.Stop();
                 if (!string.IsNullOrEmpty(receiveLineBuffer))
@@ -739,6 +766,8 @@ namespace 串口助手
 
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
+            _batchFlushTimer.Stop();
+            _logBatch.Clear();
             _lineCount = 0;
             rtReceive.Document.Blocks.Clear();
             icLineNumbers.Items.Clear();

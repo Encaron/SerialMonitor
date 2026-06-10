@@ -614,7 +614,7 @@
                                           DropDownOpened="cbPortName_DropDownOpened" />
 
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="波特率" Style="{DynamicResource FormLabelStyle}" />
-                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbBaudRate" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbBaudRate" IsEditable="True" />
 
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="数据位" Style="{DynamicResource FormLabelStyle}" />
                                 <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbDataBits" />
