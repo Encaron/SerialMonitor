@@ -303,9 +303,34 @@ namespace 串口助手
                 Width = 64,
                 Height = 28,
                 Margin = new Thickness(0, 0, 8, 0),
-                Style = FindResource("SecondaryButtonStyle") as Style,
+                Foreground = FindResource("TextSecondaryBrush") as Brush,
+                Background = FindResource("CardBgBrush") as Brush,
+                BorderBrush = FindResource("CardBorderBrush") as Brush,
+                BorderThickness = new Thickness(1),
+                Cursor = Cursors.Hand,
+                FontSize = 12,
+                SnapsToDevicePixels = true,
             };
             cancelBtn.Click += (s, e2) => { dialog.DialogResult = false; dialog.Close(); };
+            // 悬停效果（不依赖 DynamicResource 样式，避免弹窗视觉树找不到资源）
+            var cancelFgHover = FindResource("TextPrimaryBrush") as Brush;
+            var cancelBgHover = FindResource("SecondaryHoverBgBrush") as Brush;
+            var cancelBorderHover = FindResource("TextFaintBrush") as Brush;
+            var cancelFgNormal = cancelBtn.Foreground;
+            var cancelBgNormal = cancelBtn.Background;
+            var cancelBorderNormal = cancelBtn.BorderBrush;
+            cancelBtn.MouseEnter += (s, e2) =>
+            {
+                cancelBtn.Foreground = cancelFgHover;
+                cancelBtn.Background = cancelBgHover;
+                cancelBtn.BorderBrush = cancelBorderHover;
+            };
+            cancelBtn.MouseLeave += (s, e2) =>
+            {
+                cancelBtn.Foreground = cancelFgNormal;
+                cancelBtn.Background = cancelBgNormal;
+                cancelBtn.BorderBrush = cancelBorderNormal;
+            };
             buttonPanel.Children.Add(cancelBtn);
 
             var okBtn = new Button
@@ -313,9 +338,28 @@ namespace 串口助手
                 Content = "确定",
                 Width = 64,
                 Height = 28,
-                Style = FindResource("PrimaryButtonStyle") as Style,
+                Foreground = Brushes.White,
+                Background = FindResource("PrimaryBrush") as Brush,
+                BorderBrush = FindResource("PrimaryBrush") as Brush,
+                BorderThickness = new Thickness(1),
+                Cursor = Cursors.Hand,
+                FontSize = 12,
+                SnapsToDevicePixels = true,
             };
             okBtn.Click += (s, e2) => { dialog.DialogResult = true; dialog.Close(); };
+            var okBgHover = FindResource("PrimaryHoverBrush") as Brush;
+            var okBgNormal = okBtn.Background;
+            var okBorderNormal = okBtn.BorderBrush;
+            okBtn.MouseEnter += (s, e2) =>
+            {
+                okBtn.Background = okBgHover;
+                okBtn.BorderBrush = okBgHover;
+            };
+            okBtn.MouseLeave += (s, e2) =>
+            {
+                okBtn.Background = okBgNormal;
+                okBtn.BorderBrush = okBorderNormal;
+            };
             buttonPanel.Children.Add(okBtn);
 
             Grid.SetRow(buttonPanel, 2);
