@@ -55,7 +55,7 @@ namespace 串口助手
         private void InitEditor()
         {
             editor.TextArea.TextView.LineTransformers.Add(new LogColorizer(this));
-            SearchPanel.Install(editor.TextArea);
+            _searchPanel = SearchPanel.Install(editor.TextArea);
         }
 
         /// <summary>

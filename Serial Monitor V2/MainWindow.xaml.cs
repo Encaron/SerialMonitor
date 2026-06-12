@@ -11,6 +11,7 @@ using System.Windows.Interop;
 using System.Linq;
 using System.Windows.Media;
 using System.Windows.Threading;
+using ICSharpCode.AvalonEdit.Search;
 
 namespace 串口助手
 {
@@ -91,6 +92,11 @@ namespace 串口助手
         // ——— 暗色主题 ———
         private bool isDarkTheme = false;
 
+        // ——— Phase 2: 标签切换 ———
+        private string _currentTab = "Receive";
+        private string _previousContentTab = "Receive";
+        private SearchPanel _searchPanel;
+
         private static readonly Dictionary<string, (Color Light, Color Dark)> ThemeMap =
             new Dictionary<string, (Color, Color)>
         {
@@ -120,6 +126,10 @@ namespace 串口助手
         public MainWindow()
         {
             InitializeComponent();
+
+            // 默认选中接收区图标（IsChecked 在 InitializeComponent 之后，
+            // 避免 XAML 解析阶段触发 Checked 事件导致字段未初始化）
+            tabReceive.IsChecked = true;
 
             // 恢复上次窗口位置和大小
             LoadWindowSettings();
@@ -1165,6 +1175,67 @@ namespace 串口助手
                 case "\\r":    return "0D";
                 default:       return "";
             }
+        }
+
+        // ==================================================================
+        //  Phase 2: 标签切换 & 侧面板控制
+        // ==================================================================
+
+        private void TabContent_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
+            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot"; }
+            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; }
+            else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; }
+            else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; }
+            RefreshContentVisibility();
+        }
+
+        private void TabSettings_Checked(object sender, RoutedEventArgs e)
+        {
+            _currentTab = "Settings"; // 不更新 _previousContentTab
+            RefreshContentVisibility();
+        }
+
+        private void RefreshContentVisibility()
+        {
+            panelReceive.Visibility = _previousContentTab == "Receive" ? Visibility.Visible : Visibility.Collapsed;
+            panelPlot.Visibility    = _previousContentTab == "Plot"    ? Visibility.Visible : Visibility.Collapsed;
+            panelKeys.Visibility    = _previousContentTab == "Keys"    ? Visibility.Visible : Visibility.Collapsed;
+            panelSliders.Visibility = _previousContentTab == "Sliders" ? Visibility.Visible : Visibility.Collapsed;
+            panelOLED.Visibility    = _previousContentTab == "OLED"    ? Visibility.Visible : Visibility.Collapsed;
+
+            rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
+            rightPlot.Visibility     = _currentTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
+            rightSettings.Visibility = _currentTab == "Settings" ? Visibility.Visible : Visibility.Collapsed;
+
+            switch (_currentTab)
+            {
+                case "Receive":  tbSidePanelTitle.Text = "收发设置"; break;
+                case "Plot":     tbSidePanelTitle.Text = "绘图设置"; break;
+                case "Settings": tbSidePanelTitle.Text = "串口配置"; break;
+            }
+        }
+
+        private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
+        {
+            if (colSidePanel.Width.Value > 0)
+            {
+                colSidePanel.Width = new GridLength(0);
+                btnPanelCollapse.Content = "▶";
+                btnPanelCollapse.ToolTip = "展开侧面板";
+            }
+            else
+            {
+                colSidePanel.Width = new GridLength(220);
+                btnPanelCollapse.Content = "◀";
+                btnPanelCollapse.ToolTip = "折叠侧面板";
+            }
+        }
+
+        private void btnSearch_Click(object sender, RoutedEventArgs e)
+        {
+            _searchPanel?.Open();
         }
 
     }
