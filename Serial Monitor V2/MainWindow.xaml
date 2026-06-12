@@ -633,22 +633,14 @@
                                     <TextBlock Text="按键反馈" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                <TextBlock Text="按键：" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Width="42"/>
-                                                <TextBlock x:Name="tbKeyFeedbackName" FontSize="12" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource PrimaryBrush}" Text="—"/>
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                                <TextBlock Text="模式：" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Width="42"/>
-                                                <TextBlock x:Name="tbKeyFeedbackMode" FontSize="11"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" Text="—"/>
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="内容：" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Width="42"/>
-                                                <TextBlock x:Name="tbKeyFeedbackValue" FontSize="11"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
-                                                           TextWrapping="Wrap"/>
-                                            </StackPanel>
+                                            <TextBlock Text="按下：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock x:Name="tbKeyFeedbackName" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryBrush}" Text="—"
+                                                       TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                            <TextBlock Text="发送内容：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock x:Name="tbKeyFeedbackValue" FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
+                                                       TextWrapping="Wrap" LineHeight="16" MaxWidth="180"/>
                                         </StackPanel>
                                     </Border>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
@@ -681,15 +673,27 @@
                                                   SelectionChanged="cbModulePressMode_Changed"/>
                                     </Grid>
                                     <!-- 按下值快捷操作 -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <WrapPanel Margin="0,4,0,0">
                                         <TextBlock Text="值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                        <Button Content="无" Style="{DynamicResource SecondaryButtonStyle}"
-                                                Height="22" MinWidth="32" FontSize="10" Padding="6,0"
-                                                Click="btnModulePressNone_Click" ToolTip="所有按键按下→无"/>
-                                        <Button Content="名字" Style="{DynamicResource SecondaryButtonStyle}"
-                                                Height="22" MinWidth="36" FontSize="10" Padding="6,0" Margin="4,0,0,0"
-                                                Click="btnModulePressName_Click" ToolTip="所有按键按下→文本模式，值为按键名"/>
-                                    </StackPanel>
+                                        <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="28" FontSize="9" Padding="4,0"
+                                                Click="ModulePressValue_Click" ToolTip="按下→无"/>
+                                        <Button Content="名字" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="34" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为按键名"/>
+                                        <Button Content="up" Tag="up" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="26" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 up"/>
+                                        <Button Content="down" Tag="down" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="32" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 down"/>
+                                        <Button Content="on" Tag="on" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 on"/>
+                                        <Button Content="off" Tag="off" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 off"/>
+                                    </WrapPanel>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,6"/>
                                     <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
@@ -703,15 +707,27 @@
                                                   SelectionChanged="cbModuleReleaseMode_Changed"/>
                                     </Grid>
                                     <!-- 松开值快捷操作 -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <WrapPanel Margin="0,4,0,0">
                                         <TextBlock Text="值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                        <Button Content="无" Style="{DynamicResource SecondaryButtonStyle}"
-                                                Height="22" MinWidth="32" FontSize="10" Padding="6,0"
-                                                Click="btnModuleReleaseNone_Click" ToolTip="所有按键松开→无"/>
-                                        <Button Content="名字" Style="{DynamicResource SecondaryButtonStyle}"
-                                                Height="22" MinWidth="36" FontSize="10" Padding="6,0" Margin="4,0,0,0"
-                                                Click="btnModuleReleaseName_Click" ToolTip="所有按键松开→文本模式，值为按键名"/>
-                                    </StackPanel>
+                                        <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="28" FontSize="9" Padding="4,0"
+                                                Click="ModuleReleaseValue_Click" ToolTip="松开→无"/>
+                                        <Button Content="名字" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="34" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为按键名"/>
+                                        <Button Content="up" Tag="up" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="26" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 up"/>
+                                        <Button Content="down" Tag="down" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="32" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 down"/>
+                                        <Button Content="on" Tag="on" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 on"/>
+                                        <Button Content="off" Tag="off" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
+                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 off"/>
+                                    </WrapPanel>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="统一颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
                                     <WrapPanel x:Name="moduleColorPanel" Orientation="Horizontal"/>
