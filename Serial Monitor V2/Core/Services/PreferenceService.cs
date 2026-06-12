@@ -67,6 +67,10 @@ namespace 串口助手
         /// </summary>
         public Dictionary<string, object> MigrateFromLegacy()
         {
+            // 优先加载已存在的 prefs.json（迁移已完成的情况）
+            if (File.Exists(_filePath))
+                return Load();
+
             string legacyPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "串口助手WPF", "window.cfg");

@@ -438,7 +438,7 @@ namespace 串口助手
         /// </summary>
         private void ScanPortsAndAutoSelect()
         {
-            string[] ports = SerialPort.GetPortNames();
+            string[] ports = SerialPort.GetPortNames().Distinct().ToArray();
             if (ports.Length == 0) return;
 
             // 填充串口号列表
@@ -654,12 +654,10 @@ namespace 串口助手
         private void cbPortName_DropDownOpened(object sender, EventArgs e)
         {
             string currentName = cbPortName.Text;
-            string[] names = SerialPort.GetPortNames();
+            string[] names = SerialPort.GetPortNames().Distinct().ToArray();
             cbPortName.Items.Clear();
             foreach (string name in names)
-            {
                 cbPortName.Items.Add(name);
-            }
             cbPortName.Text = currentName;
         }
 
@@ -1214,12 +1212,14 @@ namespace 串口助手
         {
             if (colSidePanel.Width.Value > 30)
             {
+                colSidePanel.MinWidth = 0;
                 colSidePanel.Width = new GridLength(28);
                 btnPanelCollapse.Content = "▶";
                 btnPanelCollapse.ToolTip = "展开侧面板";
             }
             else
             {
+                colSidePanel.MinWidth = 120;
                 colSidePanel.Width = new GridLength(220);
                 btnPanelCollapse.Content = "◀";
                 btnPanelCollapse.ToolTip = "折叠侧面板";
