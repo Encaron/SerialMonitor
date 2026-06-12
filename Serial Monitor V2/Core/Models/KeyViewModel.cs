@@ -51,7 +51,7 @@ namespace 串口助手
 
         // ── 工具 ──
 
-        /// <summary>生成实际的按下发送字符串（"无"/空→不发送；数据包→从Name自动生成协议）</summary>
+        /// <summary>生成实际的按下发送字符串。数据包格式：[key,名字,内容]，内容空则默认"down"</summary>
         public string GetPressContent()
         {
             if (string.IsNullOrEmpty(PressSendMode) || PressSendMode == "无") return "";
@@ -59,12 +59,12 @@ namespace 串口助手
             {
                 case "文本": return PressSendValue ?? "";
                 case "HEX":  return PressSendValue ?? "";
-                default:     // 数据包模式：始终从 Name 生成 [key,Name,down]
-                             return string.Format("[key,{0},down]", Name);
+                default:     return string.Format("[key,{0},{1}]", Name,
+                                 string.IsNullOrEmpty(PressSendValue) ? "down" : PressSendValue);
             }
         }
 
-        /// <summary>生成实际的松开发送字符串</summary>
+        /// <summary>生成实际的松开发送字符串。数据包格式：[key,名字,内容]，内容空则默认"up"</summary>
         public string GetReleaseContent()
         {
             if (string.IsNullOrEmpty(ReleaseSendMode) || ReleaseSendMode == "无") return "";
@@ -72,7 +72,8 @@ namespace 串口助手
             {
                 case "文本": return ReleaseSendValue ?? "";
                 case "HEX":  return ReleaseSendValue ?? "";
-                default:     return string.Format("[key,{0},up]", Name);
+                default:     return string.Format("[key,{0},{1}]", Name,
+                                 string.IsNullOrEmpty(ReleaseSendValue) ? "up" : ReleaseSendValue);
             }
         }
 
