@@ -73,6 +73,9 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Core\Services\DataConverter.cs" />
+    <Compile Include="Core\Services\ProtocolParser.cs" />
+    <Compile Include="Core\Models\ProtocolMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
