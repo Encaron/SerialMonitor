@@ -294,13 +294,13 @@ namespace 串口助手
 
         private Grid BuildDirectionalGrid(List<KeyViewModel> keys, bool isEdit) {
             var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 4) };
-            for (int c = 0; c < 3; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            for (int c = 0; c < 3; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(52) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(52) });
             foreach (var kv in keys) {
                 var btn = CreateKeyButton(kv, isEdit);
+                btn.Margin = new Thickness(0); btn.HorizontalAlignment = HorizontalAlignment.Center; btn.VerticalAlignment = VerticalAlignment.Center;
                 Grid.SetRow(btn, kv.LayoutY); Grid.SetColumn(btn, kv.LayoutX);
-                btn.HorizontalAlignment = HorizontalAlignment.Center; btn.VerticalAlignment = VerticalAlignment.Center;
                 grid.Children.Add(btn); _keyButtonMap[btn] = kv;
             }
             return grid;
@@ -308,10 +308,15 @@ namespace 串口助手
         private Grid BuildNumpadGrid(List<KeyViewModel> keys, bool isEdit) {
             int maxRow = keys.Max(k => k.LayoutY);
             var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 4) };
-            for (int c = 0; c < 4; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            for (int r = 0; r <= maxRow; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            // 固定列宽/行高，消除 Grid.Auto 导致的间距不一致
+            for (int c = 0; c < 4; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(54) });
+            for (int r = 0; r <= maxRow; r++) grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(44) });
             foreach (var kv in keys) {
                 var btn = CreateKeyButton(kv, isEdit);
+                // 去掉按钮自带的 margin，由 Grid 统一控制间距
+                btn.Margin = new Thickness(0, 0, 0, 0);
+                btn.HorizontalAlignment = HorizontalAlignment.Center;
+                btn.VerticalAlignment = VerticalAlignment.Center;
                 Grid.SetRow(btn, kv.LayoutY); Grid.SetColumn(btn, kv.LayoutX);
                 grid.Children.Add(btn); _keyButtonMap[btn] = kv;
             }
