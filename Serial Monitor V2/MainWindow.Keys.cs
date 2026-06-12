@@ -19,6 +19,8 @@ namespace 串口助手
         private Dictionary<Button, KeyViewModel> _keyButtonMap = new Dictionary<Button, KeyViewModel>();
         // 模块组名（GroupId → 名称）
         private Dictionary<int, string> _groupNames = new Dictionary<int, string>();
+        // 当前选中的模块 GroupId（点模块名进入模块设置），null = 未选中模块
+        private int? _selectedModuleGroupId;
 
         // ——— 按键面板初始化 ———
         private void InitKeyPanel()
@@ -53,17 +55,20 @@ namespace 串口助手
             }
 
             // 初始化发送模式下拉框
-            foreach (var cb in new[] { cbKeySendMode, cbKeySendModeMulti })
+            foreach (var cb in new[] { cbKeySendMode, cbKeySendModeMulti, cbModuleSendMode })
             {
                 cb.Items.Clear();
                 cb.Items.Add("文本");
                 cb.Items.Add("HEX");
                 cb.Items.Add("数据包");
-                cb.SelectedIndex = 2; // 默认数据包
+                cb.SelectedIndex = 2;
             }
 
             // 初始化颜色面板
             InitColorPanels();
+
+            // 初始化模块颜色面板（复用同一套色块逻辑）
+            InitModuleColorPanel();
 
             // 初始化按键 UI
             RefreshKeysUI();
@@ -128,12 +133,34 @@ namespace 串口助手
             return border;
         }
 
+        // ——— 模块颜色面板 ———
+        private bool _moduleColorPanelInited;
+        private void InitModuleColorPanel()
+        {
+            if (_moduleColorPanelInited) return;
+            _moduleColorPanelInited = true;
+            string[] colors = { "默认", "红色", "绿色", "蓝色", "黄色", "白色", "灰色" };
+            foreach (var colorName in colors)
+            {
+                var chip = CreateColorChip(colorName, (c) =>
+                {
+                    if (_selectedModuleGroupId == null) return;
+                    int gid = _selectedModuleGroupId.Value;
+                    foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
+                        k.Color = c;
+                    RefreshKeysUI();
+                });
+                moduleColorPanel.Children.Add(chip);
+            }
+        }
+
         // ——— 编辑模式切换 ———
         private void btnKeysEdit_Click(object sender, RoutedEventArgs e)
         {
             InitKeyPanel();
             _keyVM.IsEditMode = true;
             _selectedKeys.Clear();
+            _selectedModuleGroupId = null;
             keysToolbarNormal.Visibility = Visibility.Collapsed;
             keysToolbarEdit.Visibility = Visibility.Visible;
             RefreshKeysUI();
@@ -144,6 +171,7 @@ namespace 串口助手
         {
             _keyVM.IsEditMode = false;
             _selectedKeys.Clear();
+            _selectedModuleGroupId = null;
             keysToolbarNormal.Visibility = Visibility.Visible;
             keysToolbarEdit.Visibility = Visibility.Collapsed;
             RefreshKeysUI();
@@ -286,12 +314,15 @@ namespace 串口助手
                 };
                 var nameLabel = new TextBlock
                 {
-                    Text = groupName,
+                    Text = (isEdit ? "✎ " : "") + groupName,
                     FontSize = 10,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = (Brush)FindResource("TextMutedBrush"),
-                    Cursor = Cursors.Hand,
+                    Foreground = isEdit
+                        ? (Brush)FindResource("PrimaryBrush")
+                        : (Brush)FindResource("TextMutedBrush"),
+                    Cursor = isEdit ? Cursors.Hand : Cursors.Arrow,
                     VerticalAlignment = VerticalAlignment.Center,
+                    ToolTip = isEdit ? "点击在侧面板编辑此模块（名字/发送模式/颜色）" : groupName,
                 };
                 // 统计当前模块的发送模式（取多数）
                 var modes = groupKeys.GroupBy(k => k.SendMode)
@@ -312,26 +343,11 @@ namespace 串口助手
                 int capturedGid = gid;
                 nameLabel.MouseLeftButtonDown += (s2, e2) =>
                 {
-                    // 弹出菜单：批量改发送模式
-                    var modeMenu = new ContextMenu
-                    {
-                        PlacementTarget = nameLabel,
-                        Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-                    };
-                    foreach (var mode in new[] { "文本", "HEX", "数据包" })
-                    {
-                        var item = new MenuItem { Header = mode };
-                        string capturedMode = mode;
-                        item.Click += (s3, e3) =>
-                        {
-                            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == capturedGid))
-                                k.SendMode = capturedMode;
-                            RefreshKeysUI();
-                            RefreshKeysSidePanel();
-                        };
-                        modeMenu.Items.Add(item);
-                    }
-                    modeMenu.IsOpen = true;
+                    // 点击模块名 → 选中模块，侧面板显示模块设置
+                    _selectedModuleGroupId = capturedGid;
+                    _selectedKeys.Clear();
+                    RefreshKeysUI();
+                    RefreshKeysSidePanel();
                 };
                 titleBar.Children.Add(nameLabel);
                 titleBar.Children.Add(modeTag);
@@ -622,6 +638,9 @@ namespace 串口助手
             var keyVM = btn.Tag as KeyViewModel;
             if (keyVM == null) return;
 
+            // 点击单个按键 → 退出模块设置，切换到按键属性
+            _selectedModuleGroupId = null;
+
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
             if (keyVM.IsShiftToggle)
@@ -688,17 +707,27 @@ namespace 串口助手
 
             bool isEdit = _keyVM.IsEditMode;
             int count = _selectedKeys.Count;
+            bool hasModule = _selectedModuleGroupId.HasValue;
 
             // 隐藏所有面板
             rightKeysSentFeedback.Visibility = Visibility.Collapsed;
             rightKeysNoSelection.Visibility = Visibility.Collapsed;
             rightKeysSingleSelect.Visibility = Visibility.Collapsed;
             rightKeysMultiSelect.Visibility = Visibility.Collapsed;
+            rightKeysModuleSettings.Visibility = Visibility.Collapsed;
 
             // 非编辑模式：显示发送反馈
             if (!isEdit)
             {
                 rightKeysSentFeedback.Visibility = Visibility.Visible;
+                _selectedModuleGroupId = null;
+                return;
+            }
+
+            // 编辑模式 + 有模块被选中 → 显示模块设置
+            if (hasModule)
+            {
+                ShowModuleSettings(_selectedModuleGroupId.Value);
                 return;
             }
 
@@ -829,6 +858,63 @@ namespace 串口助手
                 }
                 RefreshKeysUI();
             });
+        }
+
+        // ——— 模块设置面板 ———
+        private void ShowModuleSettings(int gid)
+        {
+            rightKeysModuleSettings.Visibility = Visibility.Visible;
+            // 模块名
+            tbModuleName.Text = _groupNames.TryGetValue(gid, out var n) ? n : ("模块 " + gid);
+            // 发送模式（取多数）
+            var groupKeys = _keyVM.Keys.Where(k => k.GroupId == gid).ToList();
+            var mode = groupKeys.GroupBy(k => k.SendMode)
+                .OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "数据包";
+            cbModuleSendMode.SelectedItem = mode;
+        }
+
+        private void tbModuleName_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_selectedModuleGroupId == null) return;
+            int gid = _selectedModuleGroupId.Value;
+            string newName = tbModuleName.Text?.Trim();
+            if (!string.IsNullOrEmpty(newName))
+            {
+                _groupNames[gid] = newName;
+                RefreshKeysUI();
+            }
+        }
+
+        private void cbModuleSendMode_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_selectedModuleGroupId == null || cbModuleSendMode.SelectedItem == null) return;
+            int gid = _selectedModuleGroupId.Value;
+            string mode = cbModuleSendMode.SelectedItem.ToString();
+            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
+                k.SendMode = mode;
+            RefreshKeysUI();
+        }
+
+        private void btnModuleDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedModuleGroupId == null) return;
+            int gid = _selectedModuleGroupId.Value;
+            var moduleKeys = _keyVM.Keys.Where(k => k.GroupId == gid).ToList();
+            if (moduleKeys.Count == 0) return;
+            var result = MessageBox.Show(
+                string.Format("确定要删除模块「{0}」（{1} 个按键）吗？",
+                    _groupNames.TryGetValue(gid, out var n) ? n : "未命名", moduleKeys.Count),
+                "删除模块", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+            {
+                foreach (var k in moduleKeys)
+                    _keyVM.RemoveKey(k);
+                _groupNames.Remove(gid);
+                _selectedModuleGroupId = null;
+                _selectedKeys.Clear();
+                RefreshKeysUI();
+                RefreshKeysSidePanel();
+            }
         }
 
         // ——— 持久化 ———
