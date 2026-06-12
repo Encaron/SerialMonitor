@@ -17,6 +17,8 @@ namespace 串口助手
         private List<KeyViewModel> _selectedKeys = new List<KeyViewModel>();
         // 映射：WPF Button → KeyViewModel
         private Dictionary<Button, KeyViewModel> _keyButtonMap = new Dictionary<Button, KeyViewModel>();
+        // 模块组名（GroupId → 名称）
+        private Dictionary<int, string> _groupNames = new Dictionary<int, string>();
 
         // ——— 按键面板初始化 ———
         private void InitKeyPanel()
@@ -143,7 +145,9 @@ namespace 串口助手
         {
             InitKeyPanel();
             string name = "Key" + (_keyVM.Keys.Count + 1);
-            _keyVM.AddKey(name);
+            var key = _keyVM.AddKey(name);
+            if (!_groupNames.ContainsKey(key.GroupId))
+                _groupNames[key.GroupId] = "手动按键";
             RefreshKeysUI();
             RefreshKeysSidePanel();
         }
@@ -161,7 +165,8 @@ namespace 串口助手
             var itemQwerty = new MenuItem { Header = "键盘布局（QWERTY 标准）" };
             itemQwerty.Click += (s, args) =>
             {
-                _keyVM.CreateKeyboardLayout();
+                var keys = _keyVM.CreateKeyboardLayout();
+                if (keys.Count > 0) _groupNames[keys[0].GroupId] = "QWERTY 键盘";
                 RefreshKeysUI();
                 RefreshKeysSidePanel();
             };
@@ -170,7 +175,8 @@ namespace 串口助手
             var itemArrows = new MenuItem { Header = "方向键布局（↑ ↓ ← →）" };
             itemArrows.Click += (s, args) =>
             {
-                _keyVM.CreateDirectionalLayout();
+                var keys = _keyVM.CreateDirectionalLayout();
+                if (keys.Count > 0) _groupNames[keys[0].GroupId] = "方向键";
                 RefreshKeysUI();
                 RefreshKeysSidePanel();
             };
@@ -179,7 +185,8 @@ namespace 串口助手
             var itemNumpad = new MenuItem { Header = "数字键盘布局（3×4 小键盘）" };
             itemNumpad.Click += (s, args) =>
             {
-                _keyVM.CreateNumpadLayout();
+                var keys = _keyVM.CreateNumpadLayout();
+                if (keys.Count > 0) _groupNames[keys[0].GroupId] = "数字键盘";
                 RefreshKeysUI();
                 RefreshKeysSidePanel();
             };
@@ -245,55 +252,126 @@ namespace 串口助手
 
             if (!hasKeys) return;
 
-            // 按 GroupId 分组 —— 每个布局预设一个独立容器
+            // 按 GroupId 分组 —— 每个布局预设一个独立容器（带边框+名字+批量改发送模式）
             var groups = _keyVM.Keys.GroupBy(k => k.GroupId).OrderBy(g => g.Key);
-            bool first = true;
             foreach (var group in groups)
             {
-                // 模块间加分隔线（第一个不加）
-                if (!first)
-                {
-                    keysPanel.Children.Add(new System.Windows.Shapes.Rectangle
-                    {
-                        Height = 1, Fill = (Brush)FindResource("SeparatorBrush"),
-                        Margin = new Thickness(0, 6, 0, 6),
-                    });
-                }
-                first = false;
-
                 var groupKeys = group.ToList();
+                int gid = group.Key;
+                string groupName = _groupNames.TryGetValue(gid, out var n) && !string.IsNullOrEmpty(n)
+                    ? n : ("模块 " + gid);
+
+                // 模块容器：Border + 左上角名字标签
+                var container = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+                container.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 标题行
+                container.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 按键行
+
+                // 标题栏：模块名（可点击改发送模式）
+                var titleBar = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 4),
+                };
+                var nameLabel = new TextBlock
+                {
+                    Text = groupName,
+                    FontSize = 10,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = (Brush)FindResource("TextMutedBrush"),
+                    Cursor = Cursors.Hand,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                // 统计当前模块的发送模式（取多数）
+                var modes = groupKeys.GroupBy(k => k.SendMode)
+                    .OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).ToList();
+                string currentMode = modes.FirstOrDefault() ?? "数据包";
+                nameLabel.ToolTip = string.Format("发送模式：{0}  |  点击切换整个模块的发送模式", currentMode);
+
+                // 一个小标签显示当前模式
+                var modeTag = new TextBlock
+                {
+                    Text = " [" + currentMode + "]",
+                    FontSize = 9,
+                    Foreground = (Brush)FindResource("PrimaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(2, 0, 0, 0),
+                };
+
+                int capturedGid = gid;
+                nameLabel.MouseLeftButtonDown += (s2, e2) =>
+                {
+                    // 弹出菜单：批量改发送模式
+                    var modeMenu = new ContextMenu
+                    {
+                        PlacementTarget = nameLabel,
+                        Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+                    };
+                    foreach (var mode in new[] { "文本", "HEX", "数据包" })
+                    {
+                        var item = new MenuItem { Header = mode };
+                        string capturedMode = mode;
+                        item.Click += (s3, e3) =>
+                        {
+                            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == capturedGid))
+                                k.SendMode = capturedMode;
+                            RefreshKeysUI();
+                            RefreshKeysSidePanel();
+                        };
+                        modeMenu.Items.Add(item);
+                    }
+                    modeMenu.IsOpen = true;
+                };
+                titleBar.Children.Add(nameLabel);
+                titleBar.Children.Add(modeTag);
+                Grid.SetRow(titleBar, 0);
+                container.Children.Add(titleBar);
+
+                // 按键内容区（包裹在浅色 Border 中）
                 int maxRow = groupKeys.Max(k => k.LayoutY);
                 int maxCol = groupKeys.Max(k => k.LayoutX);
+                FrameworkElement keysContent;
 
                 if (maxRow == 0 && maxCol < 12)
                 {
-                    // 单行键盘布局（如手动按键、单行QWERTY行）：用 WrapPanel 自然流式
-                    var wrap = new WrapPanel { Orientation = Orientation.Horizontal };
+                    var wrap = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(2, 0, 0, 0) };
                     foreach (var keyVM in groupKeys.OrderBy(k => k.LayoutX))
                     {
                         var btn = CreateKeyButton(keyVM, isEdit);
                         wrap.Children.Add(btn);
                         _keyButtonMap[btn] = keyVM;
                     }
-                    keysPanel.Children.Add(wrap);
+                    keysContent = wrap;
                 }
-                else if (group.All(k => k.LayoutY == 0 || k.LayoutY == 1) && maxRow == 1 && maxCol == 2)
+                else if (maxRow == 1 && maxCol == 2 && groupKeys.All(k => k.LayoutY == 0 || k.LayoutY == 1))
                 {
-                    // 方向键布局（2行×3列 Grid）
-                    var grid = BuildDirectionalGrid(groupKeys, isEdit);
-                    keysPanel.Children.Add(grid);
+                    keysContent = BuildDirectionalGrid(groupKeys, isEdit);
                 }
                 else if (maxRow >= 3 && maxCol >= 3 && groupKeys.Any(k => k.Name == "Enter"))
                 {
-                    // 数字键盘布局（4行×4列 Grid，Enter 跨行）
-                    var grid = BuildNumpadGrid(groupKeys, isEdit);
-                    keysPanel.Children.Add(grid);
+                    keysContent = BuildNumpadGrid(groupKeys, isEdit);
                 }
                 else
                 {
-                    // 通用键盘布局（QWERTY）：行偏移 WrapPanel
-                    BuildRowBasedLayout(groupKeys, isEdit);
+                    // QWERTY：行偏移 WrapPanel，包在一个 StackPanel 中
+                    var stack = new StackPanel { Margin = new Thickness(2, 0, 0, 0) };
+                    BuildRowBasedLayoutInto(stack, groupKeys, isEdit);
+                    keysContent = stack;
                 }
+
+                // 整体包裹 Border
+                var border = new Border
+                {
+                    BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(8, 4, 8, 8),
+                    Background = (Brush)FindResource("SecondaryHoverBgBrush"),
+                    Child = keysContent,
+                };
+                Grid.SetRow(border, 1);
+                container.Children.Add(border);
+
+                keysPanel.Children.Add(container);
             }
         }
 
@@ -350,9 +428,9 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 通用行偏移布局（QWERTY keyboard stagger）
+        /// 通用行偏移布局（QWERTY keyboard stagger），追加到指定 Panel
         /// </summary>
-        private void BuildRowBasedLayout(List<KeyViewModel> keys, bool isEdit)
+        private void BuildRowBasedLayoutInto(Panel parent, List<KeyViewModel> keys, bool isEdit)
         {
             var rows = keys.GroupBy(k => k.LayoutY).OrderBy(g => g.Key);
             double[] rowStagger = { 0, 10, 16, 24 };
@@ -370,7 +448,7 @@ namespace 串口助手
                     rowPanel.Children.Add(btn);
                     _keyButtonMap[btn] = keyVM;
                 }
-                keysPanel.Children.Add(rowPanel);
+                parent.Children.Add(rowPanel);
             }
         }
 
@@ -536,8 +614,24 @@ namespace 串口助手
 
             if (keyVM.IsShiftToggle)
             {
-                // Shift 切换键：切换大小写模式
+                // Shift 切换键：切换大小写模式 → 更新同组所有字母键的 SendValue 和显示名
                 _keyVM.ShiftActive = !_keyVM.ShiftActive;
+                int gid = keyVM.GroupId;
+                foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
+                {
+                    // 仅对单字母键生效（数字、符号不受影响）
+                    if (k.Name.Length == 1 && char.IsLetter(k.Name[0]))
+                    {
+                        if (_keyVM.ShiftActive)
+                        {
+                            k.SendValue = k.Name.ToUpperInvariant();
+                        }
+                        else
+                        {
+                            k.SendValue = k.Name.ToLowerInvariant();
+                        }
+                    }
+                }
                 RefreshKeysUI();
                 RefreshKeysSidePanel();
                 return;
