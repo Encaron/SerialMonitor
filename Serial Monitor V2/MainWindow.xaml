@@ -956,9 +956,9 @@
                                 <TextBlock Text=" 批量创建" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             </StackPanel>
                         </StackPanel>
-                        <!-- 按键按钮区域（WrapPanel 自动流式排列） -->
+                        <!-- 按键按钮区域（按行排列，键盘布局保持行列结构） -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <WrapPanel x:Name="keysPanel" Margin="8,8,0,8" Orientation="Horizontal"/>
+                            <StackPanel x:Name="keysPanel" Margin="8,8,0,8" Orientation="Vertical"/>
                         </ScrollViewer>
                     </Grid>
                 </Grid>
