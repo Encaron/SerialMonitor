@@ -380,7 +380,7 @@ namespace 串口助手
             RefreshKeysUI();
         }
 
-        /// <summary>切换大小写：翻转 ShiftActive，更新同组所有字母键的显示名</summary>
+        /// <summary>切换大小写：翻转 ShiftActive，更新同组所有字母键的显示名和文本/HEX模式发送值</summary>
         private void ToggleShift(int groupId)
         {
             _keyVM.ShiftActive = !_keyVM.ShiftActive;
@@ -391,6 +391,11 @@ namespace 串口助手
                     k.Name = _keyVM.ShiftActive
                         ? k.Name.ToUpperInvariant()
                         : k.Name.ToLowerInvariant();
+                    // 文本/HEX 模式下同步更新发送值，数据包模式自动从 Name 生成无需管
+                    if (k.PressSendMode == "文本" || k.PressSendMode == "HEX")
+                        k.PressSendValue = k.Name;
+                    if (k.ReleaseSendMode == "文本" || k.ReleaseSendMode == "HEX")
+                        k.ReleaseSendValue = k.Name;
                 }
             }
         }
@@ -514,8 +519,20 @@ namespace 串口助手
             cbModuleReleaseMode.SelectedItem = releaseMode;
         }
         private void tbModuleName_LostFocus(object sender, RoutedEventArgs e) { if (_selectedModuleGroupId == null) return; string nn = tbModuleName.Text?.Trim(); if (!string.IsNullOrEmpty(nn)) { _groupNames[_selectedModuleGroupId.Value] = nn; RefreshKeysUI(); } }
-        private void cbModulePressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedModuleGroupId == null || cbModulePressMode.SelectedItem == null) return; string m = cbModulePressMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value; foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.PressSendMode = m; RefreshKeysUI(); }
-        private void cbModuleReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedItem == null) return; string m = cbModuleReleaseMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value; foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.ReleaseSendMode = m; RefreshKeysUI(); }
+        private void cbModulePressMode_Changed(object sender, SelectionChangedEventArgs e) {
+            if (_selectedModuleGroupId == null || cbModulePressMode.SelectedItem == null) return;
+            string m = cbModulePressMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value;
+            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
+            { k.PressSendMode = m; if (m == "文本" && string.IsNullOrEmpty(k.PressSendValue)) k.PressSendValue = k.Name; }
+            RefreshKeysUI();
+        }
+        private void cbModuleReleaseMode_Changed(object sender, SelectionChangedEventArgs e) {
+            if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedItem == null) return;
+            string m = cbModuleReleaseMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value;
+            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
+            { k.ReleaseSendMode = m; if (m == "文本" && string.IsNullOrEmpty(k.ReleaseSendValue)) k.ReleaseSendValue = k.Name; }
+            RefreshKeysUI();
+        }
         // ── 模块按下/松开值快捷操作 ──
         private void ModulePressValue_Click(object sender, RoutedEventArgs e) {
             if (_selectedModuleGroupId == null) return;
