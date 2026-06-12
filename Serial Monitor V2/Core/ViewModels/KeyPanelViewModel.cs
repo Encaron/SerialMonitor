@@ -106,19 +106,19 @@ namespace 串口助手
 
             // Row 0: 数字行，列 0-9
             for (int i = 0; i < row0.Length; i++)
-                newKeys.Add(MakeKey(row0[i], row0[i], gid, i, 0, keyW, keyH));
+                newKeys.Add(MakeKey(row0[i], "", gid, i, 0, keyW, keyH));
 
             // Row 1: QWERTY，列 0-9
             for (int i = 0; i < row1.Length; i++)
-                newKeys.Add(MakeKey(row1[i], row1[i].ToLowerInvariant(), gid, i, 1, keyW, keyH));
+                newKeys.Add(MakeKey(row1[i], "", gid, i, 1, keyW, keyH));
 
             // Row 2: ASDF，列 0-8
             for (int i = 0; i < row2.Length; i++)
-                newKeys.Add(MakeKey(row2[i], row2[i].ToLowerInvariant(), gid, i, 2, keyW, keyH));
+                newKeys.Add(MakeKey(row2[i], "", gid, i, 2, keyW, keyH));
 
             // Row 3: ZXCV + Shift，列 0-6，Shift 在列 8
             for (int i = 0; i < row3.Length; i++)
-                newKeys.Add(MakeKey(row3[i], row3[i].ToLowerInvariant(), gid, i, 3, keyW, keyH));
+                newKeys.Add(MakeKey(row3[i], "", gid, i, 3, keyW, keyH));
 
             newKeys.Add(new KeyViewModel
             {
@@ -155,8 +155,7 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 创建数字键盘布局（Grid 4列×4行，Enter 跨行）
-        /// 列0-2=数字，列3=Enter(RowSpan=2)
+        /// 创建数字键盘布局（4列×5行 = 数字区 + 运算符区）
         /// </summary>
         public List<KeyViewModel> CreateNumpadLayout()
         {
@@ -164,28 +163,34 @@ namespace 串口助手
             int gid = NewGroupId();
             double keyW = 48, keyH = 38;
 
-            // Row 0: 7 8 9
-            newKeys.Add(MakeKey("7", "7", gid, 0, 0, keyW, keyH));
-            newKeys.Add(MakeKey("8", "8", gid, 1, 0, keyW, keyH));
-            newKeys.Add(MakeKey("9", "9", gid, 2, 0, keyW, keyH));
-            // Row 1: 4 5 6
-            newKeys.Add(MakeKey("4", "4", gid, 0, 1, keyW, keyH));
-            newKeys.Add(MakeKey("5", "5", gid, 1, 1, keyW, keyH));
-            newKeys.Add(MakeKey("6", "6", gid, 2, 1, keyW, keyH));
-            // Row 2: 1 2 3 + Enter(RowSpan=2)
-            newKeys.Add(MakeKey("1", "1", gid, 0, 2, keyW, keyH));
-            newKeys.Add(MakeKey("2", "2", gid, 1, 2, keyW, keyH));
-            newKeys.Add(MakeKey("3", "3", gid, 2, 2, keyW, keyH));
+            // Row 0: 7 8 9 ÷
+            newKeys.Add(MakeKey("7", "", gid, 0, 0, keyW, keyH));
+            newKeys.Add(MakeKey("8", "", gid, 1, 0, keyW, keyH));
+            newKeys.Add(MakeKey("9", "", gid, 2, 0, keyW, keyH));
+            newKeys.Add(MakeKey("÷", "div", gid, 3, 0, keyW, keyH));
+            // Row 1: 4 5 6 ×
+            newKeys.Add(MakeKey("4", "", gid, 0, 1, keyW, keyH));
+            newKeys.Add(MakeKey("5", "", gid, 1, 1, keyW, keyH));
+            newKeys.Add(MakeKey("6", "", gid, 2, 1, keyW, keyH));
+            newKeys.Add(MakeKey("×", "mul", gid, 3, 1, keyW, keyH));
+            // Row 2: 1 2 3 -
+            newKeys.Add(MakeKey("1", "", gid, 0, 2, keyW, keyH));
+            newKeys.Add(MakeKey("2", "", gid, 1, 2, keyW, keyH));
+            newKeys.Add(MakeKey("3", "", gid, 2, 2, keyW, keyH));
+            newKeys.Add(MakeKey("−", "sub", gid, 3, 2, keyW, keyH));
+            // Row 3: * 0 # +
+            newKeys.Add(MakeKey("*", "", gid, 0, 3, keyW, keyH));
+            newKeys.Add(MakeKey("0", "", gid, 1, 3, keyW, keyH));
+            newKeys.Add(MakeKey("#", "", gid, 2, 3, keyW, keyH));
+            newKeys.Add(MakeKey("+", "add", gid, 3, 3, keyW, keyH));
+            // Row 4: Enter（跨全宽）
             newKeys.Add(new KeyViewModel
             {
                 Name = "Enter", PressSendMode = "数据包", PressSendValue = "enter",
-                Width = keyW, Height = keyH * 2 + 2,
-                GroupId = gid, LayoutX = 3, LayoutY = 2,
+                ReleaseSendMode = "无", ReleaseSendValue = "",
+                Width = keyW * 2, Height = keyH,
+                GroupId = gid, LayoutX = 1, LayoutY = 4,
             });
-            // Row 3: * 0 #
-            newKeys.Add(MakeKey("*", "*", gid, 0, 3, keyW, keyH));
-            newKeys.Add(MakeKey("0", "0", gid, 1, 3, keyW, keyH));
-            newKeys.Add(MakeKey("#", "#", gid, 2, 3, keyW, keyH));
 
             Keys.AddRange(newKeys);
             return newKeys;
@@ -195,9 +200,8 @@ namespace 串口助手
         {
             return new KeyViewModel
             {
-                // Name = 显示名（小写初始，Shift 切换大写）；PressSendValue 仅文本/HEX 模式使用
                 Name = name.ToLowerInvariant(),
-                PressSendMode = "数据包", PressSendValue = "",
+                PressSendMode = "数据包", PressSendValue = pressSendValue ?? "",
                 ReleaseSendMode = "无", ReleaseSendValue = "",
                 GroupId = gid, LayoutX = lx, LayoutY = ly, Width = w, Height = h,
             };

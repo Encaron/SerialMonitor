@@ -306,13 +306,13 @@ namespace 串口助手
             return grid;
         }
         private Grid BuildNumpadGrid(List<KeyViewModel> keys, bool isEdit) {
+            int maxRow = keys.Max(k => k.LayoutY);
             var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 4) };
             for (int c = 0; c < 4; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            for (int r = 0; r < 4; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            for (int r = 0; r <= maxRow; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             foreach (var kv in keys) {
                 var btn = CreateKeyButton(kv, isEdit);
                 Grid.SetRow(btn, kv.LayoutY); Grid.SetColumn(btn, kv.LayoutX);
-                if (kv.Name == "Enter") { Grid.SetRowSpan(btn, 2); btn.VerticalAlignment = VerticalAlignment.Stretch; }
                 grid.Children.Add(btn); _keyButtonMap[btn] = kv;
             }
             return grid;
