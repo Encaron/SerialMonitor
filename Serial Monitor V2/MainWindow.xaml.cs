@@ -255,6 +255,13 @@ namespace 串口助手
                             UpdatePlotHud();
                         }
                     }
+                    // Phase 4: [key,name,state]
+                    else if (msg.Type == "key" && msg.Args.Count >= 2)
+                    {
+                        string keyName = msg.Args[0];
+                        string state = msg.Args[1]; // "down" or "up"
+                        HandleKeyMessage(keyName, state);
+                    }
                 }
             }
         }
@@ -1220,7 +1227,7 @@ namespace 串口助手
         {
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
             else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); }
-            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; }
+            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; InitKeyPanel(); }
             else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; }
             else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; }
             RefreshContentVisibility();
@@ -1239,13 +1246,17 @@ namespace 串口助手
             panelOLED.Visibility    = _previousContentTab == "OLED"    ? Visibility.Visible : Visibility.Collapsed;
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
             rightPlot.Visibility     = _currentTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
+            rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
             rightSettings.Visibility = _currentTab == "Settings" ? Visibility.Visible : Visibility.Collapsed;
             switch (_currentTab)
             {
                 case "Receive": tbSidePanelTitle.Text = "收发设置"; break;
                 case "Plot":    tbSidePanelTitle.Text = "绘图设置"; break;
+                case "Keys":    tbSidePanelTitle.Text = "按键属性"; break;
                 case "Settings": tbSidePanelTitle.Text = "串口配置"; break;
             }
+            // 切换到按键面板时刷新侧面板
+            if (_currentTab == "Keys") RefreshKeysSidePanel();
         }
         private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
         {
