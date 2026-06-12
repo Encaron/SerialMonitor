@@ -39,6 +39,7 @@
     <Reference Include="ICSharpCode.AvalonEdit">
       <HintPath>Lib\ICSharpCode.AvalonEdit.dll</HintPath>
     </Reference>
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -76,7 +77,13 @@
     <Compile Include="Core\Services\DataConverter.cs" />
     <Compile Include="Core\Services\ProtocolParser.cs" />
     <Compile Include="Core\Services\SerialPortSession.cs" />
+    <Compile Include="Core\Services\PreferenceService.cs" />
     <Compile Include="Core\Models\ProtocolMessage.cs" />
+    <Compile Include="Core\ViewModels\MainViewModel.cs" />
+    <Compile Include="Core\ViewModels\PlotViewModel.cs" />
+    <Compile Include="Core\ViewModels\SliderPanelViewModel.cs" />
+    <Compile Include="Core\ViewModels\KeyPanelViewModel.cs" />
+    <Compile Include="Core\ViewModels\DisplayPanelViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
