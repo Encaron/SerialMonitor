@@ -2,52 +2,55 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
-using System.Windows.Input;
 
 namespace 串口助手
 {
     public partial class MainWindow : Window
     {
         // ==================================================================
-        //  窗口位置记忆 & 偏好持久化
+        //  窗口位置记忆 & 偏好持久化（已迁移至 PreferenceService + prefs.json）
         // ==================================================================
 
-        private string SettingsFilePath => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "串口助手WPF", "window.cfg");
+        private PreferenceService _prefs;
+        private Dictionary<string, object> _prefsData;
+
+        private void InitPreferences()
+        {
+            _prefs = new PreferenceService();
+            // 首次启动时从旧 window.cfg 迁移
+            _prefsData = _prefs.MigrateFromLegacy();
+        }
 
         private void LoadWindowSettings()
         {
+            InitPreferences();
+
             try
             {
-                if (!File.Exists(SettingsFilePath)) return;
+                var window = (Dictionary<string, object>)_prefsData["window"];
 
-                var dict = new Dictionary<string, string>();
-                foreach (var line in File.ReadAllLines(SettingsFilePath))
-                {
-                    int idx = line.IndexOf('=');
-                    if (idx > 0) dict[line.Substring(0, idx)] = line.Substring(idx + 1);
-                }
+                double left   = Convert.ToDouble(window["left"]);
+                double top    = Convert.ToDouble(window["top"]);
+                double width  = Convert.ToDouble(window["width"]);
+                double height = Convert.ToDouble(window["height"]);
+                bool maximized = Convert.ToBoolean(window["maximized"]);
 
-                if (dict.TryGetValue("Left",   out string l) && double.TryParse(l, out double left))
-                    this.Left = Math.Max(0, Math.Min(left, SystemParameters.PrimaryScreenWidth - 100));
-                if (dict.TryGetValue("Top",    out string t) && double.TryParse(t, out double top))
-                    this.Top  = Math.Max(0, Math.Min(top,  SystemParameters.PrimaryScreenHeight - 100));
-                if (dict.TryGetValue("Width",  out string w) && double.TryParse(w, out double width))
-                    this.Width  = Math.Max(MinWidth,  Math.Min(width,  SystemParameters.PrimaryScreenWidth));
-                if (dict.TryGetValue("Height", out string h) && double.TryParse(h, out double height))
-                    this.Height = Math.Max(MinHeight, Math.Min(height, SystemParameters.PrimaryScreenHeight));
-                if (dict.TryGetValue("State",  out string s) && s == "Maximized")
+                this.Left   = Math.Max(0, Math.Min(left,   SystemParameters.PrimaryScreenWidth - 100));
+                this.Top    = Math.Max(0, Math.Min(top,    SystemParameters.PrimaryScreenHeight - 100));
+                this.Width  = Math.Max(MinWidth,  Math.Min(width,  SystemParameters.PrimaryScreenWidth));
+                this.Height = Math.Max(MinHeight, Math.Min(height, SystemParameters.PrimaryScreenHeight));
+
+                if (maximized)
                     this.WindowState = WindowState.Maximized;
 
                 // 加载主题偏好
-                if (dict.TryGetValue("Theme", out string theme) && theme == "Dark")
-                {
+                string theme = _prefsData["theme"] as string;
+                if (theme == "Dark")
                     ApplyTheme(true);
-                }
 
                 // 加载上次成功打开的串口号
-                if (dict.TryGetValue("LastPort", out string lastPort))
+                string lastPort = _prefsData["lastPort"] as string;
+                if (!string.IsNullOrEmpty(lastPort))
                     _lastSuccessfulPort = lastPort;
             }
             catch { /* 静默失败，使用默认值 */ }
@@ -57,27 +60,26 @@ namespace 串口助手
         {
             try
             {
-                string dir = Path.GetDirectoryName(SettingsFilePath);
-                Directory.CreateDirectory(dir);
+                var window = (Dictionary<string, object>)_prefsData["window"];
+                window["left"]   = this.Left;
+                window["top"]    = this.Top;
+                window["width"]  = this.Width;
+                window["height"] = this.Height;
+                window["maximized"] = this.WindowState == WindowState.Maximized;
 
-                var lines = new[]
-                {
-                    $"Left={this.Left}",
-                    $"Top={this.Top}",
-                    $"Width={this.Width}",
-                    $"Height={this.Height}",
-                    $"State={this.WindowState}",
-                    $"Theme={(isDarkTheme ? "Dark" : "Light")}",
-                    $"LastPort={_lastSuccessfulPort}",
-                    $"LineEnding={cbLineEnding.SelectedItem}",
-                    $"AutoClear={(chkAutoClear.IsChecked == true ? "1" : "0")}",
-                    $"AutoReconnect={(chkAutoReconnect.IsChecked == true ? "1" : "0")}",
-                    $"ShowEcho={(chkShowEcho.IsChecked == true ? "1" : "0")}",
-                    $"ShowLineNumbers={(chkShowLineNumbers.IsChecked == true ? "1" : "0")}",
-                    $"PersistTraffic={(chkPersistTraffic.IsChecked == true ? "1" : "0")}",
-                    $"SeparateSystemLog={(chkSeparateSystemLog.IsChecked == true ? "1" : "0")}",
-                };
-                File.WriteAllLines(SettingsFilePath, lines);
+                _prefsData["theme"] = isDarkTheme ? "Dark" : "Light";
+                _prefsData["lastPort"] = _lastSuccessfulPort;
+
+                var prefs = (Dictionary<string, object>)_prefsData["preferences"];
+                prefs["lineEnding"]  = cbLineEnding.SelectedItem?.ToString() ?? "\\r\\n";
+                prefs["autoClear"]   = chkAutoClear.IsChecked == true;
+                prefs["autoReconnect"] = chkAutoReconnect.IsChecked == true;
+                prefs["showEcho"]    = chkShowEcho.IsChecked == true;
+                prefs["showLineNumbers"] = chkShowLineNumbers.IsChecked == true;
+                prefs["persistTraffic"] = chkPersistTraffic.IsChecked == true;
+                prefs["separateSystemLog"] = chkSeparateSystemLog.IsChecked == true;
+
+                _prefs.Save(_prefsData);
             }
             catch { /* 静默失败，不影响关闭 */ }
         }
@@ -88,39 +90,32 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 从配置文件加载 UI 偏好（ComboBox 选择 + CheckBox 状态）
+        /// 从 prefs.json 加载 UI 偏好（ComboBox 选择 + CheckBox 状态）
         /// 需在 InitComboBoxItems + SetDefaultValues 之后调用
         /// </summary>
         private void LoadPreferences()
         {
             try
             {
-                if (!File.Exists(SettingsFilePath)) return;
+                var prefs = (Dictionary<string, object>)_prefsData["preferences"];
 
-                var dict = new Dictionary<string, string>();
-                foreach (var line in File.ReadAllLines(SettingsFilePath))
+                if (prefs.TryGetValue("lineEnding", out object le) && le is string leStr)
                 {
-                    int idx = line.IndexOf('=');
-                    if (idx > 0) dict[line.Substring(0, idx)] = line.Substring(idx + 1);
-                }
-
-                if (dict.TryGetValue("LineEnding", out string le))
-                {
-                    int idx = cbLineEnding.Items.IndexOf(le);
+                    int idx = cbLineEnding.Items.IndexOf(leStr);
                     if (idx >= 0) cbLineEnding.SelectedIndex = idx;
                 }
-                if (dict.TryGetValue("AutoClear", out string ac))
-                    chkAutoClear.IsChecked = ac == "1";
-                if (dict.TryGetValue("AutoReconnect", out string ar))
-                    chkAutoReconnect.IsChecked = ar == "1";
-                if (dict.TryGetValue("PersistTraffic", out string pt))
-                    chkPersistTraffic.IsChecked = pt == "1";
-                if (dict.TryGetValue("ShowEcho", out string se))
-                    chkShowEcho.IsChecked = se == "1";
-                if (dict.TryGetValue("ShowLineNumbers", out string sln))
-                    chkShowLineNumbers.IsChecked = sln == "1";
-                if (dict.TryGetValue("SeparateSystemLog", out string ssl))
-                    chkSeparateSystemLog.IsChecked = ssl == "1";
+                if (prefs.TryGetValue("autoClear", out object ac))
+                    chkAutoClear.IsChecked = Convert.ToBoolean(ac);
+                if (prefs.TryGetValue("autoReconnect", out object ar))
+                    chkAutoReconnect.IsChecked = Convert.ToBoolean(ar);
+                if (prefs.TryGetValue("persistTraffic", out object pt))
+                    chkPersistTraffic.IsChecked = Convert.ToBoolean(pt);
+                if (prefs.TryGetValue("showEcho", out object se))
+                    chkShowEcho.IsChecked = Convert.ToBoolean(se);
+                if (prefs.TryGetValue("showLineNumbers", out object sln))
+                    chkShowLineNumbers.IsChecked = Convert.ToBoolean(sln);
+                if (prefs.TryGetValue("separateSystemLog", out object ssl))
+                    chkSeparateSystemLog.IsChecked = Convert.ToBoolean(ssl);
             }
             catch { /* 静默失败 */ }
         }
