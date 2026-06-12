@@ -248,7 +248,7 @@ namespace 串口助手
             // 按行分组（LayoutY），每行一个 WrapPanel，支持键盘布局的行列结构
             var rows = _keyVM.Keys.GroupBy(k => k.LayoutY).OrderBy(g => g.Key);
             // 键盘式行偏移（模拟真实键盘的 stagger 效果）
-            double[] rowStagger = { 0, 12, 20, 28 };
+            double[] rowStagger = { 0, 10, 16, 24 };
             foreach (var row in rows)
             {
                 double leftMargin = row.Key < rowStagger.Length ? rowStagger[row.Key] : 0;

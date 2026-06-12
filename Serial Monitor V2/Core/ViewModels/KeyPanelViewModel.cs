@@ -96,7 +96,7 @@ namespace 串口助手
             // Row 3: 下排 + Shift
             string[] row3 = { "Z", "X", "C", "V", "B", "N", "M" };
 
-            double keyW = 56, keyH = 32;
+            double keyW = 46, keyH = 30;
 
             for (int i = 0; i < row0.Length; i++)
             {
@@ -130,11 +130,11 @@ namespace 串口助手
                     Width = keyW, Height = keyH, LayoutX = i, LayoutY = 3,
                 });
             }
-            // Shift 切换键
+            // Shift 切换键（LayoutX 多跳一列，与字母区留间距）
             newKeys.Add(new KeyViewModel
             {
                 Name = "⇧", SendMode = "数据包", SendValue = "",
-                Width = keyW, Height = keyH, LayoutX = row3.Length, LayoutY = 3,
+                Width = keyW + 12, Height = keyH, LayoutX = row3.Length + 1, LayoutY = 3,
                 IsShiftToggle = true, IsLocked = true,
             });
 
