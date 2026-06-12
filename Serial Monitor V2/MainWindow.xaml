@@ -696,6 +696,9 @@
                                     <TextBlock Text="统一颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
                                     <WrapPanel x:Name="moduleColorPanel" Orientation="Horizontal"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <Button Content="🔄 生成松开发送值" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnModuleGenRelease_Click" Margin="0,0,0,6"
+                                            ToolTip="为模块内所有按键的松开发送填入 [key,Name,up] 文本值"/>
                                     <Button Content="🗑 删除此模块" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnModuleDelete_Click" Foreground="#E74856"/>
                                 </StackPanel>
