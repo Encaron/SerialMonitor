@@ -571,8 +571,8 @@ namespace 串口助手
             if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
             {
-                k.ReleaseSendMode = "文本";
-                k.ReleaseSendValue = string.Format("[key,{0},up]", k.Name);
+                k.ReleaseSendMode = "数据包";
+                k.ReleaseSendValue = "";  // 默认=up
             }
             RefreshKeysUI(); RefreshKeysSidePanel();
         }
