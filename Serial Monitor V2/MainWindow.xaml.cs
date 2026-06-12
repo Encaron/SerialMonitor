@@ -28,8 +28,10 @@ namespace 串口助手
         // 串口会话（替代原来的 serialPort / byteBuffer / receiveLineBuffer / flushTimer）
         private SerialPortSession _session;
 
-        // 波形图 ViewModel（Phase 3）
+        // Phase 3: 波形图 ViewModel
         private PlotViewModel _plotVM;
+        private OxyPlot.Wpf.PlotView plotView;
+        private bool _plotViewCreated;
 
         // ——— 颜色常量（与 XAML 资源保持一致）———
 
@@ -133,7 +135,10 @@ namespace 串口助手
             // 默认选中接收区图标（InitializeComponent 之后，避免 XAML 阶段触发事件）
             tabReceive.IsChecked = true;
 
-            // 恢复上次窗口位置和大小
+            // Phase 3: PlotViewModel 必须在 LoadWindowSettings 之前初始化——后者可能触发 ApplyTheme
+            _plotVM = new PlotViewModel();
+
+            // 恢复上次窗口位置和大小（可能触发 ApplyTheme → UpdateThemeColors）
             LoadWindowSettings();
 
             // 创建串口会话
@@ -141,9 +146,17 @@ namespace 串口助手
             _session.LineReceived += OnLineReceived;
             _session.ConnectionChanged += OnConnectionChanged;
 
-            // Phase 3: 初始化波形图 ViewModel，直接赋值 PlotView 的 Model（不走 Binding，跟 AvalonEdit 一样 code-behind）
-            _plotVM = new PlotViewModel();
-            plotView.Model = _plotVM.Model;
+            // Phase 3: 设置 CheckBox 初始选中状态（不能放 XAML IsChecked="True"，会导致 BAML 崩溃）
+            chkPlotYAuto.IsChecked = true;
+            chkPlotLines.IsChecked = true;
+            chkPlotValueHud.IsChecked = true;
+            // Y 轴自动模式下禁用 min/max 输入框
+            tbPlotYMin.IsEnabled = false;
+            tbPlotYMax.IsEnabled = false;
+            // 显示模式下拉框
+            cbPlotMode.Items.Add("滚动 (Roll)");
+            cbPlotMode.Items.Add("扫描 (Sweep)");
+            cbPlotMode.SelectedIndex = 0;
 
             // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
             statusDotBrush = new SolidColorBrush(StatusDotIdle);
@@ -219,32 +232,29 @@ namespace 串口助手
         // ==================================================================
 
         /// <summary>
-        /// Session 收到完整行文本 → 写入接收区 + 协议解析路由（已由 Session 的 Dispatcher.Invoke 切到 UI 线程）
+        /// Session 收到完整行文本 → 写入接收区（已由 Session 的 Dispatcher.Invoke 切到 UI 线程）
         /// </summary>
         private void OnLineReceived(string line)
         {
             LogReceived(line);
             UpdateTrafficDisplay();
 
-            // Phase 3: 协议解析 → 路由到 PlotViewModel
-            var parseResult = ProtocolParser.Parse(line);
-            if (parseResult.Messages.Count > 0)
+            // Phase 3: 协议路由——[plot,...] → PlotViewModel
+            var pr = ProtocolParser.Parse(line);
+            if (pr.Messages.Count > 0)
             {
-                foreach (var msg in parseResult.Messages)
+                foreach (var msg in pr.Messages)
                 {
                     if (msg.Type == "plot" && msg.Args.Count >= 2)
                     {
-                        if (double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+                        if (double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
                         {
-                            _plotVM.OnPlotMessage(msg.Args[0], value, DateTime.Now);
-                            // 第一个 plot 数据点到达 → 隐藏空状态提示
+                            _plotVM.OnPlotMessage(msg.Args[0], val, DateTime.Now);
                             if (plotEmptyHint.Visibility == Visibility.Visible)
                                 plotEmptyHint.Visibility = Visibility.Collapsed;
-                            // 有数据后刷新 HUD
                             UpdatePlotHud();
                         }
                     }
-                    // Phase 4: slider / key / display / joystick 消息路由预留
                 }
             }
         }
@@ -296,13 +306,6 @@ namespace 串口助手
 
                 // 日志
                 LogSystem($"---- 已打开串行端口 {_session.PortName} ----");
-
-                // Phase 3: 已连接但无数据 → 更新空状态提示
-                if (_plotVM.LatestValues.Count == 0)
-                {
-                    plotEmptyHint.Text = "等待串口数据…";
-                    plotEmptyHint.Visibility = Visibility.Visible;
-                }
             }
             else
             {
@@ -335,13 +338,6 @@ namespace 串口助手
                 else
                 {
                     tbPortInfo.Visibility = Visibility.Collapsed;
-                }
-
-                // Phase 3: 断开连接 → 更新绘图空状态提示
-                if (_plotVM.LatestValues.Count == 0)
-                {
-                    plotEmptyHint.Text = "串口未连接";
-                    plotEmptyHint.Visibility = Visibility.Visible;
                 }
             }
         }
@@ -1223,7 +1219,7 @@ namespace 串口助手
         private void TabContent_Checked(object sender, RoutedEventArgs e)
         {
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
-            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot"; }
+            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); }
             else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; }
             else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; }
             else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; }
@@ -1268,41 +1264,42 @@ namespace 串口助手
                 btnPanelCollapse.ToolTip = "折叠侧面板";
             }
         }
-        // ═══════════════════════════════════════════════════════════
-        // Phase 3: 波形图工具栏 + 右侧面板事件处理
-        // ═══════════════════════════════════════════════════════════
+        // ═══ Phase 3: 波形图 ═══
 
-        /// <summary>⏸ 暂停/继续 按钮——暂停时数据不追加到曲线</summary>
+        private void EnsurePlotView()
+        {
+            if (_plotViewCreated) return;
+            _plotViewCreated = true;
+
+            plotView = new OxyPlot.Wpf.PlotView
+            {
+                Model = _plotVM.Model,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Background = System.Windows.Media.Brushes.Transparent, // 让父级背景透过来
+            };
+            // 点击曲线 → 钉住十字光标标记
+            plotView.MouseDown += (s, e) =>
+            {
+                if (!_plotVM.IsPaused) _plotVM.TogglePause();
+                btnPlotPause.Content = _plotVM.IsPaused ? "▶ 继续" : "⏸ 暂停";
+            };
+            plotArea.Children.Insert(0, plotView);
+        }
+
         private void btnPlotPause_Click(object sender, RoutedEventArgs e)
         {
             _plotVM.TogglePause();
             btnPlotPause.Content = _plotVM.IsPaused ? "▶ 继续" : "⏸ 暂停";
-            btnPlotPause.Background = _plotVM.IsPaused
-                ? new SolidColorBrush(PrimaryColor) { Opacity = 0.3 }
-                : null;
-
-            // 暂停时启用追踪十字光标，运行时恢复默认缩放/平移行为
-            if (_plotVM.IsPaused)
-            {
-                plotView.DefaultTrackerTemplate = null; // 使用 OxyPlot 默认 tracker 模板（十字线 + tooltip）
-                plotView.IsManipulationEnabled = false;  // 禁用滚轮缩放/平移
-            }
-            else
-            {
-                plotView.IsManipulationEnabled = true;
-            }
         }
 
-        /// <summary>🗑 清除全部曲线</summary>
         private void btnPlotClear_Click(object sender, RoutedEventArgs e)
         {
             _plotVM.Clear();
-            // 恢复空状态提示
             plotEmptyHint.Visibility = Visibility.Visible;
             plotHud.Visibility = Visibility.Collapsed;
         }
 
-        /// <summary>📥 导出 CSV</summary>
         private void btnPlotCsv_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1313,89 +1310,33 @@ namespace 串口助手
                     LogSystem("---- 无波形数据可导出 ----");
                     return;
                 }
-
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
                     FileName = $"plot_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
                     Filter = "CSV 文件 (*.csv)|*.csv|所有文件 (*.*)|*.*",
                 };
-
                 if (dlg.ShowDialog() == true)
                 {
                     System.IO.File.WriteAllText(dlg.FileName, csv, Encoding.UTF8);
                     LogSystem($"---- 波形数据已导出到: {dlg.FileName} ----");
                 }
             }
-            catch (Exception ex)
-            {
-                LogSystem($"---- 导出 CSV 失败: {ex.Message} ----");
-            }
+            catch (Exception ex) { LogSystem($"---- 导出 CSV 失败: {ex.Message} ----"); }
         }
 
-        /// <summary>🔍 适应窗口——重置缩放和平移</summary>
         private void btnPlotFit_Click(object sender, RoutedEventArgs e)
         {
             _plotVM.ResetView();
         }
 
-        /// <summary>X 轴自动范围切换</summary>
-        private void chkPlotXAuto_Changed(object sender, RoutedEventArgs e)
-        {
-            bool isAuto = chkPlotXAuto.IsChecked == true;
-            _plotVM.XAxisAutoRange = isAuto;
-            tbPlotXRange.IsEnabled = !isAuto;
-        }
-
-        /// <summary>Y 轴自动范围切换</summary>
-        private void chkPlotYAuto_Changed(object sender, RoutedEventArgs e)
-        {
-            _plotVM.YAxisAutoRange = chkPlotYAuto.IsChecked == true;
-        }
-
-        /// <summary>☑ 标点显隐切换</summary>
-        private void chkPlotMarkers_Changed(object sender, RoutedEventArgs e)
-        {
-            _plotVM.SetMarkers(chkPlotMarkers.IsChecked == true);
-        }
-
-        /// <summary>☑ 连线显隐切换</summary>
-        private void chkPlotLines_Changed(object sender, RoutedEventArgs e)
-        {
-            _plotVM.SetLines(chkPlotLines.IsChecked == true);
-        }
-
-        /// <summary>☑ 数值 HUD 显隐切换</summary>
-        private void chkPlotValueHud_Changed(object sender, RoutedEventArgs e)
-        {
-            _plotVM.ShowValueHud = chkPlotValueHud.IsChecked == true;
-            if (_plotVM.ShowValueHud && _plotVM.LatestValues.Count > 0)
-                plotHud.Visibility = Visibility.Visible;
-            else
-                plotHud.Visibility = Visibility.Collapsed;
-        }
-
-        /// <summary>X 轴固定范围值变更</summary>
-        private void tbPlotXRange_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (double.TryParse(tbPlotXRange.Text, out double val) && val > 0)
-                _plotVM.XAxisFixedRange = val;
-        }
-
-        /// <summary>
-        /// 刷新数值 HUD 叠加层——遍历 LatestValues 重建显示。
-        /// </summary>
         private void UpdatePlotHud()
         {
-            if (!_plotVM.ShowValueHud || _plotVM.LatestValues.Count == 0)
-                return;
-
+            if (!_plotVM.ShowValueHud || _plotVM.LatestValues.Count == 0) return;
             plotHud.Visibility = Visibility.Visible;
             plotHudPanel.Children.Clear();
-
             foreach (var kv in _plotVM.LatestValues)
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 2) };
-                // 颜色圆点
                 row.Children.Add(new System.Windows.Shapes.Ellipse
                 {
                     Width = 8, Height = 8,
@@ -1403,25 +1344,74 @@ namespace 串口助手
                     Margin = new Thickness(0, 0, 6, 0),
                     VerticalAlignment = VerticalAlignment.Center,
                 });
-                // 曲线名
                 row.Children.Add(new TextBlock
                 {
                     Text = kv.Key + ": ",
                     Foreground = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB)),
-                    FontSize = 12,
-                    VerticalAlignment = VerticalAlignment.Center,
+                    FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
                 });
-                // 数值
                 row.Children.Add(new TextBlock
                 {
                     Text = kv.Value.ToString("F4"),
                     Foreground = new SolidColorBrush(Colors.White),
-                    FontSize = 12,
-                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 12, FontWeight = FontWeights.SemiBold,
                     VerticalAlignment = VerticalAlignment.Center,
                 });
                 plotHudPanel.Children.Add(row);
             }
+        }
+
+        // Phase 3 rightPlot handlers
+
+        private void chkPlotYAuto_Changed(object sender, RoutedEventArgs e)
+        {
+            bool isAuto = chkPlotYAuto.IsChecked == true;
+            _plotVM.YAxisAutoRange = isAuto;
+            tbPlotYMin.IsEnabled = !isAuto;
+            tbPlotYMax.IsEnabled = !isAuto;
+            if (isAuto) _plotVM.RecalcYAxis();
+        }
+
+        private void chkPlotMarkers_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.SetMarkers(chkPlotMarkers.IsChecked == true);
+        }
+
+        private void chkPlotLines_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.SetLines(chkPlotLines.IsChecked == true);
+        }
+
+        private void chkPlotValueHud_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.ShowValueHud = chkPlotValueHud.IsChecked == true;
+            plotHud.Visibility = (_plotVM.ShowValueHud && _plotVM.LatestValues.Count > 0)
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void cbPlotMode_Changed(object sender, RoutedEventArgs e)
+        {
+            switch (cbPlotMode.SelectedIndex)
+            {
+                case 0: _plotVM.DisplayMode = PlotDisplayMode.Scroll; break;
+                case 1: _plotVM.DisplayMode = PlotDisplayMode.Sweep; break;
+            }
+        }
+
+        private void tbPlotXRange_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (int.TryParse(tbPlotXRange.Text, out int val) && val > 0 && val != _plotVM.MaxDataPoints)
+            {
+                _plotVM.MaxDataPoints = val;
+                _plotVM.ApplyXAxisWindow();  // 调整 X 轴显示窗口，不删数据
+            }
+        }
+
+        private void tbPlotYRange_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (double.TryParse(tbPlotYMin.Text, out double min) &&
+                double.TryParse(tbPlotYMax.Text, out double max) && max > min)
+                _plotVM.SetYRange(min, max);
         }
 
         private void btnSearch_Click(object sender, RoutedEventArgs e)
