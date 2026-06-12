@@ -245,12 +245,27 @@ namespace 串口助手
 
             if (!hasKeys) return;
 
-            // 编辑模式按钮也可见（非编辑时也可看到布局）
-            foreach (var keyVM in _keyVM.Keys)
+            // 按行分组（LayoutY），每行一个 WrapPanel，支持键盘布局的行列结构
+            var rows = _keyVM.Keys.GroupBy(k => k.LayoutY).OrderBy(g => g.Key);
+            // 键盘式行偏移（模拟真实键盘的 stagger 效果）
+            double[] rowStagger = { 0, 12, 20, 28 };
+            foreach (var row in rows)
             {
-                var btn = CreateKeyButton(keyVM, isEdit);
-                keysPanel.Children.Add(btn);
-                _keyButtonMap[btn] = keyVM;
+                double leftMargin = row.Key < rowStagger.Length ? rowStagger[row.Key] : 0;
+                var rowPanel = new WrapPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(leftMargin, 0, 0, 2),
+                };
+                // 行内按 LayoutX 排序
+                var sortedKeys = row.OrderBy(k => k.LayoutX);
+                foreach (var keyVM in sortedKeys)
+                {
+                    var btn = CreateKeyButton(keyVM, isEdit);
+                    rowPanel.Children.Add(btn);
+                    _keyButtonMap[btn] = keyVM;
+                }
+                keysPanel.Children.Add(rowPanel);
             }
         }
 
