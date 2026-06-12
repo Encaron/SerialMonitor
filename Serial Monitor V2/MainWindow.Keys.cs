@@ -220,11 +220,19 @@ namespace 串口助手
                     keysContent = stack;
                 }
 
+                // 模块边框（编辑模式加左侧强调色条）
                 var border = new Border {
                     BorderBrush = (Brush)FindResource("CardBorderBrush"), BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(4), Padding = new Thickness(8, 4, 8, 8),
                     Background = (Brush)FindResource("SecondaryHoverBgBrush"), Child = keysContent,
                 };
+                if (isEdit)
+                {
+                    // 左侧强调色条 + 加厚左边框
+                    border.BorderThickness = new Thickness(3, 1, 1, 1);
+                    border.BorderBrush = new SolidColorBrush(isDarkTheme
+                        ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4));
+                }
                 Grid.SetRow(border, 1); container.Children.Add(border);
                 keysPanel.Children.Add(container);
             }
@@ -389,14 +397,22 @@ namespace 串口助手
 
         private void ShowKeySendFeedback(KeyViewModel keyVM)
         {
-            tbKeyFeedbackName.Text = keyVM.Name;
-            tbKeyFeedbackMode.Text = keyVM.IsSelfLock
-                ? string.Format("自锁 [{0}/{1}]", keyVM.PressSendMode, keyVM.ReleaseSendMode)
-                : string.Format("[{0}/{1}]", keyVM.PressSendMode, keyVM.ReleaseSendMode);
-            tbKeyFeedbackValue.Text = keyVM.IsSelfLock
-                ? (keyVM.IsPressed ? "▲ 已松开（下次点击=按下）" : "▼ 已按下（下次点击=松开）")
-                : string.Format("↓{0} ↑{1}", keyVM.GetPressContent(), keyVM.GetReleaseContent());
+            tbKeyFeedbackName.Text = keyVM.IsSelfLock
+                ? string.Format("{0} （自锁·{1}）", keyVM.Name, keyVM.IsPressed ? "已按下" : "已松开")
+                : keyVM.Name;
+            string press = keyVM.GetPressContent();
+            string release = keyVM.GetReleaseContent();
+            if (string.IsNullOrEmpty(press) && string.IsNullOrEmpty(release))
+                tbKeyFeedbackValue.Text = "（该按键没有配置发送内容）";
+            else if (!string.IsNullOrEmpty(press) && !string.IsNullOrEmpty(release))
+                tbKeyFeedbackValue.Text = string.Format("↓ {0} ↑ {1}", Truncate(press, 60), Truncate(release, 60));
+            else if (!string.IsNullOrEmpty(press))
+                tbKeyFeedbackValue.Text = string.Format("↓ {0}", Truncate(press, 80));
+            else
+                tbKeyFeedbackValue.Text = string.Format("↑ {0}", Truncate(release, 80));
         }
+
+        private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
 
         // ═══════════════════════════════════════
         //  编辑模式交互
@@ -501,27 +517,38 @@ namespace 串口助手
         private void cbModulePressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedModuleGroupId == null || cbModulePressMode.SelectedItem == null) return; string m = cbModulePressMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value; foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.PressSendMode = m; RefreshKeysUI(); }
         private void cbModuleReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedItem == null) return; string m = cbModuleReleaseMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value; foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.ReleaseSendMode = m; RefreshKeysUI(); }
         // ── 模块按下/松开值快捷操作 ──
-        private void btnModulePressNone_Click(object sender, RoutedEventArgs e) {
-            if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
-            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle)) k.PressSendMode = "无";
-            RefreshKeysUI(); RefreshKeysSidePanel();
-        }
-        private void btnModulePressName_Click(object sender, RoutedEventArgs e) {
-            if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
+        private void ModulePressValue_Click(object sender, RoutedEventArgs e) {
+            if (_selectedModuleGroupId == null) return;
+            string tag = (sender as Button)?.Tag?.ToString(); if (tag == null) return;
+            int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
-            { k.PressSendMode = "文本"; k.PressSendValue = k.Name; }
+                ApplyValueTag(k, tag, isPress: true);
             RefreshKeysUI(); RefreshKeysSidePanel();
         }
-        private void btnModuleReleaseNone_Click(object sender, RoutedEventArgs e) {
-            if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
-            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle)) k.ReleaseSendMode = "无";
-            RefreshKeysUI(); RefreshKeysSidePanel();
-        }
-        private void btnModuleReleaseName_Click(object sender, RoutedEventArgs e) {
-            if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
+        private void ModuleReleaseValue_Click(object sender, RoutedEventArgs e) {
+            if (_selectedModuleGroupId == null) return;
+            string tag = (sender as Button)?.Tag?.ToString(); if (tag == null) return;
+            int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
-            { k.ReleaseSendMode = "文本"; k.ReleaseSendValue = k.Name; }
+                ApplyValueTag(k, tag, isPress: false);
             RefreshKeysUI(); RefreshKeysSidePanel();
+        }
+        private static void ApplyValueTag(KeyViewModel k, string tag, bool isPress)
+        {
+            switch (tag)
+            {
+                case "null":
+                    if (isPress) k.PressSendMode = "无"; else k.ReleaseSendMode = "无";
+                    break;
+                case "name":
+                    if (isPress) { k.PressSendMode = "文本"; k.PressSendValue = k.Name; }
+                    else        { k.ReleaseSendMode = "文本"; k.ReleaseSendValue = k.Name; }
+                    break;
+                default: // up, down, on, off
+                    if (isPress) { k.PressSendMode = "文本"; k.PressSendValue = tag; }
+                    else        { k.ReleaseSendMode = "文本"; k.ReleaseSendValue = tag; }
+                    break;
+            }
         }
         private void btnModuleGenRelease_Click(object sender, RoutedEventArgs e) {
             if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
