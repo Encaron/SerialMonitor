@@ -1,0 +1,4 @@
+/t:Rebuild
+/p:Configuration=Release
+/v:q
+/nologo

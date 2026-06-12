@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+        xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
         Title="Serial Monitor"
         Width="960" Height="640"
         MinWidth="720" MinHeight="560"
@@ -551,9 +552,43 @@
                             </StackPanel>
                         </ScrollViewer>
                         <!-- 绘图设置（Phase 3） -->
-                        <TextBlock x:Name="rightPlot" Visibility="Collapsed"
-                                   Text="（Phase 3 实现）" FontSize="11"
-                                   Foreground="{DynamicResource TextMutedBrush}" FontStyle="Italic" Margin="0,8,0,0"/>
+                        <ScrollViewer x:Name="rightPlot" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
+                                      Padding="0,0,4,0">
+                            <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
+                                <!-- X 轴范围 -->
+                                <CheckBox x:Name="chkPlotXAuto" Content="X 轴自动范围" IsChecked="True"
+                                          Checked="chkPlotXAuto_Changed" Unchecked="chkPlotXAuto_Changed"/>
+                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="范围(分)" Style="{DynamicResource FormLabelStyle}"/>
+                                    <TextBox Grid.Column="1" x:Name="tbPlotXRange" Height="28"
+                                             FontFamily="Microsoft YaHei" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             Background="{DynamicResource CardBgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}"
+                                             BorderThickness="1" Padding="6,2" Text="5"
+                                             IsEnabled="False"
+                                             LostFocus="tbPlotXRange_LostFocus"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- Y 轴范围 -->
+                                <CheckBox x:Name="chkPlotYAuto" Content="Y 轴自动范围" IsChecked="True"
+                                          Checked="chkPlotYAuto_Changed" Unchecked="chkPlotYAuto_Changed"/>
+                                <!-- 显示选项 -->
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <CheckBox x:Name="chkPlotMarkers" Content="☑ 显示标点"
+                                          Checked="chkPlotMarkers_Changed" Unchecked="chkPlotMarkers_Changed"/>
+                                <CheckBox x:Name="chkPlotLines" Content="☑ 显示连线" IsChecked="True"
+                                          Checked="chkPlotLines_Changed" Unchecked="chkPlotLines_Changed"/>
+                                <CheckBox x:Name="chkPlotValueHud" Content="☑ 数值显示" IsChecked="True"
+                                          Checked="chkPlotValueHud_Changed" Unchecked="chkPlotValueHud_Changed"/>
+                                <!-- 操作按钮 -->
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <Button Content="🗑 清除全部曲线" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" Margin="0,0,0,6" Click="btnPlotClear_Click"/>
+                                <Button Content="📥 导出 CSV" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" Click="btnPlotCsv_Click"/>
+                            </StackPanel>
+                        </ScrollViewer>
                         <!-- 设置面板 -->
                         <ScrollViewer x:Name="rightSettings" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
@@ -662,18 +697,39 @@
                 <!-- 绘图（Phase 3） -->
                 <Grid x:Name="panelPlot" Visibility="Collapsed">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <!-- 顶部工具栏 -->
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="⏸ 暂停" Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"/>
-                            <Button Content="🗑 清除" Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0"/>
-                            <Button Content="📥 CSV"  Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0"/>
-                            <Button Content="🔍 适应" Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0"/>
+                            <Button x:Name="btnPlotPause" Content="⏸ 暂停" Width="64"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" Click="btnPlotPause_Click"/>
+                            <Button x:Name="btnPlotClear" Content="🗑 清除"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotClear_Click"/>
+                            <Button x:Name="btnPlotCsv" Content="📥 CSV"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotCsv_Click"/>
+                            <Button x:Name="btnPlotFit" Content="🔍 适应"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotFit_Click"/>
                         </StackPanel>
                     </Border>
-                    <TextBlock Grid.Row="1" Text="等待串口数据…" FontSize="14"
-                               Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- 波形图区域 -->
+                    <Grid Grid.Row="1">
+                        <!-- OxyPlot 波形图 -->
+                        <oxy:PlotView x:Name="plotView" Model="{Binding Model}" Panel.ZIndex="0"/>
+                        <!-- 数值 HUD 半透明叠加层 -->
+                        <Border x:Name="plotHud" Panel.ZIndex="1"
+                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Margin="0,8,12,0" Padding="10,8" CornerRadius="6"
+                                Background="#99000000" BorderBrush="#33FFFFFF" BorderThickness="1"
+                                IsHitTestVisible="False"
+                                Visibility="Collapsed">
+                            <StackPanel x:Name="plotHudPanel"/>
+                        </Border>
+                        <!-- 空状态提示 -->
+                        <TextBlock x:Name="plotEmptyHint" Panel.ZIndex="0"
+                                   Text="等待串口数据…" FontSize="14"
+                                   Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                 </Grid>
 
                 <!-- 按键（Phase 4） -->

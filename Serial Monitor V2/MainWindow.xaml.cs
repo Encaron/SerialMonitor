@@ -28,6 +28,9 @@ namespace 串口助手
         // 串口会话（替代原来的 serialPort / byteBuffer / receiveLineBuffer / flushTimer）
         private SerialPortSession _session;
 
+        // 波形图 ViewModel（Phase 3）
+        private PlotViewModel _plotVM;
+
         // ——— 颜色常量（与 XAML 资源保持一致）———
 
         private static Color PrimaryColor       = Color.FromRgb(0x00, 0x78, 0xD4);
@@ -138,6 +141,10 @@ namespace 串口助手
             _session.LineReceived += OnLineReceived;
             _session.ConnectionChanged += OnConnectionChanged;
 
+            // Phase 3: 初始化波形图 ViewModel，直接赋值 PlotView 的 Model（不走 Binding，跟 AvalonEdit 一样 code-behind）
+            _plotVM = new PlotViewModel();
+            plotView.Model = _plotVM.Model;
+
             // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
             statusDotBrush = new SolidColorBrush(StatusDotIdle);
             statusDot.Fill = statusDotBrush;
@@ -212,12 +219,34 @@ namespace 串口助手
         // ==================================================================
 
         /// <summary>
-        /// Session 收到完整行文本 → 写入接收区（已由 Session 的 Dispatcher.Invoke 切到 UI 线程）
+        /// Session 收到完整行文本 → 写入接收区 + 协议解析路由（已由 Session 的 Dispatcher.Invoke 切到 UI 线程）
         /// </summary>
         private void OnLineReceived(string line)
         {
             LogReceived(line);
             UpdateTrafficDisplay();
+
+            // Phase 3: 协议解析 → 路由到 PlotViewModel
+            var parseResult = ProtocolParser.Parse(line);
+            if (parseResult.Messages.Count > 0)
+            {
+                foreach (var msg in parseResult.Messages)
+                {
+                    if (msg.Type == "plot" && msg.Args.Count >= 2)
+                    {
+                        if (double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+                        {
+                            _plotVM.OnPlotMessage(msg.Args[0], value, DateTime.Now);
+                            // 第一个 plot 数据点到达 → 隐藏空状态提示
+                            if (plotEmptyHint.Visibility == Visibility.Visible)
+                                plotEmptyHint.Visibility = Visibility.Collapsed;
+                            // 有数据后刷新 HUD
+                            UpdatePlotHud();
+                        }
+                    }
+                    // Phase 4: slider / key / display / joystick 消息路由预留
+                }
+            }
         }
 
         /// <summary>
@@ -267,6 +296,13 @@ namespace 串口助手
 
                 // 日志
                 LogSystem($"---- 已打开串行端口 {_session.PortName} ----");
+
+                // Phase 3: 已连接但无数据 → 更新空状态提示
+                if (_plotVM.LatestValues.Count == 0)
+                {
+                    plotEmptyHint.Text = "等待串口数据…";
+                    plotEmptyHint.Visibility = Visibility.Visible;
+                }
             }
             else
             {
@@ -299,6 +335,13 @@ namespace 串口助手
                 else
                 {
                     tbPortInfo.Visibility = Visibility.Collapsed;
+                }
+
+                // Phase 3: 断开连接 → 更新绘图空状态提示
+                if (_plotVM.LatestValues.Count == 0)
+                {
+                    plotEmptyHint.Text = "串口未连接";
+                    plotEmptyHint.Visibility = Visibility.Visible;
                 }
             }
         }
@@ -1225,6 +1268,162 @@ namespace 串口助手
                 btnPanelCollapse.ToolTip = "折叠侧面板";
             }
         }
+        // ═══════════════════════════════════════════════════════════
+        // Phase 3: 波形图工具栏 + 右侧面板事件处理
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>⏸ 暂停/继续 按钮——暂停时数据不追加到曲线</summary>
+        private void btnPlotPause_Click(object sender, RoutedEventArgs e)
+        {
+            _plotVM.TogglePause();
+            btnPlotPause.Content = _plotVM.IsPaused ? "▶ 继续" : "⏸ 暂停";
+            btnPlotPause.Background = _plotVM.IsPaused
+                ? new SolidColorBrush(PrimaryColor) { Opacity = 0.3 }
+                : null;
+
+            // 暂停时启用追踪十字光标，运行时恢复默认缩放/平移行为
+            if (_plotVM.IsPaused)
+            {
+                plotView.DefaultTrackerTemplate = null; // 使用 OxyPlot 默认 tracker 模板（十字线 + tooltip）
+                plotView.IsManipulationEnabled = false;  // 禁用滚轮缩放/平移
+            }
+            else
+            {
+                plotView.IsManipulationEnabled = true;
+            }
+        }
+
+        /// <summary>🗑 清除全部曲线</summary>
+        private void btnPlotClear_Click(object sender, RoutedEventArgs e)
+        {
+            _plotVM.Clear();
+            // 恢复空状态提示
+            plotEmptyHint.Visibility = Visibility.Visible;
+            plotHud.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>📥 导出 CSV</summary>
+        private void btnPlotCsv_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string csv = _plotVM.ExportCsv();
+                if (string.IsNullOrEmpty(csv) || csv.IndexOf(',') < 0)
+                {
+                    LogSystem("---- 无波形数据可导出 ----");
+                    return;
+                }
+
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = $"plot_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                    Filter = "CSV 文件 (*.csv)|*.csv|所有文件 (*.*)|*.*",
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    System.IO.File.WriteAllText(dlg.FileName, csv, Encoding.UTF8);
+                    LogSystem($"---- 波形数据已导出到: {dlg.FileName} ----");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogSystem($"---- 导出 CSV 失败: {ex.Message} ----");
+            }
+        }
+
+        /// <summary>🔍 适应窗口——重置缩放和平移</summary>
+        private void btnPlotFit_Click(object sender, RoutedEventArgs e)
+        {
+            _plotVM.ResetView();
+        }
+
+        /// <summary>X 轴自动范围切换</summary>
+        private void chkPlotXAuto_Changed(object sender, RoutedEventArgs e)
+        {
+            bool isAuto = chkPlotXAuto.IsChecked == true;
+            _plotVM.XAxisAutoRange = isAuto;
+            tbPlotXRange.IsEnabled = !isAuto;
+        }
+
+        /// <summary>Y 轴自动范围切换</summary>
+        private void chkPlotYAuto_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.YAxisAutoRange = chkPlotYAuto.IsChecked == true;
+        }
+
+        /// <summary>☑ 标点显隐切换</summary>
+        private void chkPlotMarkers_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.SetMarkers(chkPlotMarkers.IsChecked == true);
+        }
+
+        /// <summary>☑ 连线显隐切换</summary>
+        private void chkPlotLines_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.SetLines(chkPlotLines.IsChecked == true);
+        }
+
+        /// <summary>☑ 数值 HUD 显隐切换</summary>
+        private void chkPlotValueHud_Changed(object sender, RoutedEventArgs e)
+        {
+            _plotVM.ShowValueHud = chkPlotValueHud.IsChecked == true;
+            if (_plotVM.ShowValueHud && _plotVM.LatestValues.Count > 0)
+                plotHud.Visibility = Visibility.Visible;
+            else
+                plotHud.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>X 轴固定范围值变更</summary>
+        private void tbPlotXRange_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (double.TryParse(tbPlotXRange.Text, out double val) && val > 0)
+                _plotVM.XAxisFixedRange = val;
+        }
+
+        /// <summary>
+        /// 刷新数值 HUD 叠加层——遍历 LatestValues 重建显示。
+        /// </summary>
+        private void UpdatePlotHud()
+        {
+            if (!_plotVM.ShowValueHud || _plotVM.LatestValues.Count == 0)
+                return;
+
+            plotHud.Visibility = Visibility.Visible;
+            plotHudPanel.Children.Clear();
+
+            foreach (var kv in _plotVM.LatestValues)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 2) };
+                // 颜色圆点
+                row.Children.Add(new System.Windows.Shapes.Ellipse
+                {
+                    Width = 8, Height = 8,
+                    Fill = new SolidColorBrush(Color.FromRgb(0x0E, 0x63, 0x9C)),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                });
+                // 曲线名
+                row.Children.Add(new TextBlock
+                {
+                    Text = kv.Key + ": ",
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB)),
+                    FontSize = 12,
+                    VerticalAlignment = VerticalAlignment.Center,
+                });
+                // 数值
+                row.Children.Add(new TextBlock
+                {
+                    Text = kv.Value.ToString("F4"),
+                    Foreground = new SolidColorBrush(Colors.White),
+                    FontSize = 12,
+                    FontWeight = FontWeights.SemiBold,
+                    VerticalAlignment = VerticalAlignment.Center,
+                });
+                plotHudPanel.Children.Add(row);
+            }
+        }
+
         private void btnSearch_Click(object sender, RoutedEventArgs e)
         {
             _searchPanel?.Open();

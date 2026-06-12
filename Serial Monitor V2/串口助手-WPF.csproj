@@ -39,6 +39,15 @@
     <Reference Include="ICSharpCode.AvalonEdit">
       <HintPath>Lib\ICSharpCode.AvalonEdit.dll</HintPath>
     </Reference>
+    <Reference Include="OxyPlot">
+      <HintPath>Lib\OxyPlot.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Wpf.Shared">
+      <HintPath>Lib\OxyPlot.Wpf.Shared.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Wpf">
+      <HintPath>Lib\OxyPlot.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <ItemGroup>
