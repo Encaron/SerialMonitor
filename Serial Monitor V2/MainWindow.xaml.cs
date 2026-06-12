@@ -18,14 +18,14 @@ namespace 串口助手
     {
         // ——— 串口参数状态 ———
 
+        // receiveMode / receiveCoding 同时存于 MainWindow（UI 绑定）和 Session（DataReceived 处理）
         private string receiveMode = "HEX模式";
         private string receiveCoding = "GBK";
         private string sendMode = "HEX模式";
         private string sendCoding = "GBK";
 
-        private List<byte> byteBuffer = new List<byte>();
-        private SerialPort serialPort = new SerialPort();
-        private bool isSerialOpen = false;
+        // 串口会话（替代原来的 serialPort / byteBuffer / receiveLineBuffer / flushTimer）
+        private SerialPortSession _session;
 
         // ——— 颜色常量（与 XAML 资源保持一致）———
 
@@ -42,18 +42,6 @@ namespace 串口助手
         private static Color LogReceivedColor = LogReceivedColorLight;
         private static Color StatusDotIdle    = StatusDotIdleLight;
 
-        // ——— 接收缓冲：跨 DataReceived 碎片拼成完整行 ———
-
-        /// <summary>
-        /// 文本模式接收缓冲区：累积碎片直到遇到换行符再输出
-        /// </summary>
-        private string receiveLineBuffer = "";
-
-        /// <summary>
-        /// 空闲定时器：100ms 无新数据到达时，强制输出缓冲区剩余文本
-        /// </summary>
-        private DispatcherTimer flushTimer;
-
         // ——— 定时发送 ———
         private DispatcherTimer autoSendTimer;
 
@@ -67,10 +55,6 @@ namespace 串口助手
 
         // ——— 行号 ———
         private bool _showLineNumbers = true;
-
-        // ——— 流量统计 ———
-        private long txByteCount = 0;
-        private long rxByteCount = 0;
 
         // ——— 快捷发送 ———
         /// <summary>
@@ -140,6 +124,11 @@ namespace 串口助手
             // 恢复上次窗口位置和大小
             LoadWindowSettings();
 
+            // 创建串口会话
+            _session = new SerialPortSession(Dispatcher);
+            _session.LineReceived += OnLineReceived;
+            _session.ConnectionChanged += OnConnectionChanged;
+
             // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
             statusDotBrush = new SolidColorBrush(StatusDotIdle);
             statusDot.Fill = statusDotBrush;
@@ -154,10 +143,6 @@ namespace 串口助手
                 tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
                 tbPortInfo.Visibility = Visibility.Visible;
             }
-
-            // 空闲刷新定时器：数据停止到达 100ms 后输出缓冲区剩余文本
-            flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            flushTimer.Tick += FlushReceiveBuffer;
 
             // 初始化 AvalonEdit（着色器 + 行号样式）
             InitEditor();
@@ -189,7 +174,7 @@ namespace 串口助手
 
             // 定时发送计时器
             autoSendTimer = new DispatcherTimer();
-            autoSendTimer.Tick += (s, args) => { if (serialPort.IsOpen) SendData(); };
+            autoSendTimer.Tick += (s, args) => { if (_session.IsOpen) SendData(); };
 
             InitComboBoxItems();
             SetDefaultValues();
@@ -211,8 +196,102 @@ namespace 串口助手
             // 加载快捷发送按钮
             LoadQuickSends();
             RefreshQuickSendButtons();
+        }
 
-            serialPort.DataReceived += serialPort_DataReceived;
+        // ==================================================================
+        //  SerialPortSession 事件处理
+        // ==================================================================
+
+        /// <summary>
+        /// Session 收到完整行文本 → 写入接收区（已由 Session 的 Dispatcher.Invoke 切到 UI 线程）
+        /// </summary>
+        private void OnLineReceived(string line)
+        {
+            LogReceived(line);
+            UpdateTrafficDisplay();
+        }
+
+        /// <summary>
+        /// Session 连接状态变化 → 更新 UI
+        /// </summary>
+        private void OnConnectionChanged(bool isOpen)
+        {
+            if (isOpen)
+            {
+                // 连接成功后的 UI 更新
+                _lastSuccessfulPort = _session.PortName;
+
+                btnOpen.Content = "关闭串口";
+                btnOpen.Background = new SolidColorBrush(SuccessColor);
+                btnOpen.BorderBrush = new SolidColorBrush(SuccessColor);
+                PulseElement(btnOpen);
+
+                btnSend.IsEnabled = true;
+                cbPortName.IsEnabled = false;
+                cbBaudRate.IsEnabled = false;
+                cbDataBits.IsEnabled = false;
+                cbStopBits.IsEnabled = false;
+                cbParity.IsEnabled = false;
+                cbFlowControl.IsEnabled = false;
+
+                // 若勾选定时发送，启动定时器
+                if (chkAutoRepeat.IsChecked == true &&
+                    int.TryParse(tbRepeatInterval.Text, out int repeatMs) && repeatMs > 0)
+                {
+                    autoSendTimer.Interval = TimeSpan.FromMilliseconds(repeatMs);
+                    autoSendTimer.Start();
+                }
+
+                // 状态栏
+                AnimateBrushColor(statusDotBrush, SuccessColor);
+                tbStatusText.Text = "已连接";
+                tbPortInfo.Text = $"{_session.PortName} @ {cbBaudRate.Text}";
+                tbPortInfo.Foreground = new SolidColorBrush(LogSystemColor);
+                tbPortInfo.Visibility = Visibility.Visible;
+
+                // 重置流量计数（除非用户选择持久化）
+                if (chkPersistTraffic.IsChecked != true)
+                {
+                    _session.ResetTraffic();
+                }
+                UpdateTrafficDisplay();
+
+                // 日志
+                LogSystem($"---- 已打开串行端口 {_session.PortName} ----");
+            }
+            else
+            {
+                // 断开连接后的 UI 更新
+                autoSendTimer.Stop();
+
+                UpdateTrafficDisplay();
+
+                btnOpen.Content = "打开串口";
+                btnOpen.Background = new SolidColorBrush(PrimaryColor);
+                btnOpen.BorderBrush = new SolidColorBrush(PrimaryColor);
+                PulseElement(btnOpen);
+
+                btnSend.IsEnabled = false;
+                cbPortName.IsEnabled = true;
+                cbBaudRate.IsEnabled = true;
+                cbDataBits.IsEnabled = true;
+                cbStopBits.IsEnabled = true;
+                cbParity.IsEnabled = true;
+                cbFlowControl.IsEnabled = true;
+
+                AnimateBrushColor(statusDotBrush, StatusDotIdle);
+                tbStatusText.Text = "就绪";
+                if (fontMissing)
+                {
+                    tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
+                    tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
+                    tbPortInfo.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    tbPortInfo.Visibility = Visibility.Collapsed;
+                }
+            }
         }
 
         // ==================================================================
@@ -411,9 +490,9 @@ namespace 串口助手
         /// </summary>
         private void UpdateTrafficDisplay()
         {
-            if (isSerialOpen)
+            if (_session.IsOpen)
             {
-                tbTraffic.Text = $"TX: {FormatBytes(txByteCount)} ↑  RX: {FormatBytes(rxByteCount)} ↓";
+                tbTraffic.Text = $"TX: {FormatBytes(_session.TxBytes)} ↑  RX: {FormatBytes(_session.RxBytes)} ↓";
                 tbTraffic.Foreground = FindResource("TextSecondaryBrush") as SolidColorBrush;
             }
             else
@@ -429,8 +508,7 @@ namespace 串口助手
         /// </summary>
         private void tbTraffic_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            txByteCount = 0;
-            rxByteCount = 0;
+            _session.ResetTraffic();
             UpdateTrafficDisplay();
             LogSystem("---- 流量计数已重置 ----");
         }
@@ -457,7 +535,7 @@ namespace 串口助手
             {
                 if (wParam.ToInt32() == 0x8004) // DBT_DEVICEREMOVECOMPLETE
                 {
-                    if (isSerialOpen && !serialPort.IsOpen)
+                    if (_session.IsOpen && !_session.IsPortOpen)
                     {
                         lastPortName = cbPortName.Text;
                         CloseSerialPort();
@@ -465,7 +543,7 @@ namespace 串口助手
                 }
                 else if (wParam.ToInt32() == 0x8000) // DBT_DEVICEARRIVAL
                 {
-                    if (chkAutoReconnect.IsChecked == true && !isSerialOpen && !string.IsNullOrEmpty(lastPortName))
+                    if (chkAutoReconnect.IsChecked == true && !_session.IsOpen && !string.IsNullOrEmpty(lastPortName))
                     {
                         reconnectTimer.Start();
                     }
@@ -482,7 +560,8 @@ namespace 串口助手
         {
             try
             {
-                serialPort.PortName = cbPortName.Text;
+                string portName = cbPortName.Text;
+
                 // 校验自定义波特率
                 if (!int.TryParse(cbBaudRate.Text, out int baudRate) || baudRate <= 0)
                 {
@@ -490,71 +569,24 @@ namespace 串口助手
                                     "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                serialPort.BaudRate = baudRate;
-                serialPort.DataBits = Convert.ToInt32(cbDataBits.Text);
+
+                int dataBits = Convert.ToInt32(cbDataBits.Text);
 
                 StopBits[] sb = { StopBits.One, StopBits.OnePointFive, StopBits.Two };
-                serialPort.StopBits = sb[cbStopBits.SelectedIndex];
+                StopBits stopBits = sb[cbStopBits.SelectedIndex];
 
                 Parity[] pt = { Parity.None, Parity.Odd, Parity.Even };
-                serialPort.Parity = pt[cbParity.SelectedIndex];
+                Parity parity = pt[cbParity.SelectedIndex];
 
-                // 硬件流控
                 Handshake[] hs = { Handshake.None, Handshake.RequestToSend, Handshake.XOnXOff };
-                serialPort.Handshake = hs[cbFlowControl.SelectedIndex];
+                Handshake handshake = hs[cbFlowControl.SelectedIndex];
 
-                // DTR / RTS 控制信号
-                serialPort.DtrEnable = chkDtr.IsChecked == true;
-                serialPort.RtsEnable = chkRts.IsChecked == true;
+                bool dtr = chkDtr.IsChecked == true;
+                bool rts = chkRts.IsChecked == true;
 
-                serialPort.Open();
-                serialPort.DiscardInBuffer(); // 丢弃打开前硬件缓冲区堆积的旧数据
-
-                // 重新订阅 DataReceived（CloseSerialPort 会退订以防死锁）
-                serialPort.DataReceived -= serialPort_DataReceived;
-                serialPort.DataReceived += serialPort_DataReceived;
-
-                isSerialOpen = true;
-                _lastSuccessfulPort = cbPortName.Text; // 记住本次成功打开的端口
-
-                btnOpen.Content = "关闭串口";
-                btnOpen.Background = new SolidColorBrush(SuccessColor);
-                btnOpen.BorderBrush = new SolidColorBrush(SuccessColor);
-                PulseElement(btnOpen);
-
-                btnSend.IsEnabled = true;
-                cbPortName.IsEnabled = false;
-                cbBaudRate.IsEnabled = false;
-                cbDataBits.IsEnabled = false;
-                cbStopBits.IsEnabled = false;
-                cbParity.IsEnabled = false;
-                cbFlowControl.IsEnabled = false;
-
-                // 若勾选定时发送，启动定时器
-                if (chkAutoRepeat.IsChecked == true &&
-                    int.TryParse(tbRepeatInterval.Text, out int repeatMs) && repeatMs > 0)
-                {
-                    autoSendTimer.Interval = TimeSpan.FromMilliseconds(repeatMs);
-                    autoSendTimer.Start();
-                }
-
-                // 状态栏
-                AnimateBrushColor(statusDotBrush, SuccessColor);
-                tbStatusText.Text = "已连接";
-                tbPortInfo.Text = $"{cbPortName.Text} @ {cbBaudRate.Text}";
-                tbPortInfo.Foreground = new SolidColorBrush(LogSystemColor);
-                tbPortInfo.Visibility = Visibility.Visible;
-
-                // 重置流量计数（除非用户选择持久化）
-                if (chkPersistTraffic.IsChecked != true)
-                {
-                    txByteCount = 0;
-                    rxByteCount = 0;
-                }
-                UpdateTrafficDisplay();
-
-                // 日志
-                LogSystem($"---- 已打开串行端口 {cbPortName.Text} ----");
+                _session.Open(portName, baudRate, dataBits, stopBits, parity, handshake, dtr, rts,
+                              receiveMode, receiveCoding);
+                // 成功后 ConnectionChanged 事件会触发 OnConnectionChanged 更新 UI
             }
             catch (UnauthorizedAccessException)
             {
@@ -585,54 +617,13 @@ namespace 串口助手
 
         private void CloseSerialPort()
         {
-            if (isSerialOpen)
+            if (_session.IsOpen)
             {
-                // 强制输出缓冲区残留文本再关
-                flushTimer.Stop();
-                if (!string.IsNullOrEmpty(receiveLineBuffer))
-                {
-                    LogReceived(receiveLineBuffer);
-                    receiveLineBuffer = "";
-                }
-
-                LogSystem($"---- 关闭串行端口 {cbPortName.Text} ----");
+                LogSystem($"---- 关闭串行端口 {_session.PortName} ----");
             }
 
-            // 先退订事件，避免 DataReceived 回调正卡在 Dispatcher.Invoke 时
-            // serialPort.Close() 等待回调退出形成死锁
-            serialPort.DataReceived -= serialPort_DataReceived;
-            serialPort.Close();
-
-            autoSendTimer.Stop();
-            isSerialOpen = false;
-
-            UpdateTrafficDisplay();
-
-            btnOpen.Content = "打开串口";
-            btnOpen.Background = new SolidColorBrush(PrimaryColor);
-            btnOpen.BorderBrush = new SolidColorBrush(PrimaryColor);
-            PulseElement(btnOpen);
-
-            btnSend.IsEnabled = false;
-            cbPortName.IsEnabled = true;
-            cbBaudRate.IsEnabled = true;
-            cbDataBits.IsEnabled = true;
-            cbStopBits.IsEnabled = true;
-            cbParity.IsEnabled = true;
-            cbFlowControl.IsEnabled = true;
-
-            AnimateBrushColor(statusDotBrush, StatusDotIdle);
-            tbStatusText.Text = "就绪";
-            if (fontMissing)
-            {
-                tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
-                tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
-                tbPortInfo.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                tbPortInfo.Visibility = Visibility.Collapsed;
-            }
+            _session.Close();
+            // ConnectionChanged 事件会触发 OnConnectionChanged 更新 UI
         }
 
         // ==================================================================
@@ -641,7 +632,7 @@ namespace 串口助手
 
         private void btnOpen_Click(object sender, RoutedEventArgs e)
         {
-            if (isSerialOpen)
+            if (_session.IsOpen)
             {
                 CloseSerialPort();
             }
@@ -828,15 +819,8 @@ namespace 串口助手
                 cbReceiveCoding.IsEnabled = true;
                 receiveMode = "文本模式";
             }
-            byteBuffer.Clear();
 
-            // 模式切换时强制输出缓冲区残留
-            flushTimer.Stop();
-            if (!string.IsNullOrEmpty(receiveLineBuffer))
-            {
-                LogReceived(receiveLineBuffer);
-                receiveLineBuffer = "";
-            }
+            _session.UpdateReceiveSettings(receiveMode, receiveCoding);
         }
 
         private void cbReceiveCoding_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -852,14 +836,8 @@ namespace 串口助手
             {
                 receiveCoding = "UTF-8";
             }
-            byteBuffer.Clear();
 
-            flushTimer.Stop();
-            if (!string.IsNullOrEmpty(receiveLineBuffer))
-            {
-                LogReceived(receiveLineBuffer);
-                receiveLineBuffer = "";
-            }
+            _session.UpdateReceiveSettings(receiveMode, receiveCoding);
         }
 
         private void cbSendMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1065,8 +1043,7 @@ namespace 串口助手
             AnimateToggleSwitch(sender as CheckBox);
 
             bool enable = chkDtr.IsChecked == true;
-            if (isSerialOpen && serialPort.IsOpen)
-                serialPort.DtrEnable = enable;
+            _session.SetDtr(enable);
 
             LogSystem($"---- DTR：{(enable ? "开" : "关")} ----");
         }
@@ -1080,8 +1057,7 @@ namespace 串口助手
             AnimateToggleSwitch(sender as CheckBox);
 
             bool enable = chkRts.IsChecked == true;
-            if (isSerialOpen && serialPort.IsOpen)
-                serialPort.RtsEnable = enable;
+            _session.SetRts(enable);
 
             LogSystem($"---- RTS：{(enable ? "开" : "关")} ----");
         }
@@ -1106,7 +1082,7 @@ namespace 串口助手
 
         private void SendData()
         {
-            if (!serialPort.IsOpen) return;
+            if (!_session.IsOpen) return;
             if (string.IsNullOrEmpty(tbSend.Text)) return;
 
             string content = tbSend.Text;
@@ -1123,7 +1099,7 @@ namespace 串口助手
         /// </summary>
         private void SendRaw(string content, bool appendLineEnding = false)
         {
-            if (!serialPort.IsOpen) return;
+            if (!_session.IsOpen) return;
             if (string.IsNullOrEmpty(content)) return;
 
             // 追加拿前选中的换行符（主发送区专用，快捷发送按钮已有内置换行）
@@ -1142,78 +1118,19 @@ namespace 串口助手
 
             RecordSendHistory(content);
 
+            byte[] dataSend;
             if (sendMode == "HEX模式")
             {
-                byte[] dataSend = DataConverter.HexToBytes(content);
-                serialPort.Write(dataSend, 0, dataSend.Length);
-                txByteCount += dataSend.Length;
-                UpdateTrafficDisplay();
-                LogSent(content);
+                dataSend = DataConverter.HexToBytes(content);
             }
-            else if (sendMode == "文本模式")
+            else
             {
-                byte[] dataSend = DataConverter.TextToBytes(content, sendCoding);
-                serialPort.Write(dataSend, 0, dataSend.Length);
-                txByteCount += dataSend.Length;
-                UpdateTrafficDisplay();
-                LogSent(content);
+                dataSend = DataConverter.TextToBytes(content, sendCoding);
             }
-        }
 
-        /// <summary>
-        /// 串口接收数据事件（后台线程 → Dispatcher 分发到 UI 线程）
-        /// 文本模式：碎片拼成完整行后再输出，避免 "Rece\nived: LED\nON" 这种断裂
-        /// HEX 模式：直接追加输出
-        /// </summary>
-        private void serialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            if (!serialPort.IsOpen) return;
-
-            int count = serialPort.BytesToRead;
-            byte[] dataReceive = new byte[count];
-            serialPort.Read(dataReceive, 0, count);
-
-            rxByteCount += count;
-
-            Dispatcher.Invoke(() =>
-            {
-                if (receiveMode == "HEX模式")
-                {
-                    // HEX 模式照原样直接输出
-                    LogReceived(DataConverter.BytesToHex(dataReceive));
-                }
-                else if (receiveMode == "文本模式")
-                {
-                    string text = DataConverter.BytesToText(dataReceive, receiveCoding, byteBuffer);
-                    if (string.IsNullOrEmpty(text)) return;
-
-                    receiveLineBuffer += text;
-
-                    // 按换行符拆分，输出完整行
-                    int idx;
-                    bool hasNewline = false;
-                    while ((idx = receiveLineBuffer.IndexOf('\n')) >= 0)
-                    {
-                        string line = receiveLineBuffer.Substring(0, idx).TrimEnd('\r');
-                        receiveLineBuffer = receiveLineBuffer.Substring(idx + 1);
-                        hasNewline = true;
-
-                        if (!string.IsNullOrEmpty(line))
-                        {
-                            LogReceived(line);
-                        }
-                    }
-
-                    if (hasNewline || receiveLineBuffer.Length > 0)
-                    {
-                        // 重置空闲定时器：100ms 内无新数据就强制输出剩余碎片
-                        flushTimer.Stop();
-                        flushTimer.Start();
-                    }
-                }
-
-                UpdateTrafficDisplay();
-            });
+            _session.SendBytes(dataSend);
+            UpdateTrafficDisplay();
+            LogSent(content);
         }
 
         // ==================================================================

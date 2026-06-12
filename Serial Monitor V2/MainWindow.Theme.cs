@@ -36,7 +36,7 @@ namespace 串口助手
 
             // 同步代码创建的状态圆点画刷
             if (statusDotBrush != null && !statusDotBrush.IsFrozen)
-                statusDotBrush.Color = isSerialOpen ? SuccessColor : StatusDotIdle;
+                statusDotBrush.Color = _session.IsOpen ? SuccessColor : StatusDotIdle;
 
             // 切换按钮文字
             btnThemeSwitch.Content = dark ? "☀ 亮色模式" : "🌙 暗色模式";
