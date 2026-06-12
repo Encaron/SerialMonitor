@@ -44,7 +44,7 @@ namespace 串口助手
             // 初始化下拉框
             foreach (var cb in new ComboBox[] { cbKeyPressMode, cbKeyReleaseMode, cbKeySendModeMulti, cbKeyReleaseModeMulti, cbModulePressMode, cbModuleReleaseMode })
             {
-                cb.Items.Clear(); cb.Items.Add("文本"); cb.Items.Add("HEX"); cb.Items.Add("数据包");
+                cb.Items.Clear(); cb.Items.Add("文本"); cb.Items.Add("HEX"); cb.Items.Add("数据包"); cb.Items.Add("无");
                 cb.SelectedIndex = 2;
             }
 
@@ -328,6 +328,15 @@ namespace 串口助手
         {
             var btn = sender as Button; if (btn == null) return;
             var keyVM = btn.Tag as KeyViewModel; if (keyVM == null || keyVM.IsShiftToggle) return;
+            if (keyVM.IsShiftToggle)
+            {
+                // Shift 切换键：在正常模式也可用
+                PulseElement(btn);
+                ToggleShift(keyVM.GroupId);
+                RefreshKeysUI();
+                return;
+            }
+
             if (_session == null || !_session.IsOpen) return;
 
             // 动画反馈
@@ -363,6 +372,28 @@ namespace 串口助手
             RefreshKeysUI();
         }
 
+        /// <summary>切换大小写：翻转 ShiftActive，更新同组所有字母键的显示名和 PressSendValue</summary>
+        private void ToggleShift(int groupId)
+        {
+            _keyVM.ShiftActive = !_keyVM.ShiftActive;
+            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == groupId && !k.IsShiftToggle))
+            {
+                if (k.Name.Length == 1 && char.IsLetter(k.Name[0]))
+                {
+                    if (_keyVM.ShiftActive)
+                    {
+                        k.Name = k.Name.ToUpperInvariant();
+                        k.PressSendValue = k.Name;
+                    }
+                    else
+                    {
+                        k.Name = k.Name.ToLowerInvariant();
+                        k.PressSendValue = k.Name;
+                    }
+                }
+            }
+        }
+
         private void ShowKeySendFeedback(KeyViewModel keyVM)
         {
             tbKeyFeedbackName.Text = keyVM.Name;
@@ -386,11 +417,7 @@ namespace 串口助手
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
             if (keyVM.IsShiftToggle) {
-                _keyVM.ShiftActive = !_keyVM.ShiftActive;
-                int gid = keyVM.GroupId;
-                foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
-                    if (k.Name.Length == 1 && char.IsLetter(k.Name[0]))
-                        k.PressSendValue = _keyVM.ShiftActive ? k.Name.ToUpperInvariant() : k.Name.ToLowerInvariant();
+                ToggleShift(keyVM.GroupId);
                 RefreshKeysUI(); RefreshKeysSidePanel(); return;
             }
 
@@ -438,6 +465,7 @@ namespace 串口助手
 
             // 单选
             var key = _selectedKeys[0];
+            bool isLayoutKey = key.GroupId != KeyPanelViewModel.ManualGroupId;
             rightKeysSingleSelect.Visibility = Visibility.Visible;
             tbKeyName.Text = key.Name;
             chkKeySelfLock.IsChecked = key.IsSelfLock;
@@ -445,8 +473,11 @@ namespace 串口助手
             tbKeyPressValue.Text = key.PressSendValue;
             cbKeyReleaseMode.SelectedItem = key.ReleaseSendMode;
             tbKeyReleaseValue.Text = key.ReleaseSendValue;
+            // 模块布局键不可调大小
             tbKeyWidth.Text = key.Width.ToString();
+            tbKeyWidth.IsEnabled = !isLayoutKey;
             tbKeyHeight.Text = key.Height.ToString();
+            tbKeyHeight.IsEnabled = !isLayoutKey;
         }
 
         // ——— 单选属性编辑 ———

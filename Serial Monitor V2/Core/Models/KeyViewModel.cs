@@ -51,9 +51,10 @@ namespace 串口助手
 
         // ── 工具 ──
 
-        /// <summary>生成实际的按下发送字符串</summary>
+        /// <summary>生成实际的按下发送字符串（"无" 返回空）</summary>
         public string GetPressContent()
         {
+            if (PressSendMode == "无") return "";
             switch (PressSendMode)
             {
                 case "文本": return PressSendValue;
@@ -64,9 +65,10 @@ namespace 串口助手
             }
         }
 
-        /// <summary>生成实际的松开发送字符串</summary>
+        /// <summary>生成实际的松开发送字符串（"无" 返回空）</summary>
         public string GetReleaseContent()
         {
+            if (ReleaseSendMode == "无") return "";
             switch (ReleaseSendMode)
             {
                 case "文本": return ReleaseSendValue;
