@@ -1144,7 +1144,7 @@ namespace 串口助手
 
             if (sendMode == "HEX模式")
             {
-                byte[] dataSend = HexToBytes(content);
+                byte[] dataSend = DataConverter.HexToBytes(content);
                 serialPort.Write(dataSend, 0, dataSend.Length);
                 txByteCount += dataSend.Length;
                 UpdateTrafficDisplay();
@@ -1152,7 +1152,7 @@ namespace 串口助手
             }
             else if (sendMode == "文本模式")
             {
-                byte[] dataSend = TextToBytes(content, sendCoding);
+                byte[] dataSend = DataConverter.TextToBytes(content, sendCoding);
                 serialPort.Write(dataSend, 0, dataSend.Length);
                 txByteCount += dataSend.Length;
                 UpdateTrafficDisplay();
@@ -1180,11 +1180,11 @@ namespace 串口助手
                 if (receiveMode == "HEX模式")
                 {
                     // HEX 模式照原样直接输出
-                    LogReceived(BytesToHex(dataReceive));
+                    LogReceived(DataConverter.BytesToHex(dataReceive));
                 }
                 else if (receiveMode == "文本模式")
                 {
-                    string text = BytesToText(dataReceive, receiveCoding);
+                    string text = DataConverter.BytesToText(dataReceive, receiveCoding, byteBuffer);
                     if (string.IsNullOrEmpty(text)) return;
 
                     receiveLineBuffer += text;
@@ -1250,120 +1250,5 @@ namespace 串口助手
             }
         }
 
-        // ==================================================================
-        //  数据转换 — 从原始 WinForms 版本直接移植，逻辑不变
-        // ==================================================================
-
-        private string BytesToText(byte[] bytes, string encoding)
-        {
-            List<byte> byteDecode = new List<byte>();
-            byteBuffer.AddRange(bytes);
-
-            int count = byteBuffer.Count;
-            for (int i = 0; i < count; i++)
-            {
-                if (byteBuffer.Count == 0) break;
-
-                if (encoding == "GBK")
-                {
-                    if (byteBuffer[0] < 0x80)
-                    {
-                        byteDecode.Add(byteBuffer[0]);
-                        byteBuffer.RemoveAt(0);
-                    }
-                    else
-                    {
-                        if (byteBuffer.Count >= 2)
-                        {
-                            byteDecode.Add(byteBuffer[0]);
-                            byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]);
-                            byteBuffer.RemoveAt(0);
-                        }
-                    }
-                }
-                else if (encoding == "UTF-8")
-                {
-                    if ((byteBuffer[0] & 0x80) == 0x00)
-                    {
-                        byteDecode.Add(byteBuffer[0]);
-                        byteBuffer.RemoveAt(0);
-                    }
-                    else if ((byteBuffer[0] & 0xE0) == 0xC0)
-                    {
-                        if (byteBuffer.Count >= 2)
-                        {
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                        }
-                    }
-                    else if ((byteBuffer[0] & 0xF0) == 0xE0)
-                    {
-                        if (byteBuffer.Count >= 3)
-                        {
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                        }
-                    }
-                    else if ((byteBuffer[0] & 0xF8) == 0xF0)
-                    {
-                        if (byteBuffer.Count >= 4)
-                        {
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                            byteDecode.Add(byteBuffer[0]); byteBuffer.RemoveAt(0);
-                        }
-                    }
-                    else
-                    {
-                        byteDecode.Add(byteBuffer[0]);
-                        byteBuffer.RemoveAt(0);
-                    }
-                }
-            }
-
-            return Encoding.GetEncoding(encoding).GetString(byteDecode.ToArray());
-        }
-
-        private string BytesToHex(byte[] bytes)
-        {
-            string hex = "";
-            foreach (byte b in bytes)
-            {
-                hex += b.ToString("X2") + " ";
-            }
-            return hex;
-        }
-
-        private byte[] TextToBytes(string str, string encoding)
-        {
-            return Encoding.GetEncoding(encoding).GetBytes(str);
-        }
-
-        private byte[] HexToBytes(string str)
-        {
-            string str1 = Regex.Replace(str, "[^A-F^a-f^0-9]", "");
-
-            double i = str1.Length;
-            int len = 2;
-            string[] strList = new string[int.Parse(Math.Ceiling(i / len).ToString())];
-            for (int j = 0; j < strList.Length; j++)
-            {
-                len = len <= str1.Length ? len : str1.Length;
-                strList[j] = str1.Substring(0, len);
-                str1 = str1.Substring(len, str1.Length - len);
-            }
-
-            int count = strList.Length;
-            byte[] bytes = new byte[count];
-            for (int j = 0; j < count; j++)
-            {
-                bytes[j] = byte.Parse(strList[j], NumberStyles.HexNumber);
-            }
-
-            return bytes;
-        }
     }
 }
