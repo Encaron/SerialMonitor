@@ -254,6 +254,11 @@
         <Style TargetType="ScrollViewer">
             <Setter Property="Background" Value="Transparent" />
         </Style>
+
+        <!-- Thin ScrollBar -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="4" />
+        </Style>
         <Style TargetType="ListBox">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -391,7 +396,8 @@
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="42" />
-                <ColumnDefinition x:Name="colSidePanel" Width="220" />
+                <ColumnDefinition x:Name="colSidePanel" Width="220" MinWidth="120" MaxWidth="520" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -407,60 +413,77 @@
                     <RadioButton x:Name="tabSettings" DockPanel.Dock="Bottom"
                                  GroupName="IconBar" Style="{DynamicResource IconBarButtonStyle}"
                                  ToolTip="串口设置" Margin="0,4" Checked="TabSettings_Checked">
-                        <Viewbox Width="18" Height="18">
-                            <Path Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}"
-                                  Data="M8,1 L9,1 L9,3.5 L10.5,4 L11.5,2.5 L12.5,3.5 L11.5,4.5 L12.5,6 L14,6 L14,7 L13,8.5 L15,9.5 L15,10.5 L13,11.5 L14,13 L12.5,14.5 L11,13.5 L9.5,14.5 L9,16.5 L8,16.5 L8,13.5 L6.5,13 L5,14 L3.5,12.5 L4.5,11 L3,9.5 L2,9.5 L2,8.5 L3.5,7 L2.5,5.5 L4,4.5 L5.5,5.5 L6.5,3.5 L7,2 Z M8,5 C6.3,5 5,6.3 5,8 C5,9.7 6.3,11 8,11 C9.7,11 11,9.7 11,8 C11,6.3 9.7,5 8,5 Z" />
-                        </Viewbox>
+                        <Rectangle Width="18" Height="18"
+                                   Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                            <Rectangle.OpacityMask>
+                                <ImageBrush ImageSource="Icons/settings.png" />
+                            </Rectangle.OpacityMask>
+                        </Rectangle>
                     </RadioButton>
                     <StackPanel Margin="0,4,0,0">
                         <RadioButton x:Name="tabReceive" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
                                      ToolTip="接收区" Checked="TabContent_Checked">
-                            <Viewbox Width="18" Height="18">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}"
-                                      Data="M4,8 L6,8 L6,4 L10,4 L10,8 L12,8 L8,13 Z M3,14 L13,14 L13,16 L3,16 Z" />
-                            </Viewbox>
+                            <Rectangle Width="18" Height="18"
+                                       Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="Icons/receive.png" />
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
                         </RadioButton>
-                        <!-- Stroke绑定会崩 只能用Fill -->
                         <RadioButton x:Name="tabPlot" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
                                      ToolTip="波形图" Checked="TabContent_Checked">
-                            <Viewbox Width="18" Height="18">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}"
-                                      Data="M2,14 L5,10 L8,12 L11,4 L14,7 L14,14 Z" />
-                            </Viewbox>
+                            <Rectangle Width="18" Height="18"
+                                       Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="Icons/plot.png" />
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
                         </RadioButton>
                         <RadioButton x:Name="tabKeys" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="按键面板" Visibility="Collapsed" Checked="TabContent_Checked">
-                            <Viewbox Width="18" Height="18">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}"
-                                      Data="M3,4 L13,4 L13,10 L3,10 Z M5,4 L5,2 L11,2 L11,4 Z M5,7 L11,7" />
-                            </Viewbox>
+                                     ToolTip="按键面板" Checked="TabContent_Checked">
+                            <Rectangle Width="18" Height="18"
+                                       Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="Icons/keys.png" />
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
                         </RadioButton>
                         <RadioButton x:Name="tabSliders" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="滑杆面板" Visibility="Collapsed" Checked="TabContent_Checked">
-                            <Viewbox Width="18" Height="18">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}"
-                                      Data="M2,5 L14,5 M2,11 L14,11 M10,4 L12,4 L12,6 L10,6 Z M5,10 L7,10 L7,12 L5,12 Z" />
-                            </Viewbox>
+                                     ToolTip="滑杆面板" Checked="TabContent_Checked">
+                            <Rectangle Width="18" Height="18"
+                                       Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="Icons/sliders.png" />
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
                         </RadioButton>
                         <RadioButton x:Name="tabOLED" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="OLED" Visibility="Collapsed" Checked="TabContent_Checked">
-                            <Viewbox Width="18" Height="18">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}"
-                                      Data="M2,3 L14,3 L14,11 L2,11 Z M4,7 L12,7" />
-                            </Viewbox>
+                                     ToolTip="OLED" Checked="TabContent_Checked">
+                            <Rectangle Width="18" Height="18"
+                                       Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="Icons/oled.png" />
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
                         </RadioButton>
                     </StackPanel>
                 </DockPanel>
             </Border>
 
+            <!-- Col 2: GridSplitter -->
+            <GridSplitter Grid.Column="2" Width="4"
+                          HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          Background="{DynamicResource SeparatorBrush}"
+                          ResizeBehavior="PreviousAndNext" />
+
             <!-- Col 1: 侧面板 -->
             <Border Grid.Column="1" Style="{DynamicResource CardBorderStyle}"
-                    Margin="0,8,6,8" Padding="12">
+                    Margin="0,8,0,8" Padding="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -472,8 +495,9 @@
                     <!-- 内容区 -->
                     <Grid Grid.Row="1">
                         <!-- 接收区设置 -->
-                        <ScrollViewer x:Name="rightReceive" VerticalScrollBarVisibility="Auto" Visibility="Visible">
-                            <StackPanel>
+                        <ScrollViewer x:Name="rightReceive" VerticalScrollBarVisibility="Auto" Visibility="Visible"
+                                      Padding="0,0,4,0">
+                            <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="时间戳" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbTimestampFormat"
@@ -531,8 +555,9 @@
                                    Text="（Phase 3 实现）" FontSize="11"
                                    Foreground="{DynamicResource TextMutedBrush}" FontStyle="Italic" Margin="0,8,0,0"/>
                         <!-- 设置面板 -->
-                        <ScrollViewer x:Name="rightSettings" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                            <StackPanel>
+                        <ScrollViewer x:Name="rightSettings" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
+                                      Padding="0,0,4,0">
+                            <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <TextBlock Text="串口配置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
@@ -565,8 +590,8 @@
                 </Grid>
             </Border>
 
-            <!-- Col 2: 主内容区 -->
-            <Grid Grid.Column="2" Margin="0,8,12,8">
+            <!-- Col 3: 主内容区 -->
+            <Grid Grid.Column="3" Margin="0,8,12,8">
                 <!-- 接收区 -->
                 <Grid x:Name="panelReceive" Visibility="Visible">
                     <Grid.RowDefinitions>
