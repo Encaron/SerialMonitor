@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Web.Script.Serialization;
+using System.Text.Json;
 
 namespace 串口助手
 {
     /// <summary>
     /// 偏好存取服务：prefs.json 替代原来的 window.cfg（Key=Value 文本格式）。
-    /// 使用 System.Web.Script.Serialization（.NET Framework 内置，无需 NuGet）。
-    /// Phase 6 升级 .NET 8 后可切换为 System.Text.Json。
+    /// Phase 6 升级 .NET 8，已切换为 System.Text.Json。
     /// </summary>
     public class PreferenceService
     {
@@ -32,8 +31,8 @@ namespace 串口助手
                     return CreateDefaults();
 
                 string json = File.ReadAllText(_filePath);
-                var serializer = new JavaScriptSerializer();
-                var prefs = serializer.Deserialize<Dictionary<string, object>>(json);
+                using var doc = JsonDocument.Parse(json);
+                var prefs = JsonElementToObject(doc.RootElement) as Dictionary<string, object>;
                 return prefs ?? CreateDefaults();
             }
             catch
@@ -52,13 +51,48 @@ namespace 串口助手
                 string dir = Path.GetDirectoryName(_filePath);
                 Directory.CreateDirectory(dir);
 
-                var serializer = new JavaScriptSerializer();
-                string json = serializer.Serialize(prefs);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(prefs, options);
                 File.WriteAllText(_filePath, json);
             }
             catch
             {
                 // 静默失败，不影响程序关闭
+            }
+        }
+
+        /// <summary>
+        /// 递归将 JsonElement 树转换为原生 .NET 类型（Dictionary→string→object / List→object / double / bool / string / null），
+        /// 保持与 JavaScriptSerializer 的 Deserialize 行为完全一致。
+        /// </summary>
+        private static object JsonElementToObject(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    var dict = new Dictionary<string, object>();
+                    foreach (var prop in element.EnumerateObject())
+                        dict[prop.Name] = JsonElementToObject(prop.Value);
+                    return dict;
+                case JsonValueKind.Array:
+                    var list = new List<object>();
+                    foreach (var item in element.EnumerateArray())
+                        list.Add(JsonElementToObject(item));
+                    return list;
+                case JsonValueKind.String:
+                    return element.GetString();
+                case JsonValueKind.Number:
+                    // 优先用 double（prefs.json 中数值都用 double）
+                    if (element.TryGetDouble(out double d)) return d;
+                    return element.GetRawText();
+                case JsonValueKind.True:
+                    return true;
+                case JsonValueKind.False:
+                    return false;
+                case JsonValueKind.Null:
+                    return null;
+                default:
+                    return element.GetRawText();
             }
         }
 

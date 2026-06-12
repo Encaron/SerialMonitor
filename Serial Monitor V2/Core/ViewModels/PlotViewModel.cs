@@ -170,7 +170,7 @@ namespace 串口助手
             if (DisplayMode == PlotDisplayMode.Sweep)
             {
                 double sweepSec = MaxDataPoints * 0.05; // N点 × 假设20Hz间隔
-                double sweepWidth = DateTimeAxis.ToDouble(DateTimeAxis.ToDateTime(_sweepStartX).AddSeconds(sweepSec)) - _sweepStartX;
+                double sweepWidth = DateTimeAxis.ToDouble(_xAxis.ConvertToDateTime(_sweepStartX).AddSeconds(sweepSec)) - _sweepStartX;
                 double currentX = DateTimeAxis.ToDouble(timestamp);
                 if (_sweepStartX == 0) _sweepStartX = currentX;
                 if (currentX - _sweepStartX > sweepWidth)
@@ -205,7 +205,7 @@ namespace 串口助手
         {
             if (_sweepStartX == 0) return;
             double sweepSec = MaxDataPoints * 0.05;
-            double endX = DateTimeAxis.ToDouble(DateTimeAxis.ToDateTime(_sweepStartX).AddSeconds(sweepSec));
+            double endX = DateTimeAxis.ToDouble(_xAxis.ConvertToDateTime(_sweepStartX).AddSeconds(sweepSec));
             _xAxis.Zoom(_sweepStartX, endX);
         }
 
@@ -321,7 +321,7 @@ namespace 串口助手
                     {
                         var pt = s.Points[i];
                         if (string.IsNullOrEmpty(ts))
-                            ts = DateTimeAxis.ToDateTime(pt.X).ToString("yyyy-MM-dd HH:mm:ss.fff");
+                            ts = _xAxis.ConvertToDateTime(pt.X).ToString("yyyy-MM-dd HH:mm:ss.fff");
                         parts.Add(pt.Y.ToString("F4"));
                     }
                     else parts.Add("");
