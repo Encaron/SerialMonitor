@@ -255,6 +255,43 @@ namespace 串口助手
                             UpdatePlotHud();
                         }
                     }
+                    // Phase 4: [key,name,state]
+                    else if (msg.Type == "key" && msg.Args.Count >= 2)
+                    {
+                        string keyName = msg.Args[0];
+                        string state = msg.Args[1]; // "down" or "up"
+                        HandleKeyMessage(keyName, state);
+                    }
+                    // Phase 4: [slider,name,value]
+                    else if (msg.Type == "slider" && msg.Args.Count >= 2)
+                    {
+                        HandleSliderMessage(msg.Args[0], msg.Args[1]);
+                    }
+                    // Phase 4: [joystick,id,x1,y1,x2,y2]
+                    else if (msg.Type == "joystick" && msg.Args.Count >= 5)
+                    {
+                        if (int.TryParse(msg.Args[0], out int joyId)
+                            && double.TryParse(msg.Args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jx)
+                            && double.TryParse(msg.Args[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jy))
+                        {
+                            HandleJoystickMessage(joyId, jx, jy);
+                        }
+                    }
+                    // Phase 4: [display,x,y,"text",size] or [display,x,y,"text",size,#RRGGBB]
+                    else if (msg.Type == "display" && msg.Args.Count >= 4)
+                    {
+                        if (int.TryParse(msg.Args[0], out int dx) && int.TryParse(msg.Args[1], out int dy)
+                            && int.TryParse(msg.Args[3], out int dsize))
+                        {
+                            string color = msg.Args.Count >= 5 ? msg.Args[4] : null;
+                            HandleDisplayMessage(dx, dy, msg.Args[2], dsize, color);
+                        }
+                    }
+                    // Phase 4: [display-clear]
+                    else if (msg.Type == "display-clear")
+                    {
+                        HandleDisplayClear();
+                    }
                 }
             }
         }
@@ -1220,9 +1257,10 @@ namespace 串口助手
         {
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
             else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); }
-            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; }
-            else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; }
-            else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; }
+            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; InitKeyPanel(); }
+            else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; InitSliderPanel(); }
+            else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; InitOLEDPanel(); }
+            else if (sender == tabJoystick){ _currentTab = "Joystick"; _previousContentTab = "Joystick"; InitJoystickPanel(); }
             RefreshContentVisibility();
         }
         private void TabSettings_Checked(object sender, RoutedEventArgs e)
@@ -1237,15 +1275,27 @@ namespace 串口助手
             panelKeys.Visibility    = _previousContentTab == "Keys"    ? Visibility.Visible : Visibility.Collapsed;
             panelSliders.Visibility = _previousContentTab == "Sliders" ? Visibility.Visible : Visibility.Collapsed;
             panelOLED.Visibility    = _previousContentTab == "OLED"    ? Visibility.Visible : Visibility.Collapsed;
+            panelJoystick.Visibility = _previousContentTab == "Joystick"? Visibility.Visible : Visibility.Collapsed;
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
             rightPlot.Visibility     = _currentTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
+            rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
+            rightSliders.Visibility  = _currentTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
+            rightJoystick.Visibility = _currentTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
+            rightOLED.Visibility    = _currentTab == "OLED"     ? Visibility.Visible : Visibility.Collapsed;
             rightSettings.Visibility = _currentTab == "Settings" ? Visibility.Visible : Visibility.Collapsed;
             switch (_currentTab)
             {
-                case "Receive": tbSidePanelTitle.Text = "收发设置"; break;
-                case "Plot":    tbSidePanelTitle.Text = "绘图设置"; break;
+                case "Receive":  tbSidePanelTitle.Text = "收发设置"; break;
+                case "Plot":     tbSidePanelTitle.Text = "绘图设置"; break;
+                case "Keys":     tbSidePanelTitle.Text = "按键属性"; break;
+                case "Sliders":  tbSidePanelTitle.Text = "滑杆属性"; break;
+                case "Joystick": tbSidePanelTitle.Text = "摇杆设置"; break;
+                case "OLED":     tbSidePanelTitle.Text = "OLED 设置"; break;
                 case "Settings": tbSidePanelTitle.Text = "串口配置"; break;
             }
+            // 切换到按键/滑杆面板时刷新侧面板
+            if (_currentTab == "Keys") RefreshKeysSidePanel();
+            if (_currentTab == "Sliders") RefreshSlidersSidePanel();
         }
         private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
         {

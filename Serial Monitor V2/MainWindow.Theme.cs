@@ -48,6 +48,12 @@ namespace 串口助手
 
             // Phase 3: 同步 OxyPlot 颜色
             _plotVM?.UpdateThemeColors(dark);
+
+            // Phase 4: 重建按键/滑杆面板（颜色随主题更新）
+            if (_keyVM != null && _keyVM.Keys.Count > 0)
+                RefreshKeysUI();
+            if (_sliderVM != null && _sliderVM.Sliders.Count > 0)
+                RefreshSlidersUI();
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)

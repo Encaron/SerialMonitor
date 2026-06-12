@@ -83,16 +83,36 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="MainWindow.Keys.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.Sliders.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.Joystick.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.Display.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Core\Services\DataConverter.cs" />
     <Compile Include="Core\Services\ProtocolParser.cs" />
     <Compile Include="Core\Services\SerialPortSession.cs" />
     <Compile Include="Core\Services\PreferenceService.cs" />
     <Compile Include="Core\Models\ProtocolMessage.cs" />
+    <Compile Include="Core\Models\KeyViewModel.cs" />
+    <Compile Include="Core\Models\SliderViewModel.cs" />
+    <Compile Include="Core\Models\JoystickViewModel.cs" />
     <Compile Include="Core\ViewModels\MainViewModel.cs" />
     <Compile Include="Core\ViewModels\PlotViewModel.cs" />
     <Compile Include="Core\ViewModels\SliderPanelViewModel.cs" />
     <Compile Include="Core\ViewModels\KeyPanelViewModel.cs" />
     <Compile Include="Core\ViewModels\DisplayPanelViewModel.cs" />
+    <Compile Include="Core\ViewModels\JoystickPanelViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -105,6 +125,7 @@
     <Resource Include="Icons\sliders.png" />
     <Resource Include="Icons\oled.png" />
     <Resource Include="Icons\settings.png" />
+    <Resource Include="Icons\joystick.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

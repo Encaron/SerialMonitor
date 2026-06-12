@@ -56,6 +56,7 @@
 | `plot.png` | 波形图/绘图 |
 | `keys.png` | 按键面板 |
 | `sliders.png` | 滑杆面板 |
+| `joystick.png` | 摇杆面板 |
 | `oled.png` | 虚拟 OLED |
 | `settings.png` | 设置 |
 
