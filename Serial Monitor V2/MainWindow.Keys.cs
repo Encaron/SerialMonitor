@@ -40,6 +40,18 @@ namespace 串口助手
                     _keyVM.DeserializeKeys(keysList);
             }
 
+            // 恢复模块名映射
+            _groupNames.Clear();
+            if (_prefsData != null && _prefsData.TryGetValue("keyGroupNames", out var namesObj)
+                && namesObj is Dictionary<string, object> nameDict)
+            {
+                foreach (var kv in nameDict)
+                {
+                    if (int.TryParse(kv.Key, out int gid) && kv.Value is string name)
+                        _groupNames[gid] = name;
+                }
+            }
+
             // 初始化发送模式下拉框
             foreach (var cb in new[] { cbKeySendMode, cbKeySendModeMulti })
             {
@@ -829,6 +841,13 @@ namespace 串口助手
             foreach (var d in data)
                 arr.Add(d);
             _prefsData["keys"] = arr;
+
+            // 保存模块名映射（GroupId → 名称），用字符串键存储
+            var nameDict = new Dictionary<string, object>();
+            foreach (var kv in _groupNames)
+                nameDict[kv.Key.ToString()] = kv.Value;
+            _prefsData["keyGroupNames"] = nameDict;
+
             _prefs.Save(_prefsData);
         }
     }
