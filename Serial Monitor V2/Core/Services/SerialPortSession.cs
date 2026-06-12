@@ -45,6 +45,9 @@ namespace 串口助手
         private long _txByteCount;
         private long _rxByteCount;
 
+        // 关闭中标记（防止 DataReceived 回调在 Close 期间访问已关闭的串口）
+        private volatile bool _isClosing;
+
         // ==================================================================
         //  公开属性 & 事件
         // ==================================================================
@@ -131,6 +134,7 @@ namespace 串口助手
 
             _receiveMode = receiveMode;
             _receiveCoding = receiveCoding;
+            _isClosing = false;
             IsOpen = true;
             PortName = portName;
 
@@ -139,24 +143,32 @@ namespace 串口助手
 
         /// <summary>
         /// 关闭串口。强制输出缓冲区残留文本后断开。
+        ///
+        /// 防死锁设计：
+        ///   1. _isClosing 标记先置位 → 已在队列中的 BeginInvoke 回调检查后直接跳过
+        ///   2. DataReceived 退订在 Close() 之前，阻止新事件进入
+        ///   3. OnDataReceived 用 BeginInvoke（异步），不会阻塞等待 UI 线程
         /// </summary>
         public void Close()
         {
-            if (IsOpen)
+            // ① 标记关闭中 —— 队列中的 BeginInvoke 回调检查此标记后跳过处理
+            _isClosing = true;
+
+            // ② 停止空闲定时器
+            _flushTimer.Stop();
+
+            // ③ 退订 DataReceived —— 阻止新事件
+            _serialPort.DataReceived -= OnDataReceived;
+
+            // ④ 冲刷缓冲区残留文本
+            if (!string.IsNullOrEmpty(_receiveLineBuffer))
             {
-                // 强制输出缓冲区残留文本再关
-                _flushTimer.Stop();
-                if (!string.IsNullOrEmpty(_receiveLineBuffer))
-                {
-                    string residual = _receiveLineBuffer;
-                    _receiveLineBuffer = "";
-                    LineReceived?.Invoke(residual);
-                }
+                string residual = _receiveLineBuffer;
+                _receiveLineBuffer = "";
+                LineReceived?.Invoke(residual);
             }
 
-            // 先退订事件，避免 DataReceived 回调正卡在 Dispatcher.Invoke 时
-            // serialPort.Close() 等待回调退出形成死锁
-            _serialPort.DataReceived -= OnDataReceived;
+            // ⑤ 关闭串口（此时不会再有 DataReceived 回调竞争）
             _serialPort.Close();
 
             IsOpen = false;
@@ -224,11 +236,12 @@ namespace 串口助手
 
         /// <summary>
         /// 串口数据到达事件（后台线程触发）。
+        /// 使用 BeginInvoke（异步）而非 Invoke（同步），避免与 Close() 形成死锁。
         /// 字节读取 + 行拼装逻辑与 v1 完全一致。
         /// </summary>
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            if (!_serialPort.IsOpen) return;
+            if (_isClosing || !_serialPort.IsOpen) return;
 
             int count = _serialPort.BytesToRead;
             byte[] dataReceive = new byte[count];
@@ -236,8 +249,13 @@ namespace 串口助手
 
             _rxByteCount += count;
 
-            _dispatcher.Invoke(() =>
+            // BeginInvoke：异步投递到 UI 线程后立即返回，DataReceived 不会被阻塞
+            // 即使 Close() 正在 UI 线程执行，也不会形成相互等待的死锁
+            _dispatcher.BeginInvoke(new Action(() =>
             {
+                // 关闭中的回调直接跳过（Close() 已冲刷缓冲区）
+                if (_isClosing) return;
+
                 if (_receiveMode == "HEX模式")
                 {
                     // HEX 模式照原样直接输出
@@ -272,7 +290,7 @@ namespace 串口助手
                         _flushTimer.Start();
                     }
                 }
-            });
+            }));
         }
 
         /// <summary>
