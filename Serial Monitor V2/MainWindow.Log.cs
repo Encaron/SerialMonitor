@@ -196,20 +196,6 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 空闲刷新：100ms 无新数据到达时，强制输出缓冲区残留文本
-        /// </summary>
-        private void FlushReceiveBuffer(object sender, EventArgs e)
-        {
-            flushTimer.Stop();
-
-            if (!string.IsNullOrEmpty(receiveLineBuffer))
-            {
-                LogReceived(receiveLineBuffer);
-                receiveLineBuffer = "";
-            }
-        }
-
-        /// <summary>
         /// 清除接收区所有内容（日志 + 行号 + 角色记录 + 暂停缓冲）
         /// </summary>
         private void ClearEditorContent()
