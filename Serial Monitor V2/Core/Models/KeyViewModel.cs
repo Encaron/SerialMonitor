@@ -51,6 +51,14 @@ namespace 串口助手
 
         // ── 工具 ──
 
+        /// <summary>HEX 模式内容空 → 取名字首字符 ASCII 码</summary>
+        private string GetHexValue(string sendValue)
+        {
+            if (!string.IsNullOrEmpty(sendValue)) return sendValue;
+            if (Name.Length > 0 && Name[0] <= 127) return ((int)Name[0]).ToString("X2");
+            return "";
+        }
+
         /// <summary>生成实际的按下发送字符串。数据包格式：[key,名字,内容]，内容空则默认"down"</summary>
         public string GetPressContent()
         {
@@ -58,7 +66,7 @@ namespace 串口助手
             switch (PressSendMode)
             {
                 case "文本": return PressSendValue ?? "";
-                case "HEX":  return PressSendValue ?? "";
+                case "HEX":  return GetHexValue(PressSendValue);
                 default:     return string.Format("[key,{0},{1}]", Name,
                                  string.IsNullOrEmpty(PressSendValue) ? "down" : PressSendValue);
             }
@@ -71,7 +79,7 @@ namespace 串口助手
             switch (ReleaseSendMode)
             {
                 case "文本": return ReleaseSendValue ?? "";
-                case "HEX":  return ReleaseSendValue ?? "";
+                case "HEX":  return GetHexValue(ReleaseSendValue);
                 default:     return string.Format("[key,{0},{1}]", Name,
                                  string.IsNullOrEmpty(ReleaseSendValue) ? "up" : ReleaseSendValue);
             }
