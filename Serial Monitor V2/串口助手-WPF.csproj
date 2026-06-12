@@ -83,11 +83,16 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="MainWindow.Keys.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Core\Services\DataConverter.cs" />
     <Compile Include="Core\Services\ProtocolParser.cs" />
     <Compile Include="Core\Services\SerialPortSession.cs" />
     <Compile Include="Core\Services\PreferenceService.cs" />
     <Compile Include="Core\Models\ProtocolMessage.cs" />
+    <Compile Include="Core\Models\KeyViewModel.cs" />
     <Compile Include="Core\ViewModels\MainViewModel.cs" />
     <Compile Include="Core\ViewModels\PlotViewModel.cs" />
     <Compile Include="Core\ViewModels\SliderPanelViewModel.cs" />
