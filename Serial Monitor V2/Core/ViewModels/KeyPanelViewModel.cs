@@ -1,12 +1,11 @@
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace 串口助手
 {
     /// <summary>
     /// 按键面板 ViewModel —— Phase 4 实现。
-    /// 管理按键集合 + 编辑模式 + 键盘布局预设 + JSON 序列化。
+    /// 管理按键集合 + 模块隔离（GroupId）+ 键盘布局预设 + JSON 序列化。
     /// </summary>
     public class KeyPanelViewModel
     {
@@ -21,8 +20,16 @@ namespace 串口助手
         /// <summary>键盘布局 ⇧ 大小写切换是否激活（仅影响随后创建的键）</summary>
         public bool ShiftActive { get; set; }
 
+        /// <summary>手动添加的按键的默认 GroupId</summary>
+        public const int ManualGroupId = 1;
+
+        private int _nextGroupId = 10;
+
+        /// <summary>分配一个新的布局组 ID（不同批次的按键互不穿插）</summary>
+        public int NewGroupId() { return _nextGroupId++; }
+
         /// <summary>
-        /// 添加一个按键
+        /// 添加一个手动按键
         /// </summary>
         public KeyViewModel AddKey(string name, string sendMode = "数据包", string sendValue = "")
         {
@@ -31,6 +38,7 @@ namespace 串口助手
                 Name = name,
                 SendMode = sendMode,
                 SendValue = string.IsNullOrEmpty(sendValue) ? name : sendValue,
+                GroupId = ManualGroupId,
             };
             Keys.Add(key);
             return key;
@@ -79,62 +87,42 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 创建键盘布局（QWERTY 风格）
-        /// 4 行：数字行 + 上排 + 中排 + 下排
-        /// 最后一个是 ⇧ Shift 切换键
+        /// 创建键盘布局（QWERTY 风格）—— Grid 精确行列
+        /// 4 行：数字行 + QWERTY上排 + ASDF中排 + ZXCV下排+⇧
         /// </summary>
         public List<KeyViewModel> CreateKeyboardLayout()
         {
             var newKeys = new List<KeyViewModel>();
+            int gid = NewGroupId();
 
-            // Row 0: 数字行
             string[] row0 = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
-            // Row 1: QWERTY 上排
             string[] row1 = { "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P" };
-            // Row 2: 中排
             string[] row2 = { "A", "S", "D", "F", "G", "H", "J", "K", "L" };
-            // Row 3: 下排 + Shift
             string[] row3 = { "Z", "X", "C", "V", "B", "N", "M" };
 
             double keyW = 46, keyH = 30;
 
+            // Row 0: 数字行，列 0-9
             for (int i = 0; i < row0.Length; i++)
-            {
-                newKeys.Add(new KeyViewModel
-                {
-                    Name = row0[i], SendMode = "数据包", SendValue = row0[i],
-                    Width = keyW, Height = keyH, LayoutX = i, LayoutY = 0,
-                });
-            }
+                newKeys.Add(MakeKey(row0[i], row0[i], gid, i, 0, keyW, keyH));
+
+            // Row 1: QWERTY，列 0-9
             for (int i = 0; i < row1.Length; i++)
-            {
-                newKeys.Add(new KeyViewModel
-                {
-                    Name = row1[i], SendMode = "数据包", SendValue = row1[i].ToLowerInvariant(),
-                    Width = keyW, Height = keyH, LayoutX = i, LayoutY = 1,
-                });
-            }
+                newKeys.Add(MakeKey(row1[i], row1[i].ToLowerInvariant(), gid, i, 1, keyW, keyH));
+
+            // Row 2: ASDF，列 0-8
             for (int i = 0; i < row2.Length; i++)
-            {
-                newKeys.Add(new KeyViewModel
-                {
-                    Name = row2[i], SendMode = "数据包", SendValue = row2[i].ToLowerInvariant(),
-                    Width = keyW, Height = keyH, LayoutX = i, LayoutY = 2,
-                });
-            }
+                newKeys.Add(MakeKey(row2[i], row2[i].ToLowerInvariant(), gid, i, 2, keyW, keyH));
+
+            // Row 3: ZXCV + Shift，列 0-6，Shift 在列 8
             for (int i = 0; i < row3.Length; i++)
-            {
-                newKeys.Add(new KeyViewModel
-                {
-                    Name = row3[i], SendMode = "数据包", SendValue = row3[i].ToLowerInvariant(),
-                    Width = keyW, Height = keyH, LayoutX = i, LayoutY = 3,
-                });
-            }
-            // Shift 切换键（LayoutX 多跳一列，与字母区留间距）
+                newKeys.Add(MakeKey(row3[i], row3[i].ToLowerInvariant(), gid, i, 3, keyW, keyH));
+
             newKeys.Add(new KeyViewModel
             {
                 Name = "⇧", SendMode = "数据包", SendValue = "",
-                Width = keyW + 12, Height = keyH, LayoutX = row3.Length + 1, LayoutY = 3,
+                Width = keyW + 8, Height = keyH, GroupId = gid,
+                LayoutX = 8, LayoutY = 3,
                 IsShiftToggle = true, IsLocked = true,
             });
 
@@ -143,58 +131,75 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 创建方向键布局（十字排列：↑ ↓ ← →）
+        /// 创建方向键布局（Grid 3列×2行，↑居中对齐于↓上方）
+        /// 列0=←, 列1=↑↓, 列2=→
         /// </summary>
         public List<KeyViewModel> CreateDirectionalLayout()
         {
             var newKeys = new List<KeyViewModel>();
-            double keyW = 52, keyH = 48;
+            int gid = NewGroupId();
+            double keyW = 50, keyH = 46;
 
-            newKeys.Add(new KeyViewModel
-            { Name = "↑", SendMode = "数据包", SendValue = "up", Width = keyW, Height = keyH,
-              LayoutX = 1, LayoutY = 0, });
-            newKeys.Add(new KeyViewModel
-            { Name = "←", SendMode = "数据包", SendValue = "left", Width = keyW, Height = keyH,
-              LayoutX = 0, LayoutY = 1, });
-            newKeys.Add(new KeyViewModel
-            { Name = "↓", SendMode = "数据包", SendValue = "down", Width = keyW, Height = keyH,
-              LayoutX = 1, LayoutY = 1, });
-            newKeys.Add(new KeyViewModel
-            { Name = "→", SendMode = "数据包", SendValue = "right", Width = keyW, Height = keyH,
-              LayoutX = 2, LayoutY = 1, });
+            //      col0  col1  col2
+            // row0:        ↑
+            // row1:  ←     ↓     →
+            newKeys.Add(MakeKey("↑", "up",    gid, 1, 0, keyW, keyH));
+            newKeys.Add(MakeKey("←", "left",  gid, 0, 1, keyW, keyH));
+            newKeys.Add(MakeKey("↓", "down",  gid, 1, 1, keyW, keyH));
+            newKeys.Add(MakeKey("→", "right", gid, 2, 1, keyW, keyH));
 
             Keys.AddRange(newKeys);
             return newKeys;
         }
 
         /// <summary>
-        /// 创建数字键盘布局（3×4 标准电话键盘，含 Enter）
+        /// 创建数字键盘布局（Grid 4列×4行，Enter 跨行）
+        /// 列0-2=数字，列3=Enter(RowSpan=2)
         /// </summary>
         public List<KeyViewModel> CreateNumpadLayout()
         {
             var newKeys = new List<KeyViewModel>();
-            double keyW = 56, keyH = 42;
+            int gid = NewGroupId();
+            double keyW = 48, keyH = 38;
 
-            string[,] numpad = { { "7", "8", "9" }, { "4", "5", "6" }, { "1", "2", "3" }, { "*", "0", "#" } };
-            for (int r = 0; r < 4; r++)
-                for (int c = 0; c < 3; c++)
-                    newKeys.Add(new KeyViewModel
-                    {
-                        Name = numpad[r, c], SendMode = "数据包", SendValue = numpad[r, c],
-                        Width = keyW, Height = keyH, LayoutX = c, LayoutY = r,
-                    });
-
-            // Enter 键
+            // Row 0: 7 8 9
+            newKeys.Add(MakeKey("7", "7", gid, 0, 0, keyW, keyH));
+            newKeys.Add(MakeKey("8", "8", gid, 1, 0, keyW, keyH));
+            newKeys.Add(MakeKey("9", "9", gid, 2, 0, keyW, keyH));
+            // Row 1: 4 5 6
+            newKeys.Add(MakeKey("4", "4", gid, 0, 1, keyW, keyH));
+            newKeys.Add(MakeKey("5", "5", gid, 1, 1, keyW, keyH));
+            newKeys.Add(MakeKey("6", "6", gid, 2, 1, keyW, keyH));
+            // Row 2: 1 2 3 + Enter(RowSpan=2)
+            newKeys.Add(MakeKey("1", "1", gid, 0, 2, keyW, keyH));
+            newKeys.Add(MakeKey("2", "2", gid, 1, 2, keyW, keyH));
+            newKeys.Add(MakeKey("3", "3", gid, 2, 2, keyW, keyH));
             newKeys.Add(new KeyViewModel
-            { Name = "Enter", SendMode = "数据包", SendValue = "enter", Width = 56, Height = 88,
-              LayoutX = 3, LayoutY = 2, });
+            {
+                Name = "Enter", SendMode = "数据包", SendValue = "enter",
+                Width = keyW, Height = keyH * 2 + 2, // 双倍高度
+                GroupId = gid, LayoutX = 3, LayoutY = 2,
+            });
+            // Row 3: * 0 #
+            newKeys.Add(MakeKey("*", "*", gid, 0, 3, keyW, keyH));
+            newKeys.Add(MakeKey("0", "0", gid, 1, 3, keyW, keyH));
+            newKeys.Add(MakeKey("#", "#", gid, 2, 3, keyW, keyH));
 
             Keys.AddRange(newKeys);
             return newKeys;
         }
 
+        private static KeyViewModel MakeKey(string name, string sendValue, int gid, int lx, int ly, double w, double h)
+        {
+            return new KeyViewModel
+            {
+                Name = name, SendMode = "数据包", SendValue = sendValue,
+                GroupId = gid, LayoutX = lx, LayoutY = ly, Width = w, Height = h,
+            };
+        }
+
         /// <summary>
-        /// 序列化所有按键为 JSON 存储格式（不含运行时状态 IsDown）
+        /// 序列化所有按键为 JSON 存储格式
         /// </summary>
         public List<Dictionary<string, object>> SerializeKeys()
         {
@@ -210,6 +215,9 @@ namespace 串口助手
             if (data == null) return;
             foreach (var d in data)
                 Keys.Add(KeyViewModel.FromDict(d));
+            // 恢复 _nextGroupId（取最大 GroupId + 10）
+            if (Keys.Count > 0)
+                _nextGroupId = Keys.Max(k => k.GroupId) + 10;
         }
 
         /// <summary>
@@ -225,7 +233,7 @@ namespace 串口助手
                 case "黄色": return isDark ? "#F9F1A5" : "#E0C300";
                 case "白色": return isDark ? "#CCCCCC" : "#666666";
                 case "灰色": return isDark ? "#555555" : "#999999";
-                default: return null; // "默认" → 使用主题默认按键背景
+                default: return null;
             }
         }
     }

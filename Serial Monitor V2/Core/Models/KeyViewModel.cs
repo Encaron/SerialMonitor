@@ -47,6 +47,9 @@ namespace 串口助手
         /// <summary>从 STM32 收到的当前按压状态：true=down, false=up</summary>
         public bool IsDown { get; set; }
 
+        /// <summary>布局分组 ID：同一批次创建的按键共享同一个 GroupId，渲染时隔离</summary>
+        public int GroupId { get; set; }
+
         /// <summary>
         /// 创建深拷贝
         /// </summary>
@@ -65,6 +68,7 @@ namespace 串口助手
                 LayoutX = this.LayoutX,
                 LayoutY = this.LayoutY,
                 IsDown = this.IsDown,
+                GroupId = this.GroupId,
             };
         }
 
@@ -85,6 +89,7 @@ namespace 串口助手
                 ["isShiftToggle"] = IsShiftToggle,
                 ["layoutX"] = LayoutX,
                 ["layoutY"] = LayoutY,
+                ["groupId"] = GroupId,
             };
         }
 
@@ -105,6 +110,7 @@ namespace 串口助手
                 IsShiftToggle = d.TryGetValue("isShiftToggle", out v) && v is bool s ? s : false,
                 LayoutX = d.TryGetValue("layoutX", out v) && v is int x ? x : 0,
                 LayoutY = d.TryGetValue("layoutY", out v) && v is int y ? y : 0,
+                GroupId = d.TryGetValue("groupId", out v) && v is int g ? g : 0,
             };
         }
     }
