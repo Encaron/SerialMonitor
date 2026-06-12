@@ -45,6 +45,9 @@ namespace 串口助手
             editor.TextArea.TextView.Redraw();
 
             LogSystem($"---- 主题切换：{(dark ? "暗色" : "亮色")} ----");
+
+            // Phase 3: 同步 OxyPlot 颜色
+            _plotVM?.UpdateThemeColors(dark);
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)

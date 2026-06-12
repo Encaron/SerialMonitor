@@ -8,42 +8,37 @@ using System.Linq;
 
 namespace 串口助手
 {
+    public enum PlotDisplayMode { Scroll, Sweep }
+
     /// <summary>
     /// 波形图 ViewModel —— Phase 3 实现。
-    /// 管理 OxyPlot PlotModel，响应 [plot,名称,数值] 协议消息。
     /// </summary>
     public class PlotViewModel
     {
-        /// <summary>OxyPlot 绘图模型，直接绑定到 PlotView</summary>
         public PlotModel Model { get; private set; }
-
-        /// <summary>是否暂停绘图（暂停时数据不追加到曲线）</summary>
         public bool IsPaused { get; set; }
-
-        /// <summary>当前是否显示数值 HUD 叠加层</summary>
         public bool ShowValueHud { get; set; } = true;
-
-        /// <summary>X 轴范围模式：true=自动，false=固定</summary>
         public bool XAxisAutoRange { get; set; } = true;
-
-        /// <summary>Y 轴范围模式：true=自动，false=固定</summary>
         public bool YAxisAutoRange { get; set; } = true;
+        public int MaxDataPoints { get; set; } = 200;
+        public PlotDisplayMode DisplayMode { get; set; } = PlotDisplayMode.Scroll;
 
-        /// <summary>固定 X 轴范围（分钟）</summary>
-        public double XAxisFixedRange { get; set; } = 5.0;
-
-        /// <summary>是否显示数据点标记（圆点标点）</summary>
+        // 扫描模式：固定 X 轴窗口起始时间
+        private double _sweepStartX;
+        public double YMin { get; set; } = 0;
+        public double YMax { get; set; } = 100;
         public bool ShowMarkers { get; set; }
-
-        /// <summary>是否显示连线</summary>
         public bool ShowLines { get; set; } = true;
-
-        /// <summary>每条曲线名 → 最新值（用于数值 HUD 显示）</summary>
         public Dictionary<string, double> LatestValues { get; } = new Dictionary<string, double>();
 
         private readonly Dictionary<string, LineSeries> _series = new Dictionary<string, LineSeries>();
-        private const int MaxPoints = 5000;
         private readonly DateTimeAxis _xAxis;
+        private readonly LinearAxis _yAxis;
+        private bool _isDark;
+
+        // 刷新限流：30Hz（≈33ms 间隔）
+        private DateTime _lastRefresh = DateTime.MinValue;
+        private bool _dirty;
 
         public PlotViewModel()
         {
@@ -52,78 +47,107 @@ namespace 串口助手
                 Title = null,
                 PlotAreaBorderThickness = new OxyThickness(0),
                 IsLegendVisible = true,
-                TextColor = OxyColor.FromRgb(0x9D, 0x9D, 0x9D),        // 轴标签颜色
             };
             Model.Legends.Add(new Legend
             {
                 LegendPosition = LegendPosition.LeftTop,
                 LegendOrientation = LegendOrientation.Vertical,
-                LegendTextColor = OxyColor.FromRgb(0xD4, 0xD4, 0xD4),
             });
 
             _xAxis = new DateTimeAxis
             {
                 Position = AxisPosition.Bottom,
-                Title = null,
                 StringFormat = "HH:mm:ss",
-                TextColor = OxyColor.FromRgb(0x9D, 0x9D, 0x9D),
-                TicklineColor = OxyColor.FromRgb(0x5A, 0x5A, 0x5A),
                 MajorGridlineStyle = LineStyle.Dash,
-                MajorGridlineColor = OxyColor.FromRgb(0x3E, 0x3E, 0x42),
                 MinorGridlineStyle = LineStyle.None,
             };
             Model.Axes.Add(_xAxis);
 
-            var yAxis = new LinearAxis
+            _yAxis = new LinearAxis
             {
                 Position = AxisPosition.Left,
-                Title = null,
-                TextColor = OxyColor.FromRgb(0x9D, 0x9D, 0x9D),
-                TicklineColor = OxyColor.FromRgb(0x5A, 0x5A, 0x5A),
                 MajorGridlineStyle = LineStyle.Dash,
-                MajorGridlineColor = OxyColor.FromRgb(0x3E, 0x3E, 0x42),
                 MinorGridlineStyle = LineStyle.None,
+                Minimum = YMin,
+                Maximum = YMax,
             };
-            Model.Axes.Add(yAxis);
+            Model.Axes.Add(_yAxis);
 
-            // ★ 画一根静态测试线，验证 OxyPlot 渲染正常
-            AddTestLine();
+            UpdateThemeColors(false);
         }
 
         /// <summary>
-        /// 静态测试曲线——用于验证 OxyPlot 能在 WPF 中正常渲染。
-        /// 确认显示正常后删掉此方法和调用。
+        /// 扫描所有曲线的数据点，自动计算 Y 轴范围（留 10% 边距）。
+        /// 在 Y 轴自动模式下调用。
         /// </summary>
-        private void AddTestLine()
+        public void RecalcYAxis()
         {
-            var testSeries = new LineSeries
-            {
-                Title = "测试曲线",
-                StrokeThickness = 2,
-                Color = OxyColor.FromRgb(0x0E, 0x63, 0x9C),
-                MarkerType = MarkerType.None,
-                LineStyle = LineStyle.Solid,
-            };
+            if (!YAxisAutoRange) return;
 
-            var now = DateTime.Now;
-            for (int i = 0; i < 100; i++)
+            double min = double.MaxValue, max = double.MinValue;
+            // 扫描所有 Series（包括测试曲线等未注册到 _series 的）
+            foreach (var s in Model.Series)
             {
-                double t = i * 0.1;
-                double val = Math.Sin(t) * 2.5;
-                testSeries.Points.Add(new DataPoint(DateTimeAxis.ToDouble(now.AddSeconds(t)), val));
+                if (!(s is LineSeries ls)) continue;
+                foreach (var pt in ls.Points)
+                {
+                    if (pt.Y < min) min = pt.Y;
+                    if (pt.Y > max) max = pt.Y;
+                }
             }
-
-            Model.Series.Add(testSeries);
+            if (min < double.MaxValue)
+            {
+                double margin = (max - min) * 0.1;
+                if (margin < 0.01) margin = 1;
+                _yAxis.Zoom(min - margin, max + margin);
+            }
+            else
+            {
+                _yAxis.Zoom(YMin, YMax);
+            }
             Model.InvalidatePlot(true);
         }
 
         /// <summary>
-        /// 收到 [plot,名称,数值] 协议消息时调用。
-        /// 如果曲线名不存在则自动创建新系列；存在则追加数据点。
+        /// 主题切换时更新 OxyPlot 颜色（OxyPlot 不支持 DynamicResource，需手动切换）。
         /// </summary>
-        /// <param name="name">曲线名称（自动成为图例）</param>
-        /// <param name="value">数值</param>
-        /// <param name="timestamp">时间戳</param>
+        public void UpdateThemeColors(bool isDark)
+        {
+            _isDark = isDark;
+
+            // 亮色主题：深色文字，浅色网格线
+            // 暗色主题：浅色文字，暗色网格线
+            var textColor = isDark
+                ? OxyColor.FromRgb(0xD4, 0xD4, 0xD4)
+                : OxyColor.FromRgb(0x2D, 0x2D, 0x2D);
+            var gridColor = isDark
+                ? OxyColor.FromRgb(0x3E, 0x3E, 0x42)
+                : OxyColor.FromRgb(0xE0, 0xE0, 0xE0);
+            var tickColor = isDark
+                ? OxyColor.FromRgb(0x5A, 0x5A, 0x5A)
+                : OxyColor.FromRgb(0xBB, 0xBB, 0xBB);
+            var legendTextColor = isDark
+                ? OxyColor.FromRgb(0xD4, 0xD4, 0xD4)
+                : OxyColor.FromRgb(0x2D, 0x2D, 0x2D);
+
+            Model.TextColor = textColor;
+            Model.PlotAreaBackground = isDark
+                ? OxyColor.FromRgb(0x1A, 0x1A, 0x1C)   // 画图区域背景（暗色=深黑）
+                : OxyColor.FromRgb(0xFA, 0xFA, 0xFA);   // 亮色=浅灰
+
+            foreach (var axis in Model.Axes)
+            {
+                axis.TextColor = textColor;
+                axis.TicklineColor = tickColor;
+                axis.MajorGridlineColor = gridColor;
+            }
+
+            if (Model.Legends.Count > 0)
+                Model.Legends[0].LegendTextColor = legendTextColor;
+
+            Model.InvalidatePlot(true);
+        }
+
         public void OnPlotMessage(string name, double value, DateTime timestamp)
         {
             if (IsPaused) return;
@@ -136,67 +160,160 @@ namespace 串口助手
             }
 
             series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(timestamp), value));
-
-            // 裁剪旧数据点
-            if (series.Points.Count > MaxPoints)
-            {
-                int removeCount = series.Points.Count - MaxPoints;
-                for (int i = 0; i < removeCount; i++)
-                    series.Points.RemoveAt(0);
-            }
-
-            // 更新最新值
             LatestValues[name] = value;
 
-            // 刷新图表
-            Model.InvalidatePlot(true);
+            // 内存安全
+            if (series.Points.Count > 5000)
+                series.Points.RemoveAt(0);
+
+            // 扫描模式：数据点超出窗口 → 清空重画
+            if (DisplayMode == PlotDisplayMode.Sweep)
+            {
+                double sweepSec = MaxDataPoints * 0.05; // N点 × 假设20Hz间隔
+                double sweepWidth = DateTimeAxis.ToDouble(DateTimeAxis.ToDateTime(_sweepStartX).AddSeconds(sweepSec)) - _sweepStartX;
+                double currentX = DateTimeAxis.ToDouble(timestamp);
+                if (_sweepStartX == 0) _sweepStartX = currentX;
+                if (currentX - _sweepStartX > sweepWidth)
+                {
+                    foreach (var s in _series.Values) s.Points.Clear();
+                    foreach (var o in Model.Series)
+                        if (o is LineSeries l) l.Points.Clear();
+                    _sweepStartX = currentX;
+                    series = _series[name]; // 重新获取引用
+                    series.Points.Add(new DataPoint(currentX, value));
+                }
+            }
+
+            // 限流 30Hz 刷新
+            _dirty = true;
+            var now = DateTime.Now;
+            if ((now - _lastRefresh).TotalMilliseconds >= 33)
+            {
+                _lastRefresh = now;
+                _dirty = false;
+                if (DisplayMode == PlotDisplayMode.Scroll)
+                    ApplyXAxisWindow();
+                else
+                    ApplySweepWindow();
+                RecalcYAxis();
+                Model.InvalidatePlot(true);
+            }
+        }
+
+        /// <summary>扫描模式窗口：固定宽度，从 _sweepStartX 开始</summary>
+        private void ApplySweepWindow()
+        {
+            if (_sweepStartX == 0) return;
+            double sweepSec = MaxDataPoints * 0.05;
+            double endX = DateTimeAxis.ToDouble(DateTimeAxis.ToDateTime(_sweepStartX).AddSeconds(sweepSec));
+            _xAxis.Zoom(_sweepStartX, endX);
         }
 
         /// <summary>
-        /// 清空所有曲线和数据点。
+        /// 滚动模式：根据 MaxDataPoints 调整 X 轴显示窗口。
         /// </summary>
+        public void ApplyXAxisWindow()
+        {
+            double windowStart = double.MaxValue;
+            double windowEnd = double.MinValue;
+            int totalPoints = 0;
+
+            foreach (var s in Model.Series)
+            {
+                if (!(s is LineSeries ls) || ls.Points.Count == 0) continue;
+                totalPoints += ls.Points.Count;
+
+                // 窗口起点：第 (Count - MaxDataPoints) 个点
+                int startIdx = ls.Points.Count - MaxDataPoints;
+                if (startIdx < 0) startIdx = 0;
+                double startX = ls.Points[startIdx].X;
+                if (startX < windowStart) windowStart = startX;
+                // 窗口终点：最后一个点
+                double endX = ls.Points[ls.Points.Count - 1].X;
+                if (endX > windowEnd) windowEnd = endX;
+            }
+
+            if (totalPoints > 0 && windowStart < windowEnd)
+            {
+                double margin = (windowEnd - windowStart) * 0.02;
+                _xAxis.Zoom(windowStart - margin, windowEnd + margin);
+            }
+            Model.InvalidatePlot(true);
+        }
+
+        /// <summary>用户手动设置 Y 轴范围（关掉自动时调用）</summary>
+        public void SetYRange(double min, double max)
+        {
+            YMin = min;
+            YMax = max;
+            _yAxis.Zoom(min, max);
+            Model.InvalidatePlot(true);
+        }
+
+        /// <summary>强制刷新（暂停/清除/切换模式时调用）</summary>
+        public void Flush()
+        {
+            if (_dirty)
+            {
+                _dirty = false;
+                _lastRefresh = DateTime.Now;
+                ApplyXAxisWindow();
+                RecalcYAxis();
+                Model.InvalidatePlot(true);
+            }
+        }
+
         public void Clear()
         {
+            _dirty = false;
             _series.Clear();
             Model.Series.Clear();
             LatestValues.Clear();
+            _sweepStartX = 0;
             Model.InvalidatePlot(true);
         }
 
-        /// <summary>
-        /// 重置视图：恢复默认缩放和平移。
-        /// </summary>
         public void ResetView()
         {
             _xAxis.Reset();
-            foreach (var axis in Model.Axes.OfType<LinearAxis>())
-                axis.Reset();
+
+            // 扫描所有数据点计算 Y 轴范围
+            double min = double.MaxValue, max = double.MinValue;
+            foreach (var s in Model.Series)
+            {
+                if (!(s is LineSeries ls)) continue;
+                foreach (var pt in ls.Points)
+                {
+                    if (pt.Y < min) min = pt.Y;
+                    if (pt.Y > max) max = pt.Y;
+                }
+            }
+            if (min < double.MaxValue)
+            {
+                double margin = (max - min) * 0.1;
+                if (margin < 0.01) margin = 1;
+                _yAxis.Zoom(min - margin, max + margin);
+            }
+
             Model.InvalidatePlot(true);
         }
 
-        /// <summary>
-        /// 导出所有曲线数据为 CSV 字节（文件名在 UI 层处理）。
-        /// </summary>
         public string ExportCsv()
         {
             var sb = new System.Text.StringBuilder();
-            // 表头
             var names = _series.Keys.ToList();
             sb.Append("Timestamp");
-            foreach (var name in names)
-                sb.Append("," + name);
+            foreach (var name in names) sb.Append("," + name);
             sb.AppendLine();
 
-            // 找到最大点数
             int maxCount = 0;
             foreach (var s in _series.Values)
                 if (s.Points.Count > maxCount) maxCount = s.Points.Count;
 
-            // 按行输出（简单按索引对齐，不等长时间戳用各系列自身时间）
             for (int i = 0; i < maxCount; i++)
             {
-                var parts = new List<string>();
                 string ts = "";
+                var parts = new List<string>();
                 foreach (var name in names)
                 {
                     var s = _series[name];
@@ -207,10 +324,7 @@ namespace 串口助手
                             ts = DateTimeAxis.ToDateTime(pt.X).ToString("yyyy-MM-dd HH:mm:ss.fff");
                         parts.Add(pt.Y.ToString("F4"));
                     }
-                    else
-                    {
-                        parts.Add("");
-                    }
+                    else parts.Add("");
                 }
                 sb.AppendLine(ts + "," + string.Join(",", parts));
             }
@@ -218,44 +332,35 @@ namespace 串口助手
             return sb.ToString();
         }
 
-        /// <summary>
-        /// 切换暂停状态。
-        /// </summary>
         public void TogglePause()
         {
             IsPaused = !IsPaused;
+            if (IsPaused) Flush();  // 暂停时刷新残留数据
         }
 
-        /// <summary>
-        /// 切换数据点标记显隐。
-        /// </summary>
         public void SetMarkers(bool show)
         {
             ShowMarkers = show;
-            foreach (var series in _series.Values)
+            foreach (var s in _series.Values)
             {
-                series.MarkerType = show ? MarkerType.Circle : MarkerType.None;
-                series.MarkerSize = show ? 3 : 0;
+                s.MarkerType = show ? MarkerType.Circle : MarkerType.None;
+                s.MarkerSize = show ? 3 : 0;
             }
             Model.InvalidatePlot(true);
         }
 
-        /// <summary>
-        /// 切换连线显隐。
-        /// </summary>
         public void SetLines(bool show)
         {
             ShowLines = show;
-            foreach (var series in _series.Values)
+            foreach (var s in _series.Values)
             {
-                series.LineStyle = show ? LineStyle.Solid : LineStyle.None;
+                s.LineStyle = show ? LineStyle.Solid : LineStyle.None;
             }
             Model.InvalidatePlot(true);
         }
 
         private LineSeries CreateSeries(string name)
         {
-            // 颜色轮换：蓝色系优先，然后用调色板
             var colorIndex = _series.Count % 8;
             OxyColor color;
             switch (colorIndex)
@@ -270,7 +375,7 @@ namespace 串口助手
                 default: color = OxyColor.FromRgb(0xAA, 0xAA, 0xAA); break; // 灰
             }
 
-            var series = new LineSeries
+            return new LineSeries
             {
                 Title = name,
                 StrokeThickness = 2,
@@ -282,8 +387,6 @@ namespace 串口助手
                 LineStyle = ShowLines ? LineStyle.Solid : LineStyle.None,
                 CanTrackerInterpolatePoints = true,
             };
-
-            return series;
         }
     }
 }

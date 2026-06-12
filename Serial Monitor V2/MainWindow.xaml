@@ -555,38 +555,73 @@
                         <ScrollViewer x:Name="rightPlot" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <!-- X 轴范围 -->
-                                <CheckBox x:Name="chkPlotXAuto" Content="X 轴自动范围" IsChecked="True"
-                                          Checked="chkPlotXAuto_Changed" Unchecked="chkPlotXAuto_Changed"/>
-                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="范围(分)" Style="{DynamicResource FormLabelStyle}"/>
+                                <!-- 显示模式 -->
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="显示模式" Style="{DynamicResource FormLabelStyle}"/>
+                                    <ComboBox Grid.Column="1" x:Name="cbPlotMode" Height="28"
+                                              FontFamily="Microsoft YaHei" FontSize="12"
+                                              Foreground="{DynamicResource TextPrimaryBrush}"
+                                              Background="{DynamicResource CardBgBrush}"
+                                              BorderBrush="{DynamicResource InputBorderBrush}"
+                                              SelectionChanged="cbPlotMode_Changed"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- X 轴：数据点数 -->
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="数据点数" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Column="1" x:Name="tbPlotXRange" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              Background="{DynamicResource CardBgBrush}"
                                              BorderBrush="{DynamicResource InputBorderBrush}"
-                                             BorderThickness="1" Padding="6,2" Text="5"
-                                             IsEnabled="False"
+                                             BorderThickness="1" Padding="6,2" Text="200"
                                              LostFocus="tbPlotXRange_LostFocus"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <!-- Y 轴范围 -->
-                                <CheckBox x:Name="chkPlotYAuto" Content="Y 轴自动范围" IsChecked="True"
+                                <!-- Y 轴 -->
+                                <CheckBox x:Name="chkPlotYAuto" Content="Y 轴自动" HorizontalAlignment="Left"
                                           Checked="chkPlotYAuto_Changed" Unchecked="chkPlotYAuto_Changed"/>
-                                <!-- 显示选项 -->
+                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="最小值" Style="{DynamicResource FormLabelStyle}"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="tbPlotYMin" Height="28"
+                                             FontFamily="Microsoft YaHei" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             Background="{DynamicResource CardBgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}"
+                                             BorderThickness="1" Padding="6,2" Text="0"
+                                             LostFocus="tbPlotYRange_LostFocus"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="最大值" Style="{DynamicResource FormLabelStyle}"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="tbPlotYMax" Height="28"
+                                             FontFamily="Microsoft YaHei" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             Background="{DynamicResource CardBgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}"
+                                             BorderThickness="1" Padding="6,2" Text="100"
+                                             LostFocus="tbPlotYRange_LostFocus"/>
+                                </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <CheckBox x:Name="chkPlotMarkers" Content="☑ 显示标点"
+                                <!-- 显示选项 -->
+                                <CheckBox x:Name="chkPlotMarkers" Content="显示标点" HorizontalAlignment="Left"
                                           Checked="chkPlotMarkers_Changed" Unchecked="chkPlotMarkers_Changed"/>
-                                <CheckBox x:Name="chkPlotLines" Content="☑ 显示连线" IsChecked="True"
+                                <CheckBox x:Name="chkPlotLines" Content="显示连线" HorizontalAlignment="Left"
                                           Checked="chkPlotLines_Changed" Unchecked="chkPlotLines_Changed"/>
-                                <CheckBox x:Name="chkPlotValueHud" Content="☑ 数值显示" IsChecked="True"
+                                <CheckBox x:Name="chkPlotValueHud" Content="数值显示" HorizontalAlignment="Left"
                                           Checked="chkPlotValueHud_Changed" Unchecked="chkPlotValueHud_Changed"/>
-                                <!-- 操作按钮 -->
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Button Content="🗑 清除全部曲线" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Margin="0,0,0,6" Click="btnPlotClear_Click"/>
                                 <Button Content="📥 导出 CSV" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnPlotCsv_Click"/>
+                                <!-- 操作提示 -->
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" LineHeight="16">
+                                    <Run Text="🖱 操作：" FontWeight="SemiBold"/>
+                                    <Run Text="滚轮缩放"/>
+                                    <Run Text=" · 右键拖拽平移"/>
+                                    <Run Text=" · 悬停查看数值"/>
+                                </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
                         <!-- 设置面板 -->
@@ -701,7 +736,7 @@
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnPlotPause" Content="⏸ 暂停" Width="64"
+                            <Button x:Name="btnPlotPause" Content="⏸ 暂停" Width="84"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" Click="btnPlotPause_Click"/>
                             <Button x:Name="btnPlotClear" Content="🗑 清除"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotClear_Click"/>
@@ -711,20 +746,15 @@
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotFit_Click"/>
                         </StackPanel>
                     </Border>
-                    <!-- 波形图区域 -->
-                    <Grid Grid.Row="1">
-                        <!-- OxyPlot 波形图 -->
-                        <oxy:PlotView x:Name="plotView" Model="{Binding Model}" Panel.ZIndex="0"/>
-                        <!-- 数值 HUD 半透明叠加层 -->
+                    <!-- 波形图区域（PlotView 在 C# 中懒加载） -->
+                    <Grid Grid.Row="1" x:Name="plotArea">
                         <Border x:Name="plotHud" Panel.ZIndex="1"
                                 HorizontalAlignment="Right" VerticalAlignment="Top"
                                 Margin="0,8,12,0" Padding="10,8" CornerRadius="6"
                                 Background="#99000000" BorderBrush="#33FFFFFF" BorderThickness="1"
-                                IsHitTestVisible="False"
-                                Visibility="Collapsed">
+                                IsHitTestVisible="False" Visibility="Collapsed">
                             <StackPanel x:Name="plotHudPanel"/>
                         </Border>
-                        <!-- 空状态提示 -->
                         <TextBlock x:Name="plotEmptyHint" Panel.ZIndex="0"
                                    Text="等待串口数据…" FontSize="14"
                                    Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"
