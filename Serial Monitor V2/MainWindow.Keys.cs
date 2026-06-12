@@ -365,23 +365,8 @@ namespace 串口助手
             var keyVM = btn.Tag as KeyViewModel;
             if (keyVM == null || keyVM.IsLocked || keyVM.IsShiftToggle) return;
 
-            // 视觉反馈 1：脉冲动画（透明度 1.0→0.55→1.0）
+            // 视觉反馈：脉冲动画（透明度 1.0→0.55→1.0）
             PulseElement(btn);
-
-            // 视觉反馈 2：闪绿色背景 → 200ms 后恢复
-            var prevBg = btn.Background;
-            var prevFg = btn.Foreground;
-            btn.Background = new SolidColorBrush(SuccessColor);
-            btn.Foreground = System.Windows.Media.Brushes.White;
-            var flashTimer = new System.Windows.Threading.DispatcherTimer
-            { Interval = TimeSpan.FromMilliseconds(200) };
-            flashTimer.Tick += (s2, e2) =>
-            {
-                flashTimer.Stop();
-                btn.Background = prevBg;
-                btn.Foreground = prevFg;
-            };
-            flashTimer.Start();
 
             // 更新侧面板反馈
             ShowKeySendFeedback(keyVM);
