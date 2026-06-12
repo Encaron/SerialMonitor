@@ -628,12 +628,39 @@
                         <ScrollViewer x:Name="rightKeys" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <!-- 无按键选中时的提示 -->
-                                <StackPanel x:Name="rightKeysNoSelection" Visibility="Visible">
+                                <!-- 正常模式：最近发送反馈 -->
+                                <StackPanel x:Name="rightKeysSentFeedback" Visibility="Visible">
+                                    <TextBlock Text="按键反馈" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="按键：" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Width="42"/>
+                                                <TextBlock x:Name="tbKeyFeedbackName" FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource PrimaryBrush}" Text="—"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                                <TextBlock Text="模式：" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Width="42"/>
+                                                <TextBlock x:Name="tbKeyFeedbackMode" FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Text="—"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="内容：" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Width="42"/>
+                                                <TextBlock x:Name="tbKeyFeedbackValue" FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                                               TextWrapping="Wrap" LineHeight="16"
+                                               Text="点击左侧按键发送数据。消息回显可在接收区设置中开启。"/>
+                                </StackPanel>
+                                <!-- 编辑模式无选中：提示 -->
+                                <StackPanel x:Name="rightKeysNoSelection" Visibility="Collapsed">
                                     <TextBlock Text="按键属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="18"
-                                               Text="选择左侧按键以编辑属性。Ctrl+点击可多选。"/>
+                                               Text="选择左侧按键以编辑属性。Ctrl+点击可多选，Ctrl+A 全选。右键快速删除。"/>
                                 </StackPanel>
                                 <!-- 多选状态 -->
                                 <StackPanel x:Name="rightKeysMultiSelect" Visibility="Collapsed">
@@ -869,7 +896,8 @@
                 </Grid>
 
                 <!-- 按键（Phase 4） -->
-                <Grid x:Name="panelKeys" Visibility="Collapsed">
+                <Grid x:Name="panelKeys" Visibility="Collapsed"
+                      PreviewKeyDown="KeysPanel_PreviewKeyDown" Focusable="True">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <!-- 正常模式工具栏 -->
                     <Border x:Name="keysToolbarNormal" Grid.Row="0"
@@ -900,6 +928,10 @@
                             <Button x:Name="btnKeysLayout" Content="⌨ 键盘布局"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnKeysLayout_Click" ToolTip="从键盘布局预设批量创建按键"/>
+                            <Button x:Name="btnKeysClearAll" Content="🗑 清空全部"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
+                                    Margin="6,0,0,0" Click="btnKeysClearAll_Click" ToolTip="删除所有按键"
+                                    Foreground="#E74856"/>
                         </StackPanel>
                     </Border>
                     <!-- 按键内容区 -->

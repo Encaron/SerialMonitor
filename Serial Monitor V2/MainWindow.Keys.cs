@@ -199,6 +199,36 @@ namespace 串口助手
             RefreshKeysSidePanel();
         }
 
+        // ——— 清空全部 ———
+        private void btnKeysClearAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_keyVM == null || _keyVM.Keys.Count == 0) return;
+            var result = MessageBox.Show(
+                string.Format("确定要删除全部 {0} 个按键吗？", _keyVM.Keys.Count),
+                "清空全部按键", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+            {
+                _keyVM.ClearAll();
+                _selectedKeys.Clear();
+                RefreshKeysUI();
+                RefreshKeysSidePanel();
+            }
+        }
+
+        // ——— Ctrl+A 全选（在按键面板按键事件中处理） ———
+        private void KeysPanel_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!_keyVM.IsEditMode) return;
+            if (e.Key == Key.A && (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)))
+            {
+                _selectedKeys.Clear();
+                _selectedKeys.AddRange(_keyVM.Keys.Where(k => !k.IsShiftToggle));
+                RefreshKeysUI();
+                RefreshKeysSidePanel();
+                e.Handled = true;
+            }
+        }
+
         // ——— 刷新按键 UI（正常模式 + 编辑模式） ———
         private void RefreshKeysUI()
         {
@@ -320,6 +350,27 @@ namespace 串口助手
             var keyVM = btn.Tag as KeyViewModel;
             if (keyVM == null || keyVM.IsLocked || keyVM.IsShiftToggle) return;
 
+            // 视觉反馈 1：脉冲动画（透明度 1.0→0.55→1.0）
+            PulseElement(btn);
+
+            // 视觉反馈 2：闪绿色背景 → 200ms 后恢复
+            var prevBg = btn.Background;
+            var prevFg = btn.Foreground;
+            btn.Background = new SolidColorBrush(SuccessColor);
+            btn.Foreground = System.Windows.Media.Brushes.White;
+            var flashTimer = new System.Windows.Threading.DispatcherTimer
+            { Interval = TimeSpan.FromMilliseconds(200) };
+            flashTimer.Tick += (s2, e2) =>
+            {
+                flashTimer.Stop();
+                btn.Background = prevBg;
+                btn.Foreground = prevFg;
+            };
+            flashTimer.Start();
+
+            // 更新侧面板反馈
+            ShowKeySendFeedback(keyVM);
+
             if (_session == null || !_session.IsOpen) return;
 
             string toSend;
@@ -343,6 +394,29 @@ namespace 串口助手
                 // 使用 SendRaw（复用主发送逻辑：模式 → 编码 → 字节），加换行符
                 SendRaw(toSend, appendLineEnding: true);
             }
+        }
+
+        // ——— 侧面板：显示刚发送的按键信息 ———
+        private void ShowKeySendFeedback(KeyViewModel keyVM)
+        {
+            tbKeyFeedbackName.Text = keyVM.Name;
+            tbKeyFeedbackMode.Text = keyVM.SendMode;
+            // 显示实际发送内容
+            string preview;
+            switch (keyVM.SendMode)
+            {
+                case "文本":
+                    preview = keyVM.SendValue;
+                    break;
+                case "HEX":
+                    preview = keyVM.SendValue;
+                    break;
+                case "数据包":
+                default:
+                    preview = string.Format("[key,{0},down][key,{0},up]", keyVM.Name);
+                    break;
+            }
+            tbKeyFeedbackValue.Text = string.IsNullOrEmpty(preview) ? "（空）" : preview;
         }
 
         // ——— 编辑模式：选中/取消选中按键 ———
@@ -404,12 +478,16 @@ namespace 串口助手
             bool isEdit = _keyVM.IsEditMode;
             int count = _selectedKeys.Count;
 
-            // 非编辑模式：显示提示
+            // 隐藏所有面板
+            rightKeysSentFeedback.Visibility = Visibility.Collapsed;
+            rightKeysNoSelection.Visibility = Visibility.Collapsed;
+            rightKeysSingleSelect.Visibility = Visibility.Collapsed;
+            rightKeysMultiSelect.Visibility = Visibility.Collapsed;
+
+            // 非编辑模式：显示发送反馈
             if (!isEdit)
             {
-                rightKeysNoSelection.Visibility = Visibility.Visible;
-                rightKeysSingleSelect.Visibility = Visibility.Collapsed;
-                rightKeysMultiSelect.Visibility = Visibility.Collapsed;
+                rightKeysSentFeedback.Visibility = Visibility.Visible;
                 return;
             }
 
@@ -417,16 +495,12 @@ namespace 串口助手
             if (count == 0)
             {
                 rightKeysNoSelection.Visibility = Visibility.Visible;
-                rightKeysSingleSelect.Visibility = Visibility.Collapsed;
-                rightKeysMultiSelect.Visibility = Visibility.Collapsed;
                 return;
             }
 
             // 编辑模式 + 多选
             if (count > 1)
             {
-                rightKeysNoSelection.Visibility = Visibility.Collapsed;
-                rightKeysSingleSelect.Visibility = Visibility.Collapsed;
                 rightKeysMultiSelect.Visibility = Visibility.Visible;
                 tbKeysSelectedCount.Text = string.Format("已选 {0} 个按键", count);
 
@@ -440,9 +514,7 @@ namespace 串口助手
 
             // 编辑模式 + 单选
             var key = _selectedKeys[0];
-            rightKeysNoSelection.Visibility = Visibility.Collapsed;
             rightKeysSingleSelect.Visibility = Visibility.Visible;
-            rightKeysMultiSelect.Visibility = Visibility.Collapsed;
 
             tbKeyName.Text = key.Name;
             cbKeySendMode.SelectedItem = key.SendMode;
