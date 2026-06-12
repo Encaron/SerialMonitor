@@ -229,7 +229,7 @@ namespace 串口助手
             }
         }
 
-        // ——— 刷新按键 UI（正常模式 + 编辑模式） ———
+        // ——— 刷新按键 UI（Grid 精确布局 + 模块隔离） ———
         private void RefreshKeysUI()
         {
             if (_keyVM == null) return;
@@ -245,9 +245,116 @@ namespace 串口助手
 
             if (!hasKeys) return;
 
-            // 按行分组（LayoutY），每行一个 WrapPanel，支持键盘布局的行列结构
-            var rows = _keyVM.Keys.GroupBy(k => k.LayoutY).OrderBy(g => g.Key);
-            // 键盘式行偏移（模拟真实键盘的 stagger 效果）
+            // 按 GroupId 分组 —— 每个布局预设一个独立容器
+            var groups = _keyVM.Keys.GroupBy(k => k.GroupId).OrderBy(g => g.Key);
+            bool first = true;
+            foreach (var group in groups)
+            {
+                // 模块间加分隔线（第一个不加）
+                if (!first)
+                {
+                    keysPanel.Children.Add(new System.Windows.Shapes.Rectangle
+                    {
+                        Height = 1, Fill = (Brush)FindResource("SeparatorBrush"),
+                        Margin = new Thickness(0, 6, 0, 6),
+                    });
+                }
+                first = false;
+
+                var groupKeys = group.ToList();
+                int maxRow = groupKeys.Max(k => k.LayoutY);
+                int maxCol = groupKeys.Max(k => k.LayoutX);
+
+                if (maxRow == 0 && maxCol < 12)
+                {
+                    // 单行键盘布局（如手动按键、单行QWERTY行）：用 WrapPanel 自然流式
+                    var wrap = new WrapPanel { Orientation = Orientation.Horizontal };
+                    foreach (var keyVM in groupKeys.OrderBy(k => k.LayoutX))
+                    {
+                        var btn = CreateKeyButton(keyVM, isEdit);
+                        wrap.Children.Add(btn);
+                        _keyButtonMap[btn] = keyVM;
+                    }
+                    keysPanel.Children.Add(wrap);
+                }
+                else if (group.All(k => k.LayoutY == 0 || k.LayoutY == 1) && maxRow == 1 && maxCol == 2)
+                {
+                    // 方向键布局（2行×3列 Grid）
+                    var grid = BuildDirectionalGrid(groupKeys, isEdit);
+                    keysPanel.Children.Add(grid);
+                }
+                else if (maxRow >= 3 && maxCol >= 3 && groupKeys.Any(k => k.Name == "Enter"))
+                {
+                    // 数字键盘布局（4行×4列 Grid，Enter 跨行）
+                    var grid = BuildNumpadGrid(groupKeys, isEdit);
+                    keysPanel.Children.Add(grid);
+                }
+                else
+                {
+                    // 通用键盘布局（QWERTY）：行偏移 WrapPanel
+                    BuildRowBasedLayout(groupKeys, isEdit);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 方向键：3列×2行 Grid，↑居中于↓上方
+        /// </summary>
+        private Grid BuildDirectionalGrid(List<KeyViewModel> keys, bool isEdit)
+        {
+            var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 4) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            foreach (var keyVM in keys)
+            {
+                var btn = CreateKeyButton(keyVM, isEdit);
+                Grid.SetRow(btn, keyVM.LayoutY);
+                Grid.SetColumn(btn, keyVM.LayoutX);
+                // 居中对其
+                btn.HorizontalAlignment = HorizontalAlignment.Center;
+                btn.VerticalAlignment = VerticalAlignment.Center;
+                grid.Children.Add(btn);
+                _keyButtonMap[btn] = keyVM;
+            }
+            return grid;
+        }
+
+        /// <summary>
+        /// 数字键盘：4列×4行 Grid，Enter 跨行 2-3
+        /// </summary>
+        private Grid BuildNumpadGrid(List<KeyViewModel> keys, bool isEdit)
+        {
+            var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 4) };
+            for (int c = 0; c < 4; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            for (int r = 0; r < 4; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            foreach (var keyVM in keys)
+            {
+                var btn = CreateKeyButton(keyVM, isEdit);
+                Grid.SetRow(btn, keyVM.LayoutY);
+                Grid.SetColumn(btn, keyVM.LayoutX);
+                // Enter 跨行
+                if (keyVM.Name == "Enter")
+                {
+                    Grid.SetRowSpan(btn, 2);
+                    btn.VerticalAlignment = VerticalAlignment.Stretch;
+                }
+                grid.Children.Add(btn);
+                _keyButtonMap[btn] = keyVM;
+            }
+            return grid;
+        }
+
+        /// <summary>
+        /// 通用行偏移布局（QWERTY keyboard stagger）
+        /// </summary>
+        private void BuildRowBasedLayout(List<KeyViewModel> keys, bool isEdit)
+        {
+            var rows = keys.GroupBy(k => k.LayoutY).OrderBy(g => g.Key);
             double[] rowStagger = { 0, 10, 16, 24 };
             foreach (var row in rows)
             {
@@ -257,9 +364,7 @@ namespace 串口助手
                     Orientation = Orientation.Horizontal,
                     Margin = new Thickness(leftMargin, 0, 0, 2),
                 };
-                // 行内按 LayoutX 排序
-                var sortedKeys = row.OrderBy(k => k.LayoutX);
-                foreach (var keyVM in sortedKeys)
+                foreach (var keyVM in row.OrderBy(k => k.LayoutX))
                 {
                     var btn = CreateKeyButton(keyVM, isEdit);
                     rowPanel.Children.Add(btn);
