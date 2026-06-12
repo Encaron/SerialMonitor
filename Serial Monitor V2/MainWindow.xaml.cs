@@ -1181,11 +1181,9 @@ namespace 串口助手
         // ==================================================================
         private void TabContent_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
-            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot"; }
-            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; }
-            else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; }
-            else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; }
+            if (sender == tabReceive)   { _currentTab = "Receive"; _previousContentTab = "Receive"; }
+            else if (sender == tabPlot) { _currentTab = "Plot";    _previousContentTab = "Plot"; }
+            // Keys/Sliders/OLED — Phase 4 add RadioButtons with x:Name first
             RefreshContentVisibility();
         }
         private void TabSettings_Checked(object sender, RoutedEventArgs e)
@@ -1197,9 +1195,6 @@ namespace 串口助手
         {
             panelReceive.Visibility = _previousContentTab == "Receive" ? Visibility.Visible : Visibility.Collapsed;
             panelPlot.Visibility    = _previousContentTab == "Plot"    ? Visibility.Visible : Visibility.Collapsed;
-            panelKeys.Visibility    = _previousContentTab == "Keys"    ? Visibility.Visible : Visibility.Collapsed;
-            panelSliders.Visibility = _previousContentTab == "Sliders" ? Visibility.Visible : Visibility.Collapsed;
-            panelOLED.Visibility    = _previousContentTab == "OLED"    ? Visibility.Visible : Visibility.Collapsed;
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
             rightPlot.Visibility     = _currentTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
             rightSettings.Visibility = _currentTab == "Settings" ? Visibility.Visible : Visibility.Collapsed;
@@ -1212,9 +1207,9 @@ namespace 串口助手
         }
         private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
         {
-            if (colSidePanel.Width.Value > 0)
+            if (colSidePanel.Width.Value > 30)
             {
-                colSidePanel.Width = new GridLength(0);
+                colSidePanel.Width = new GridLength(28);
                 btnPanelCollapse.Content = "▶";
                 btnPanelCollapse.ToolTip = "展开侧面板";
             }
