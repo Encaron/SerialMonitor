@@ -94,24 +94,49 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 从 JSON 字典反序列化
+        /// 从 JSON 字典反序列化。
+        /// JavaScriptSerializer 将整数读为 int、浮点数读为 double——统一转换。
         /// </summary>
         public static KeyViewModel FromDict(Dictionary<string, object> d)
         {
             return new KeyViewModel
             {
-                Name = d.TryGetValue("name", out var v) ? v?.ToString() ?? "" : "",
-                SendMode = d.TryGetValue("sendMode", out v) ? v?.ToString() ?? "数据包" : "数据包",
-                SendValue = d.TryGetValue("sendValue", out v) ? v?.ToString() ?? "" : "",
-                IsLocked = d.TryGetValue("isLocked", out v) && v is bool b ? b : false,
-                Width = d.TryGetValue("width", out v) && v is double w ? w : 80,
-                Height = d.TryGetValue("height", out v) && v is double h ? h : 36,
-                Color = d.TryGetValue("color", out v) ? v?.ToString() ?? "默认" : "默认",
-                IsShiftToggle = d.TryGetValue("isShiftToggle", out v) && v is bool s ? s : false,
-                LayoutX = d.TryGetValue("layoutX", out v) && v is int x ? x : 0,
-                LayoutY = d.TryGetValue("layoutY", out v) && v is int y ? y : 0,
-                GroupId = d.TryGetValue("groupId", out v) && v is int g ? g : 0,
+                Name = GetStr(d, "name", ""),
+                SendMode = GetStr(d, "sendMode", "数据包"),
+                SendValue = GetStr(d, "sendValue", ""),
+                IsLocked = d.TryGetValue("isLocked", out var v) && v is bool b && b,
+                Width = GetDouble(d, "width", 80),
+                Height = GetDouble(d, "height", 36),
+                Color = GetStr(d, "color", "默认"),
+                IsShiftToggle = d.TryGetValue("isShiftToggle", out v) && v is bool s && s,
+                LayoutX = GetInt(d, "layoutX", 0),
+                LayoutY = GetInt(d, "layoutY", 0),
+                GroupId = GetInt(d, "groupId", 0),
             };
+        }
+
+        private static string GetStr(Dictionary<string, object> d, string key, string def)
+            => d.TryGetValue(key, out var v) && v != null ? v.ToString() : def;
+
+        private static double GetDouble(Dictionary<string, object> d, string key, double def)
+        {
+            if (!d.TryGetValue(key, out var v) || v == null) return def;
+            if (v is double dv) return dv;
+            if (v is int iv) return iv;
+            if (v is long lv) return lv;
+            if (v is decimal mv) return (double)mv;
+            if (double.TryParse(v.ToString(), out double pv)) return pv;
+            return def;
+        }
+
+        private static int GetInt(Dictionary<string, object> d, string key, int def)
+        {
+            if (!d.TryGetValue(key, out var v) || v == null) return def;
+            if (v is int iv) return iv;
+            if (v is long lv) return (int)lv;
+            if (v is double dv) return (int)dv;
+            if (int.TryParse(v.ToString(), out int pv)) return pv;
+            return def;
         }
     }
 }
