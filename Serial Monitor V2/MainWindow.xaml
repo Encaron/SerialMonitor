@@ -655,6 +655,35 @@
                                                TextWrapping="Wrap" LineHeight="16"
                                                Text="点击左侧按键发送数据。消息回显可在接收区设置中开启。"/>
                                 </StackPanel>
+                                <!-- 模块设置（点击模块名进入） -->
+                                <StackPanel x:Name="rightKeysModuleSettings" Visibility="Collapsed">
+                                    <TextBlock Text="模块设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="模块名" Style="{DynamicResource FormLabelStyle}"/>
+                                        <TextBox Grid.Column="1" x:Name="tbModuleName" Height="28"
+                                                 FontFamily="Microsoft YaHei" FontSize="12"
+                                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                                 Background="{DynamicResource CardBgBrush}"
+                                                 BorderBrush="{DynamicResource InputBorderBrush}"
+                                                 BorderThickness="1" Padding="6,2"
+                                                 LostFocus="tbModuleName_LostFocus"/>
+                                    </Grid>
+                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="发送模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <ComboBox Grid.Column="1" x:Name="cbModuleSendMode" Height="28"
+                                                  FontFamily="Microsoft YaHei" FontSize="12"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Background="{DynamicResource CardBgBrush}"
+                                                  BorderBrush="{DynamicResource InputBorderBrush}"
+                                                  SelectionChanged="cbModuleSendMode_Changed"/>
+                                    </Grid>
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <TextBlock Text="统一颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
+                                    <WrapPanel x:Name="moduleColorPanel" Orientation="Horizontal"/>
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <Button Content="🗑 删除此模块" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnModuleDelete_Click" Foreground="#E74856"/>
+                                </StackPanel>
                                 <!-- 编辑模式无选中：提示 -->
                                 <StackPanel x:Name="rightKeysNoSelection" Visibility="Collapsed">
                                     <TextBlock Text="按键属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
