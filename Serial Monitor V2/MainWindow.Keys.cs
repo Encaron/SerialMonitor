@@ -372,7 +372,7 @@ namespace 串口助手
             RefreshKeysUI();
         }
 
-        /// <summary>切换大小写：翻转 ShiftActive，更新同组所有字母键的显示名和 PressSendValue</summary>
+        /// <summary>切换大小写：翻转 ShiftActive，更新同组所有字母键的显示名</summary>
         private void ToggleShift(int groupId)
         {
             _keyVM.ShiftActive = !_keyVM.ShiftActive;
@@ -380,16 +380,9 @@ namespace 串口助手
             {
                 if (k.Name.Length == 1 && char.IsLetter(k.Name[0]))
                 {
-                    if (_keyVM.ShiftActive)
-                    {
-                        k.Name = k.Name.ToUpperInvariant();
-                        k.PressSendValue = k.Name;
-                    }
-                    else
-                    {
-                        k.Name = k.Name.ToLowerInvariant();
-                        k.PressSendValue = k.Name;
-                    }
+                    k.Name = _keyVM.ShiftActive
+                        ? k.Name.ToUpperInvariant()
+                        : k.Name.ToLowerInvariant();
                 }
             }
         }
@@ -507,6 +500,15 @@ namespace 串口助手
         private void tbModuleName_LostFocus(object sender, RoutedEventArgs e) { if (_selectedModuleGroupId == null) return; string nn = tbModuleName.Text?.Trim(); if (!string.IsNullOrEmpty(nn)) { _groupNames[_selectedModuleGroupId.Value] = nn; RefreshKeysUI(); } }
         private void cbModulePressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedModuleGroupId == null || cbModulePressMode.SelectedItem == null) return; string m = cbModulePressMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value; foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.PressSendMode = m; RefreshKeysUI(); }
         private void cbModuleReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedItem == null) return; string m = cbModuleReleaseMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value; foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.ReleaseSendMode = m; RefreshKeysUI(); }
+        private void btnModuleGenRelease_Click(object sender, RoutedEventArgs e) {
+            if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
+            foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
+            {
+                k.ReleaseSendMode = "文本";
+                k.ReleaseSendValue = string.Format("[key,{0},up]", k.Name);
+            }
+            RefreshKeysUI(); RefreshKeysSidePanel();
+        }
         private void btnModuleDelete_Click(object sender, RoutedEventArgs e) {
             if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
             var mk = _keyVM.Keys.Where(k => k.GroupId == gid).ToList(); if (mk.Count == 0) return;

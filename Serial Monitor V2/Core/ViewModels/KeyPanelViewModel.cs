@@ -193,7 +193,9 @@ namespace 串口助手
         {
             return new KeyViewModel
             {
-                Name = name, PressSendMode = "数据包", PressSendValue = pressSendValue,
+                // Name = 显示名（小写初始，Shift 切换大写）；PressSendValue 仅文本/HEX 模式使用
+                Name = name.ToLowerInvariant(),
+                PressSendMode = "数据包", PressSendValue = "",
                 GroupId = gid, LayoutX = lx, LayoutY = ly, Width = w, Height = h,
             };
         }

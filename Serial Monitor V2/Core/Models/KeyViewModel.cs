@@ -51,31 +51,28 @@ namespace 串口助手
 
         // ── 工具 ──
 
-        /// <summary>生成实际的按下发送字符串（"无" 返回空）</summary>
+        /// <summary>生成实际的按下发送字符串（"无"/空→不发送；数据包→从Name自动生成协议）</summary>
         public string GetPressContent()
         {
-            if (PressSendMode == "无") return "";
+            if (string.IsNullOrEmpty(PressSendMode) || PressSendMode == "无") return "";
             switch (PressSendMode)
             {
-                case "文本": return PressSendValue;
-                case "HEX":  return PressSendValue;
-                default:     return string.IsNullOrEmpty(PressSendValue)
-                                ? string.Format("[key,{0},down]", Name)
-                                : PressSendValue;
+                case "文本": return PressSendValue ?? "";
+                case "HEX":  return PressSendValue ?? "";
+                default:     // 数据包模式：始终从 Name 生成 [key,Name,down]
+                             return string.Format("[key,{0},down]", Name);
             }
         }
 
-        /// <summary>生成实际的松开发送字符串（"无" 返回空）</summary>
+        /// <summary>生成实际的松开发送字符串</summary>
         public string GetReleaseContent()
         {
-            if (ReleaseSendMode == "无") return "";
+            if (string.IsNullOrEmpty(ReleaseSendMode) || ReleaseSendMode == "无") return "";
             switch (ReleaseSendMode)
             {
-                case "文本": return ReleaseSendValue;
-                case "HEX":  return ReleaseSendValue;
-                default:     return string.IsNullOrEmpty(ReleaseSendValue)
-                                ? string.Format("[key,{0},up]", Name)
-                                : ReleaseSendValue;
+                case "文本": return ReleaseSendValue ?? "";
+                case "HEX":  return ReleaseSendValue ?? "";
+                default:     return string.Format("[key,{0},up]", Name);
             }
         }
 
