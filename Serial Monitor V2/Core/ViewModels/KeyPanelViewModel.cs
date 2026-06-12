@@ -31,13 +31,13 @@ namespace 串口助手
         /// <summary>
         /// 添加一个手动按键
         /// </summary>
-        public KeyViewModel AddKey(string name, string sendMode = "数据包", string sendValue = "")
+        public KeyViewModel AddKey(string name, string pressSendMode = "数据包", string pressSendValue = "")
         {
             var key = new KeyViewModel
             {
                 Name = name,
-                SendMode = sendMode,
-                SendValue = string.IsNullOrEmpty(sendValue) ? name : sendValue,
+                PressSendMode = pressSendMode,
+                PressSendValue = string.IsNullOrEmpty(pressSendValue) ? name : pressSendValue,
                 GroupId = ManualGroupId,
             };
             Keys.Add(key);
@@ -120,10 +120,10 @@ namespace 串口助手
 
             newKeys.Add(new KeyViewModel
             {
-                Name = "⇧", SendMode = "数据包", SendValue = "",
+                Name = "⇧", PressSendMode = "数据包", PressSendValue = "",
                 Width = keyW + 8, Height = keyH, GroupId = gid,
                 LayoutX = 8, LayoutY = 3,
-                IsShiftToggle = true, IsLocked = true,
+                IsShiftToggle = true,
             });
 
             Keys.AddRange(newKeys);
@@ -176,8 +176,8 @@ namespace 串口助手
             newKeys.Add(MakeKey("3", "3", gid, 2, 2, keyW, keyH));
             newKeys.Add(new KeyViewModel
             {
-                Name = "Enter", SendMode = "数据包", SendValue = "enter",
-                Width = keyW, Height = keyH * 2 + 2, // 双倍高度
+                Name = "Enter", PressSendMode = "数据包", PressSendValue = "enter",
+                Width = keyW, Height = keyH * 2 + 2,
                 GroupId = gid, LayoutX = 3, LayoutY = 2,
             });
             // Row 3: * 0 #
@@ -189,11 +189,11 @@ namespace 串口助手
             return newKeys;
         }
 
-        private static KeyViewModel MakeKey(string name, string sendValue, int gid, int lx, int ly, double w, double h)
+        private static KeyViewModel MakeKey(string name, string pressSendValue, int gid, int lx, int ly, double w, double h)
         {
             return new KeyViewModel
             {
-                Name = name, SendMode = "数据包", SendValue = sendValue,
+                Name = name, PressSendMode = "数据包", PressSendValue = pressSendValue,
                 GroupId = gid, LayoutX = lx, LayoutY = ly, Width = w, Height = h,
             };
         }

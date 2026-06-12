@@ -3,116 +3,148 @@ using System.Collections.Generic;
 namespace 串口助手
 {
     /// <summary>
-    /// 单个按键的数据模型 —— Phase 4 实现。
-    /// 每个按键独立配置：名字、发送模式（文本/HEX/数据包）、发送值、锁定状态、外观。
+    /// 单个按键的数据模型 —— Phase 4。
+    /// 按下/松开各自独立配置发送模式和内容。自锁模式：点一下保持按下，再点松开。
     /// </summary>
     public class KeyViewModel
     {
-        /// <summary>按键名字，同时也是协议中 [key,Name,state] 的标识符</summary>
+        /// <summary>按键名字，也是协议 [key,Name,state] 的标识符</summary>
         public string Name { get; set; }
 
-        /// <summary>
-        /// 发送模式："文本" / "HEX" / "数据包"
-        /// 数据包模式：发送 [key,Name,state] 格式的完整协议消息
-        /// </summary>
-        public string SendMode { get; set; } = "数据包";
+        // ── 按下（Press）──
+        /// <summary>按下时的发送模式："文本" / "HEX" / "数据包"</summary>
+        public string PressSendMode { get; set; } = "数据包";
+        /// <summary>按下时的发送内容（数据包模式可留空，自动生成 [key,Name,down]）</summary>
+        public string PressSendValue { get; set; } = "";
 
-        /// <summary>发送值：文本模式=文本内容，HEX模式=HEX字符串，数据包模式=down/up 对应的发送内容</summary>
-        public string SendValue { get; set; } = "";
+        // ── 松开（Release）──
+        /// <summary>松开时的发送模式："文本" / "HEX" / "数据包"</summary>
+        public string ReleaseSendMode { get; set; } = "数据包";
+        /// <summary>松开时的发送内容（数据包模式可留空，自动生成 [key,Name,up]）</summary>
+        public string ReleaseSendValue { get; set; } = "";
 
-        /// <summary>锁定：true 时按键只显示状态不收不发</summary>
-        public bool IsLocked { get; set; }
+        // ── 自锁 ──
+        /// <summary>自锁模式：true=点一下保持按下再点松开；false=点按即松（瞬发）</summary>
+        public bool IsSelfLock { get; set; }
 
-        /// <summary>按键宽度（像素），默认 80</summary>
-        public double Width { get; set; } = 80;
-
-        /// <summary>按键高度（像素），默认 36</summary>
-        public double Height { get; set; } = 36;
-
-        /// <summary>
-        /// 按键颜色：预设色块名称
-        /// "默认" / "红色" / "绿色" / "蓝色" / "黄色" / "白色" / "灰色"
-        /// </summary>
-        public string Color { get; set; } = "默认";
-
-        /// <summary>Shift 大小写切换键（仅键盘布局预设）—— 不发送数据，只控制创建时的大小写模式</summary>
-        public bool IsShiftToggle { get; set; }
-
-        /// <summary>键盘布局中 X 坐标位置（仅键盘布局预设使用）</summary>
-        public int LayoutX { get; set; }
-
-        /// <summary>键盘布局中 Y 坐标位置（仅键盘布局预设使用）</summary>
-        public int LayoutY { get; set; }
-
-        /// <summary>从 STM32 收到的当前按压状态：true=down, false=up</summary>
+        // ── 运行时状态 ──
+        /// <summary>自锁模式下当前是否处于按下状态</summary>
+        public bool IsPressed { get; set; }
+        /// <summary>从 STM32 收到的 [key,name,down] 反馈状态</summary>
         public bool IsDown { get; set; }
 
-        /// <summary>布局分组 ID：同一批次创建的按键共享同一个 GroupId，渲染时隔离</summary>
+        // ── 外观 ──
+        /// <summary>按键宽度（像素），默认 80</summary>
+        public double Width { get; set; } = 80;
+        /// <summary>按键高度（像素），默认 36</summary>
+        public double Height { get; set; } = 36;
+        /// <summary>预设色块名称："默认"/"红色"/"绿色"/"蓝色"/"黄色"/"白色"/"灰色"</summary>
+        public string Color { get; set; } = "默认";
+
+        // ── 布局 ──
+        /// <summary>Shift 大小写切换键（仅键盘布局）</summary>
+        public bool IsShiftToggle { get; set; }
+        public int LayoutX { get; set; }
+        public int LayoutY { get; set; }
+        /// <summary>布局分组 ID（同批次创建共享，渲染时隔离）</summary>
         public int GroupId { get; set; }
 
-        /// <summary>
-        /// 创建深拷贝
-        /// </summary>
+        // ── 工具 ──
+
+        /// <summary>生成实际的按下发送字符串</summary>
+        public string GetPressContent()
+        {
+            switch (PressSendMode)
+            {
+                case "文本": return PressSendValue;
+                case "HEX":  return PressSendValue;
+                default:     return string.IsNullOrEmpty(PressSendValue)
+                                ? string.Format("[key,{0},down]", Name)
+                                : PressSendValue;
+            }
+        }
+
+        /// <summary>生成实际的松开发送字符串</summary>
+        public string GetReleaseContent()
+        {
+            switch (ReleaseSendMode)
+            {
+                case "文本": return ReleaseSendValue;
+                case "HEX":  return ReleaseSendValue;
+                default:     return string.IsNullOrEmpty(ReleaseSendValue)
+                                ? string.Format("[key,{0},up]", Name)
+                                : ReleaseSendValue;
+            }
+        }
+
         public KeyViewModel Clone()
         {
             return new KeyViewModel
             {
-                Name = this.Name,
-                SendMode = this.SendMode,
-                SendValue = this.SendValue,
-                IsLocked = this.IsLocked,
-                Width = this.Width,
-                Height = this.Height,
-                Color = this.Color,
-                IsShiftToggle = this.IsShiftToggle,
-                LayoutX = this.LayoutX,
-                LayoutY = this.LayoutY,
-                IsDown = this.IsDown,
-                GroupId = this.GroupId,
+                Name = Name, PressSendMode = PressSendMode, PressSendValue = PressSendValue,
+                ReleaseSendMode = ReleaseSendMode, ReleaseSendValue = ReleaseSendValue,
+                IsSelfLock = IsSelfLock, IsPressed = IsPressed, IsDown = IsDown,
+                Width = Width, Height = Height, Color = Color,
+                IsShiftToggle = IsShiftToggle, LayoutX = LayoutX, LayoutY = LayoutY, GroupId = GroupId,
             };
         }
 
-        /// <summary>
-        /// 序列化为 JSON 存储格式
-        /// </summary>
         public Dictionary<string, object> ToDict()
         {
             return new Dictionary<string, object>
             {
                 ["name"] = Name,
-                ["sendMode"] = SendMode,
-                ["sendValue"] = SendValue,
-                ["isLocked"] = IsLocked,
-                ["width"] = Width,
-                ["height"] = Height,
-                ["color"] = Color,
-                ["isShiftToggle"] = IsShiftToggle,
-                ["layoutX"] = LayoutX,
-                ["layoutY"] = LayoutY,
-                ["groupId"] = GroupId,
+                ["pressSendMode"] = PressSendMode, ["pressSendValue"] = PressSendValue,
+                ["releaseSendMode"] = ReleaseSendMode, ["releaseSendValue"] = ReleaseSendValue,
+                ["isSelfLock"] = IsSelfLock,
+                ["width"] = Width, ["height"] = Height, ["color"] = Color,
+                ["isShiftToggle"] = IsShiftToggle, ["layoutX"] = LayoutX, ["layoutY"] = LayoutY, ["groupId"] = GroupId,
             };
         }
 
-        /// <summary>
-        /// 从 JSON 字典反序列化。
-        /// JavaScriptSerializer 将整数读为 int、浮点数读为 double——统一转换。
-        /// </summary>
         public static KeyViewModel FromDict(Dictionary<string, object> d)
         {
-            return new KeyViewModel
+            var k = new KeyViewModel
             {
                 Name = GetStr(d, "name", ""),
-                SendMode = GetStr(d, "sendMode", "数据包"),
-                SendValue = GetStr(d, "sendValue", ""),
-                IsLocked = d.TryGetValue("isLocked", out var v) && v is bool b && b,
-                Width = GetDouble(d, "width", 80),
+                PressSendMode  = GetStr(d, "pressSendMode", ""),
+                PressSendValue  = GetStr(d, "pressSendValue", ""),
+                ReleaseSendMode = GetStr(d, "releaseSendMode", ""),
+                ReleaseSendValue = GetStr(d, "releaseSendValue", ""),
+                IsSelfLock = d.TryGetValue("isSelfLock", out var v) && v is bool b && b,
+                Width  = GetDouble(d, "width", 80),
                 Height = GetDouble(d, "height", 36),
-                Color = GetStr(d, "color", "默认"),
+                Color  = GetStr(d, "color", "默认"),
                 IsShiftToggle = d.TryGetValue("isShiftToggle", out v) && v is bool s && s,
                 LayoutX = GetInt(d, "layoutX", 0),
                 LayoutY = GetInt(d, "layoutY", 0),
                 GroupId = GetInt(d, "groupId", 0),
             };
+
+            // 迁移旧版数据（sendMode/sendValue/isLocked → press/release）
+            if (string.IsNullOrEmpty(k.PressSendMode) && string.IsNullOrEmpty(k.ReleaseSendMode))
+            {
+                string oldMode = GetStr(d, "sendMode", "");
+                string oldValue = GetStr(d, "sendValue", "");
+                bool oldLocked = d.TryGetValue("isLocked", out v) && v is bool lb && lb;
+                if (!string.IsNullOrEmpty(oldMode))
+                {
+                    k.PressSendMode = oldMode;
+                    k.ReleaseSendMode = oldMode;
+                }
+                if (!string.IsNullOrEmpty(oldValue))
+                {
+                    k.PressSendValue = oldValue;
+                    k.ReleaseSendValue = oldValue;
+                }
+                if (oldLocked) k.IsSelfLock = true;
+            }
+
+            // 确保有默认值
+            if (string.IsNullOrEmpty(k.PressSendMode))  k.PressSendMode = "数据包";
+            if (string.IsNullOrEmpty(k.ReleaseSendMode)) k.ReleaseSendMode = "数据包";
+
+            return k;
         }
 
         private static string GetStr(Dictionary<string, object> d, string key, string def)

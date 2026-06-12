@@ -668,14 +668,29 @@
                                                  BorderThickness="1" Padding="6,2"
                                                  LostFocus="tbModuleName_LostFocus"/>
                                     </Grid>
-                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="发送模式" Style="{DynamicResource FormLabelStyle}"/>
-                                        <ComboBox Grid.Column="1" x:Name="cbModuleSendMode" Height="28"
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <TextBlock Text="按下发送" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <ComboBox Grid.Column="1" x:Name="cbModulePressMode" Height="28"
                                                   FontFamily="Microsoft YaHei" FontSize="12"
                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                   Background="{DynamicResource CardBgBrush}"
                                                   BorderBrush="{DynamicResource InputBorderBrush}"
-                                                  SelectionChanged="cbModuleSendMode_Changed"/>
+                                                  SelectionChanged="cbModulePressMode_Changed"/>
+                                    </Grid>
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,6"/>
+                                    <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <ComboBox Grid.Column="1" x:Name="cbModuleReleaseMode" Height="28"
+                                                  FontFamily="Microsoft YaHei" FontSize="12"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Background="{DynamicResource CardBgBrush}"
+                                                  BorderBrush="{DynamicResource InputBorderBrush}"
+                                                  SelectionChanged="cbModuleReleaseMode_Changed"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="统一颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
@@ -693,12 +708,13 @@
                                 </StackPanel>
                                 <!-- 多选状态 -->
                                 <StackPanel x:Name="rightKeysMultiSelect" Visibility="Collapsed">
-                                    <TextBlock Text="按键属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="批量编辑" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <TextBlock x:Name="tbKeysSelectedCount" FontSize="12"
                                                Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                    <!-- 多选：可批量修改的项 -->
+                                    <TextBlock Text="按下发送" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="发送模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <TextBlock Grid.Column="0" Text="模式" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbKeySendModeMulti" Height="28"
                                                   FontFamily="Microsoft YaHei" FontSize="12"
                                                   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -706,15 +722,17 @@
                                                   BorderBrush="{DynamicResource InputBorderBrush}"
                                                   SelectionChanged="cbKeySendModeMulti_Changed"/>
                                     </Grid>
-                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="发送值" Style="{DynamicResource FormLabelStyle}"/>
-                                        <TextBox Grid.Column="1" x:Name="tbKeySendValueMulti" Height="28"
-                                                 FontFamily="Microsoft YaHei" FontSize="12"
-                                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                                 Background="{DynamicResource CardBgBrush}"
-                                                 BorderBrush="{DynamicResource InputBorderBrush}"
-                                                 BorderThickness="1" Padding="6,2"
-                                                 LostFocus="tbKeySendValueMulti_LostFocus"/>
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,6"/>
+                                    <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <ComboBox Grid.Column="1" x:Name="cbKeyReleaseModeMulti" Height="28"
+                                                  FontFamily="Microsoft YaHei" FontSize="12"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Background="{DynamicResource CardBgBrush}"
+                                                  BorderBrush="{DynamicResource InputBorderBrush}"
+                                                  SelectionChanged="cbKeyReleaseModeMulti_Changed"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
@@ -723,6 +741,7 @@
                                 <!-- 单选状态 -->
                                 <StackPanel x:Name="rightKeysSingleSelect" Visibility="Collapsed">
                                     <TextBlock Text="按键属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <!-- 名字 -->
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="名字" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbKeyName" Height="28"
@@ -733,28 +752,56 @@
                                                  BorderThickness="1" Padding="6,2"
                                                  LostFocus="tbKeyName_LostFocus"/>
                                     </Grid>
-                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="发送模式" Style="{DynamicResource FormLabelStyle}"/>
-                                        <ComboBox Grid.Column="1" x:Name="cbKeySendMode" Height="28"
+                                    <!-- 自锁 -->
+                                    <CheckBox x:Name="chkKeySelfLock" Content="自锁（点击保持按下，再点松开）"
+                                              HorizontalAlignment="Left" Margin="0,8,0,0"
+                                              Checked="chkKeySelfLock_Changed" Unchecked="chkKeySelfLock_Changed"/>
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <!-- 按下发送 -->
+                                    <TextBlock Text="按下发送" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <ComboBox Grid.Column="1" x:Name="cbKeyPressMode" Height="28"
                                                   FontFamily="Microsoft YaHei" FontSize="12"
                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                   Background="{DynamicResource CardBgBrush}"
                                                   BorderBrush="{DynamicResource InputBorderBrush}"
-                                                  SelectionChanged="cbKeySendMode_Changed"/>
+                                                  SelectionChanged="cbKeyPressMode_Changed"/>
                                     </Grid>
                                     <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="发送值" Style="{DynamicResource FormLabelStyle}"/>
-                                        <TextBox Grid.Column="1" x:Name="tbKeySendValue" Height="28"
+                                        <TextBlock Grid.Column="0" Text="内容" Style="{DynamicResource FormLabelStyle}"/>
+                                        <TextBox Grid.Column="1" x:Name="tbKeyPressValue" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
                                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                                  Background="{DynamicResource CardBgBrush}"
                                                  BorderBrush="{DynamicResource InputBorderBrush}"
                                                  BorderThickness="1" Padding="6,2"
-                                                 LostFocus="tbKeySendValue_LostFocus"/>
+                                                 LostFocus="tbKeyPressValue_LostFocus"/>
                                     </Grid>
-                                    <CheckBox x:Name="chkKeyLocked" Content="锁定（只显示不收发）"
-                                              HorizontalAlignment="Left" Margin="0,8,0,0"
-                                              Checked="chkKeyLocked_Changed" Unchecked="chkKeyLocked_Changed"/>
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <!-- 松开发送 -->
+                                    <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="模式" Style="{DynamicResource FormLabelStyle}"/>
+                                        <ComboBox Grid.Column="1" x:Name="cbKeyReleaseMode" Height="28"
+                                                  FontFamily="Microsoft YaHei" FontSize="12"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Background="{DynamicResource CardBgBrush}"
+                                                  BorderBrush="{DynamicResource InputBorderBrush}"
+                                                  SelectionChanged="cbKeyReleaseMode_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="内容" Style="{DynamicResource FormLabelStyle}"/>
+                                        <TextBox Grid.Column="1" x:Name="tbKeyReleaseValue" Height="28"
+                                                 FontFamily="Microsoft YaHei" FontSize="12"
+                                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                                 Background="{DynamicResource CardBgBrush}"
+                                                 BorderBrush="{DynamicResource InputBorderBrush}"
+                                                 BorderThickness="1" Padding="6,2"
+                                                 LostFocus="tbKeyReleaseValue_LostFocus"/>
+                                    </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="外观" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
