@@ -37,7 +37,9 @@ namespace 串口助手
             {
                 Name = name,
                 PressSendMode = pressSendMode,
-                PressSendValue = string.IsNullOrEmpty(pressSendValue) ? name : pressSendValue,
+                PressSendValue = pressSendValue,
+                ReleaseSendMode = "无",
+                ReleaseSendValue = "",
                 GroupId = ManualGroupId,
             };
             Keys.Add(key);
