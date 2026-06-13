@@ -433,6 +433,14 @@
                             </Rectangle.OpacityMask>
                         </Rectangle>
                     </RadioButton>
+                    <!-- "+" 管理面板下拉（固定在设置上方） -->
+                    <Button x:Name="btnAddPanel" DockPanel.Dock="Bottom"
+                            Width="42" Height="42" Padding="0"
+                            Foreground="{DynamicResource TextMutedBrush}"
+                            Background="Transparent" BorderThickness="0"
+                            FontSize="20" FontWeight="Bold" Cursor="Hand"
+                            Content="+" ToolTip="管理标签显示" Margin="0,2"
+                            Click="BtnAddPanel_Click" />
                     <StackPanel Margin="0,4,0,0">
                         <RadioButton x:Name="tabReceive" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
@@ -495,14 +503,6 @@
                             </Rectangle>
                         </RadioButton>
                     </StackPanel>
-                    <!-- "+" 管理面板下拉（固定在设置上方） -->
-                    <Button x:Name="btnAddPanel" DockPanel.Dock="Bottom"
-                            Width="42" Height="42" Padding="0"
-                            Foreground="{DynamicResource TextMutedBrush}"
-                            Background="Transparent" BorderThickness="0"
-                            FontSize="20" FontWeight="Bold" Cursor="Hand"
-                            Content="+" ToolTip="管理标签显示" Margin="0,2"
-                            Click="BtnAddPanel_Click" />
                 </DockPanel>
             </Border>
 
