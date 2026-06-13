@@ -1538,15 +1538,33 @@
                         <StackPanel Margin="16,12">
                             <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
-                                    Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
-                            <TextBlock Text="Serial Monitor V2" FontSize="16" FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                    Click="BtnSettingsBack_Click" Margin="0,0,0,16"/>
+                            <TextBlock Text="Serial Monitor" FontSize="18" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                             <TextBlock Text="v2.0.0" FontSize="13"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"/>
-                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2">
-                                <Run Text="基于 WPF .NET 8"/><LineBreak/>
-                                <Run Text="STM32 串口调试助手"/><LineBreak/>
-                                <Run Text="支持协议解析：波形图 / 按键 / 滑杆 / OLED / 摇杆"/>
+                                       Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,20"/>
+                            <!-- 制作 -->
+                            <TextBlock Text="制作" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="冯毅力" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+                            <!-- 技术栈 -->
+                            <TextBlock Text="技术栈" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
+                            <TextBlock FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16">
+                                <Run Text=".NET 8.0 · WPF"/><LineBreak/>
+                                <Run Text="OxyPlot 2.2.0 · AvalonEdit 6.3.1"/><LineBreak/>
+                                <Run Text="CommunityToolkit.Mvvm"/>
+                            </TextBlock>
+                            <!-- 数据 -->
+                            <TextBlock Text="数据文件" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       FontFamily="Consolas" Margin="0,0,0,16">
+                                <Run Text="%LocalAppData%\SerialMonitor\"/><LineBreak/>
+                                <Run Text="  ├─ prefs.json  "/><Run Text="偏好配置" Foreground="{DynamicResource TextMutedBrush}"/><LineBreak/>
+                                <Run Text="  ├─ crash.log  "/><Run Text="崩溃日志" Foreground="{DynamicResource TextMutedBrush}"/><LineBreak/>
+                                <Run Text="  └─ quick_sends.cfg  "/><Run Text="快捷发送" Foreground="{DynamicResource TextMutedBrush}"/>
                             </TextBlock>
                         </StackPanel>
                     </ScrollViewer>

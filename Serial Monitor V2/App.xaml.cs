@@ -30,7 +30,7 @@ namespace 串口助手
 
         private static string CrashLogPath =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                         "串口助手WPF", "crash.log");
+                         "SerialMonitor", "crash.log");
 
         private static void WriteCrashLog(Exception ex)
         {

@@ -17,7 +17,7 @@ namespace 串口助手
 
         private string QuickSendsFilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "串口助手WPF", "quick_sends.cfg");
+            "SerialMonitor", "quick_sends.cfg");
 
         // ————————————————————————————————————————
         //  发送历史

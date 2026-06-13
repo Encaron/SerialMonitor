@@ -13,11 +13,29 @@ namespace 串口助手
     {
         private readonly string _filePath;
 
+        private static readonly string DataDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SerialMonitor");
+        private static readonly string LegacyDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "串口助手WPF");
+
         public PreferenceService()
         {
-            _filePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "串口助手WPF", "prefs.json");
+            _filePath = Path.Combine(DataDir, "prefs.json");
+            // 首次启动：若新目录不存在但旧目录存在 → 迁移
+            if (!Directory.Exists(DataDir) && Directory.Exists(LegacyDir))
+            {
+                try { MigrateDataDir(); } catch { }
+            }
+        }
+
+        private static void MigrateDataDir()
+        {
+            Directory.CreateDirectory(DataDir);
+            foreach (var file in Directory.GetFiles(LegacyDir, "*.*", SearchOption.TopDirectoryOnly))
+            {
+                string dest = Path.Combine(DataDir, Path.GetFileName(file));
+                File.Copy(file, dest, overwrite: false);
+            }
         }
 
         /// <summary>
@@ -105,9 +123,7 @@ namespace 串口助手
             if (File.Exists(_filePath))
                 return Load();
 
-            string legacyPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "串口助手WPF", "window.cfg");
+            string legacyPath = Path.Combine(LegacyDir, "window.cfg");
 
             var prefs = CreateDefaults();
 
