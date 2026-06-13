@@ -188,8 +188,24 @@ namespace 串口助手
             if (!_serialPort.IsOpen) return;
             if (data == null || data.Length == 0) return;
 
-            _serialPort.Write(data, 0, data.Length);
-            _txByteCount += data.Length;
+            try
+            {
+                _serialPort.Write(data, 0, data.Length);
+                _txByteCount += data.Length;
+            }
+            catch (Exception ex)
+            {
+                // 写入失败 → 通知 UI 并关闭连接
+                string errMsg = $"串口写入异常：{ex.Message}";
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    LineReceived?.Invoke($"[系统] {errMsg}");
+                    ConnectionChanged?.Invoke(false);
+                }));
+                _isClosing = true;
+                try { _serialPort.Close(); } catch { /* 尽力关闭 */ }
+                IsOpen = false;
+            }
         }
 
         // ==================================================================
@@ -243,9 +259,28 @@ namespace 串口助手
         {
             if (_isClosing || !_serialPort.IsOpen) return;
 
-            int count = _serialPort.BytesToRead;
-            byte[] dataReceive = new byte[count];
-            _serialPort.Read(dataReceive, 0, count);
+            int count;
+            byte[] dataReceive;
+            try
+            {
+                count = _serialPort.BytesToRead;
+                dataReceive = new byte[count];
+                _serialPort.Read(dataReceive, 0, count);
+            }
+            catch (Exception ex)
+            {
+                // 后台线程异常：记录日志并安全关闭
+                string errMsg = $"串口读取异常：{ex.Message}";
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!_isClosing) LineReceived?.Invoke($"[系统] {errMsg}");
+                    ConnectionChanged?.Invoke(false);
+                }));
+                _isClosing = true;
+                try { _serialPort.Close(); } catch { /* 尽力关闭 */ }
+                IsOpen = false;
+                return;
+            }
 
             _rxByteCount += count;
 

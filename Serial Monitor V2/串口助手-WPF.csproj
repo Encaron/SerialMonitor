@@ -22,6 +22,12 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+    <!-- 瘦身：WPF 不支持裁剪，用功能开关砍 BCL 多余部分 -->
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>

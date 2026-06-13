@@ -81,6 +81,10 @@ namespace 串口助手
                 RefreshJoystickUI();
             if (_displayVM != null)
                 RefreshOLEDUI();
+
+            // 快捷键页键帽颜色随主题
+            PopulateShortcutPage();
+            PopulateExamplesPage();
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)

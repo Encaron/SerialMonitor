@@ -10,6 +10,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -161,13 +162,18 @@ namespace 串口助手
             }
             RefreshIconBarVisibility();
 
-            // 关于页：版本号 + GitHub + 数据路径
+            // 关于页：版本号 + 运行时 + GitHub + 数据路径 + Issue 反馈
             tbAboutVersion.Text = "v2.0.0 (build b4625cb)";
+            tbAboutRuntime.Text = $"{RuntimeInformation.FrameworkDescription} · {RuntimeInformation.ProcessArchitecture}";
             tbAboutGitHub.Text = "https://github.com/Encaron/SerialMonitor";
+            tbAboutIssues.Text = "https://github.com/Encaron/SerialMonitor/issues";
             tbAboutDataPath.Text = "%LocalAppData%\\SerialMonitor\\\r\n"
                 + "  prefs.json    偏好配置\r\n"
                 + "  crash.log     崩溃日志\r\n"
                 + "  quick_sends.cfg  快捷发送";
+
+            PopulateShortcutPage();
+            PopulateExamplesPage();
 
             // "+" 按钮 hover 效果
             btnAddPanel.MouseEnter += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextPrimaryBrush");
@@ -277,60 +283,67 @@ namespace 串口助手
             LogReceived(line);
             UpdateTrafficDisplay();
 
-            // Phase 3: 协议路由——[plot,...] → PlotViewModel
-            var pr = ProtocolParser.Parse(line);
-            if (pr.Messages.Count > 0)
+            // Phase 3 & 4: 协议路由——[type,...] → 对应面板
+            try
             {
-                foreach (var msg in pr.Messages)
+                var pr = ProtocolParser.Parse(line);
+                if (pr.Messages.Count > 0)
                 {
-                    if (msg.Type == "plot" && msg.Args.Count >= 2)
+                    foreach (var msg in pr.Messages)
                     {
-                        if (double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
+                        if (msg.Type == "plot" && msg.Args.Count >= 2)
                         {
-                            _plotVM.OnPlotMessage(msg.Args[0], val, DateTime.Now);
-                            if (plotEmptyHint.Visibility == Visibility.Visible)
-                                plotEmptyHint.Visibility = Visibility.Collapsed;
-                            UpdatePlotHud();
+                            if (double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
+                            {
+                                _plotVM.OnPlotMessage(msg.Args[0], val, DateTime.Now);
+                                if (plotEmptyHint.Visibility == Visibility.Visible)
+                                    plotEmptyHint.Visibility = Visibility.Collapsed;
+                                UpdatePlotHud();
+                            }
                         }
-                    }
-                    // Phase 4: [key,name,state]
-                    else if (msg.Type == "key" && msg.Args.Count >= 2)
-                    {
-                        string keyName = msg.Args[0];
-                        string state = msg.Args[1]; // "down" or "up"
-                        HandleKeyMessage(keyName, state);
-                    }
-                    // Phase 4: [slider,name,value]
-                    else if (msg.Type == "slider" && msg.Args.Count >= 2)
-                    {
-                        HandleSliderMessage(msg.Args[0], msg.Args[1]);
-                    }
-                    // Phase 4: [joystick,id,x1,y1,x2,y2]
-                    else if (msg.Type == "joystick" && msg.Args.Count >= 5)
-                    {
-                        if (int.TryParse(msg.Args[0], out int joyId)
-                            && double.TryParse(msg.Args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jx)
-                            && double.TryParse(msg.Args[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jy))
+                        // Phase 4: [key,name,state]
+                        else if (msg.Type == "key" && msg.Args.Count >= 2)
                         {
-                            HandleJoystickMessage(joyId, jx, jy);
+                            string keyName = msg.Args[0];
+                            string state = msg.Args[1]; // "down" or "up"
+                            HandleKeyMessage(keyName, state);
                         }
-                    }
-                    // Phase 4: [display,x,y,"text",size] or [display,x,y,"text",size,#RRGGBB]
-                    else if (msg.Type == "display" && msg.Args.Count >= 4)
-                    {
-                        if (int.TryParse(msg.Args[0], out int dx) && int.TryParse(msg.Args[1], out int dy)
-                            && int.TryParse(msg.Args[3], out int dsize))
+                        // Phase 4: [slider,name,value]
+                        else if (msg.Type == "slider" && msg.Args.Count >= 2)
                         {
-                            string color = msg.Args.Count >= 5 ? msg.Args[4] : null;
-                            HandleDisplayMessage(dx, dy, msg.Args[2], dsize, color);
+                            HandleSliderMessage(msg.Args[0], msg.Args[1]);
                         }
-                    }
-                    // Phase 4: [display-clear]
-                    else if (msg.Type == "display-clear")
-                    {
-                        HandleDisplayClear();
+                        // Phase 4: [joystick,id,x1,y1,x2,y2]
+                        else if (msg.Type == "joystick" && msg.Args.Count >= 5)
+                        {
+                            if (int.TryParse(msg.Args[0], out int joyId)
+                                && double.TryParse(msg.Args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jx)
+                                && double.TryParse(msg.Args[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jy))
+                            {
+                                HandleJoystickMessage(joyId, jx, jy);
+                            }
+                        }
+                        // Phase 4: [display,x,y,"text",size] or [display,x,y,"text",size,#RRGGBB]
+                        else if (msg.Type == "display" && msg.Args.Count >= 4)
+                        {
+                            if (int.TryParse(msg.Args[0], out int dx) && int.TryParse(msg.Args[1], out int dy)
+                                && int.TryParse(msg.Args[3], out int dsize))
+                            {
+                                string color = msg.Args.Count >= 5 ? msg.Args[4] : null;
+                                HandleDisplayMessage(dx, dy, msg.Args[2], dsize, color);
+                            }
+                        }
+                        // Phase 4: [display-clear]
+                        else if (msg.Type == "display-clear")
+                        {
+                            HandleDisplayClear();
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                LogSystem($"协议路由异常：{ex.Message}");
             }
         }
 
@@ -713,21 +726,25 @@ namespace 串口助手
             }
             catch (UnauthorizedAccessException)
             {
+                LogSystem("串口打开失败：被其他程序占用或没有访问权限");
                 MessageBox.Show("串口被其他程序占用，或没有访问权限。\n请关闭其他串口工具后重试。",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (System.IO.IOException ex)
             {
+                LogSystem($"串口打开失败：硬件通信错误 — {ex.Message}");
                 MessageBox.Show($"串口硬件通信错误：\n{ex.Message}",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (ArgumentException ex)
             {
+                LogSystem($"串口打开失败：参数无效 — {ex.Message}");
                 MessageBox.Show($"串口参数无效（端口名或波特率）：\n{ex.Message}",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (InvalidOperationException ex)
             {
+                LogSystem($"串口打开失败：已被占用 — {ex.Message}");
                 MessageBox.Show($"串口已被占用：\n{ex.Message}",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -860,6 +877,7 @@ namespace 串口助手
             {
                 btnPauseDisplay.Content = "▶ 继续显示";
                 btnPauseDisplay.Style = FindResource("PrimaryButtonStyle") as Style;
+                menuPauseDisplay.Header = "▶ 继续显示";
                 LogSystem("---- 暂停显示：界面已冻结，后台照常接收 ----");
             }
             else
@@ -878,6 +896,7 @@ namespace 串口助手
 
                 btnPauseDisplay.Content = "暂停显示";
                 btnPauseDisplay.Style = FindResource("SecondaryButtonStyle") as Style;
+                menuPauseDisplay.Header = "⏸ 暂停显示";
             }
         }
 
@@ -1239,19 +1258,26 @@ namespace 串口助手
 
             RecordSendHistory(content);
 
-            byte[] dataSend;
-            if (sendMode == "HEX模式")
+            try
             {
-                dataSend = DataConverter.HexToBytes(content);
-            }
-            else
-            {
-                dataSend = DataConverter.TextToBytes(content, sendCoding);
-            }
+                byte[] dataSend;
+                if (sendMode == "HEX模式")
+                {
+                    dataSend = DataConverter.HexToBytes(content);
+                }
+                else
+                {
+                    dataSend = DataConverter.TextToBytes(content, sendCoding);
+                }
 
-            _session.SendBytes(dataSend);
-            UpdateTrafficDisplay();
-            LogSent(content);
+                _session.SendBytes(dataSend);
+                UpdateTrafficDisplay();
+                LogSent(content);
+            }
+            catch (Exception ex)
+            {
+                LogSystem($"发送失败：{ex.Message}");
+            }
         }
 
         // ==================================================================
@@ -1317,11 +1343,440 @@ namespace 串口助手
         private void BtnSettingsShortcuts_Click(object sender, RoutedEventArgs e)
             => SwitchSettingsPage("shortcuts");
 
+        private void BtnSettingsExamples_Click(object sender, RoutedEventArgs e)
+            => SwitchSettingsPage("examples");
+
         private void BtnSettingsAbout_Click(object sender, RoutedEventArgs e)
             => SwitchSettingsPage("about");
 
         private void BtnSettingsBack_Click(object sender, RoutedEventArgs e)
             => SwitchSettingsPage(null);
+
+        // ==================================================================
+        //  接收区右键菜单
+        // ==================================================================
+
+        private void EditorContext_Copy_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(editor.SelectedText))
+                Clipboard.SetText(editor.SelectedText);
+        }
+
+        private void EditorContext_SelectAll_Click(object sender, RoutedEventArgs e)
+        {
+            editor.SelectAll();
+        }
+
+        private void EditorContext_Clear_Click(object sender, RoutedEventArgs e)
+        {
+            editor.Clear();
+            // 同步 txCount（btnClearReceive_Click 的逻辑）
+            _session.ResetTraffic();
+            UpdateTrafficDisplay();
+        }
+
+        private void EditorContext_Pause_Click(object sender, RoutedEventArgs e)
+        {
+            btnPauseDisplay_Click(sender, e);
+        }
+
+        /// <summary>
+        /// 快捷键提示页 — 与 Window_PreviewKeyDown / tbSend_PreviewKeyDown 对应
+        /// </summary>
+        private void PopulateShortcutPage()
+        {
+            shortcutListPanel.Children.Clear();
+
+            var shortcuts = new (string Group, string[] Keys, string Desc)[]
+            {
+                ("全局", new[] {"Ctrl", "Enter"},      "打开 / 关闭串口"),
+                ("全局", new[] {"Ctrl", "P"},           "暂停 / 继续显示"),
+                ("全局", new[] {"Ctrl", "L"},           "清空接收区"),
+                ("全局", new[] {"Ctrl", "Shift", "L"},  "清空发送区"),
+                ("发送区", new[] {"Enter"},             "发送"),
+                ("发送区", new[] {"Shift", "Enter"},    "换行"),
+            };
+
+            // 键帽颜色随主题
+            Color capBgColor, capFgColor;
+            if (isDarkTheme)
+            {
+                capBgColor = Color.FromRgb(0x3C, 0x3C, 0x40);
+                capFgColor = Color.FromRgb(0xD4, 0xD4, 0xD4);
+            }
+            else
+            {
+                capBgColor = Color.FromRgb(0xE8, 0xE8, 0xEC);
+                capFgColor = Color.FromRgb(0x1E, 0x1E, 0x1E);
+            }
+            var keycapBg = new SolidColorBrush(capBgColor);
+            var keycapFg = new SolidColorBrush(capFgColor);
+            var plusBrush = (Brush)FindResource("TextMutedBrush");
+
+            string lastGroup = null;
+
+            foreach (var sc in shortcuts)
+            {
+                // 分组标题
+                if (sc.Group != lastGroup)
+                {
+                    var groupHeader = new TextBlock
+                    {
+                        Text = sc.Group,
+                        FontSize = 11,
+                        FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = (Brush)FindResource("TextMutedBrush"),
+                        Margin = new Thickness(0, lastGroup == null ? 0 : 12, 0, 4),
+                    };
+                    shortcutListPanel.Children.Add(groupHeader);
+                    lastGroup = sc.Group;
+                }
+
+                // 行容器
+                var row = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 5),
+                };
+
+                // 键帽
+                for (int i = 0; i < sc.Keys.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        row.Children.Add(new TextBlock
+                        {
+                            Text = " + ",
+                            FontSize = 11,
+                            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                            Foreground = plusBrush,
+                            VerticalAlignment = VerticalAlignment.Center,
+                        });
+                    }
+
+                    var cap = new Border
+                    {
+                        Background = keycapBg,
+                        CornerRadius = new CornerRadius(4),
+                        Padding = new Thickness(6, 2, 6, 3),
+                        Margin = new Thickness(0),
+                        VerticalAlignment = VerticalAlignment.Center,
+                    };
+                    cap.Child = new TextBlock
+                    {
+                        Text = sc.Keys[i],
+                        FontSize = 11,
+                        FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                        Foreground = keycapFg,
+                    };
+                    row.Children.Add(cap);
+                }
+
+                // 描述
+                var desc = new TextBlock
+                {
+                    Text = sc.Desc,
+                    FontSize = 13,
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(16, 0, 0, 0),
+                };
+                row.Children.Add(desc);
+
+                shortcutListPanel.Children.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// 使用示例页 — 6 个协议示例卡片
+        /// </summary>
+        private void PopulateExamplesPage()
+        {
+            examplesListPanel.Children.Clear();
+
+            var examples = new (string Title, string Type, string Desc, string Format, string Example, (string Name, string Desc)[] Params, string Code)[]
+            {
+                ("波形数据", "plot",
+                 "发送数值到 PC，在 Plot 面板实时绘制波形曲线。建议发送频率 10~100 Hz。",
+                 "[plot,通道名,数值]",
+                 "[plot,ch1,25.3]",
+                 new[] { ("通道名", "曲线的标识名称，如 \"ch1\"、\"温度\""),
+                         ("数值", "浮点数，如 25.3、1024、-0.5") },
+                 "// 每 50ms 发送一次\r\nprintf(\"[plot,ch1,%.1f]\\r\\n\", adc_val);"),
+
+                ("按键触发", "key",
+                 "设备端按键按下/松开时通知 PC，KeyPanel 对应按键高亮并可选回传命令。",
+                 "[key,名称,状态]",
+                 "[key,btn_a,down]",
+                 new[] { ("名称", "按键标识，需匹配 KeyPanel 中已定义的按键名"),
+                         ("状态", "\"down\"（按下）或 \"up\"（松开）") },
+                 "// 按键按下\r\nprintf(\"[key,btn_a,down]\\r\\n\");\r\n// 按键松开\r\nprintf(\"[key,btn_a,up]\\r\\n\");"),
+
+                ("滑块数值", "slider",
+                 "发送数值到 PC，Slider 面板对应滑块同步位置。常用于传感器反馈。",
+                 "[slider,名称,数值]",
+                 "[slider,speed,512]",
+                 new[] { ("名称", "滑块标识，匹配 SliderPanel 中已定义的滑块名"),
+                         ("数值", "浮点数，范围由面板设置决定，如 0~1023") },
+                 "// 发送传感器读数\r\nprintf(\"[slider,speed,%.1f]\\r\\n\", sensor_val);"),
+
+                ("摇杆位置", "joystick",
+                 "发送摇杆坐标到 PC，Joystick 面板实时显示位置。常用于遥控器或姿态反馈。",
+                 "[joystick,id,x,y]",
+                 "[joystick,0,128,128]",
+                 new[] { ("id", "摇杆编号（整数），如 0"),
+                         ("x", "X 轴坐标，范围 0~255"),
+                         ("y", "Y 轴坐标，范围 0~255") },
+                 "// 发送摇杆位置\r\nprintf(\"[joystick,0,%d,%d]\\r\\n\", x_adc, y_adc);"),
+
+                ("OLED 显示", "display",
+                 "在 PC 端 OLED 面板指定位置显示文本。支持自定义字号和颜色。",
+                 "[display,x,y,文本,字号,#RRGGBB]",
+                 "[display,10,20,\"hello\",16]",
+                 new[] { ("x", "像素横坐标（整数），如 10"),
+                         ("y", "像素纵坐标（整数），如 20"),
+                         ("文本", "要显示的文字，含逗号时需双引号包裹"),
+                         ("字号", "字体大小（整数），如 16"),
+                         ("颜色", "可选，十六进制颜色 #RRGGBB，如 #FF0000") },
+                 "// 显示文本\r\nprintf(\"[display,10,20,\\\"hello\\\",16]\\r\\n\");\r\n// 带颜色\r\nprintf(\"[display,30,40,\\\"ok\\\",24,#00FF00]\\r\\n\");"),
+
+                ("清屏", "display-clear",
+                 "清空 OLED 面板上所有文字。无参数。",
+                 "[display-clear]",
+                 "[display-clear]",
+                 new (string, string)[0],
+                 "// 清空 OLED 面板\r\nprintf(\"[display-clear]\\r\\n\");"),
+            };
+
+            // 颜色随主题
+            bool dark = isDarkTheme;
+            var cardBg = (Brush)FindResource("SecondaryHoverBgBrush");
+            var cardBorderBrush = (Brush)FindResource("CardBorderBrush");
+            var textPrimary = (Brush)FindResource("TextPrimaryBrush");
+            var textSecondary = (Brush)FindResource("TextSecondaryBrush");
+            var textMuted = (Brush)FindResource("TextMutedBrush");
+            var primary = (Brush)FindResource("PrimaryBrush");
+            var codeBg = dark ? (Brush)new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E))
+                              : (Brush)new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF5));
+            var codeFg = dark ? (Brush)new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4))
+                              : (Brush)new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
+
+            var codeFont = new System.Windows.Media.FontFamily("Consolas");
+            var yaheiFont = new System.Windows.Media.FontFamily("Microsoft YaHei");
+
+            foreach (var ex in examples)
+            {
+                // ——— 卡片容器 ———
+                var cardBorder = new Border
+                {
+                    Background = cardBg,
+                    BorderBrush = cardBorderBrush,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(14, 12, 14, 14),
+                    Margin = new Thickness(0, 0, 0, 10),
+                };
+                var card = new StackPanel();
+
+                // ——— 标题行：名称 + 类型标签 + 复制代码按钮 ———
+                var titleRow = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var titleText = new TextBlock
+                {
+                    Text = ex.Title,
+                    FontSize = 14, FontWeight = System.Windows.FontWeights.SemiBold,
+                    Foreground = textPrimary, VerticalAlignment = VerticalAlignment.Center,
+                };
+                Grid.SetColumn(titleText, 0);
+                titleRow.Children.Add(titleText);
+
+                // 类型小标签
+                var typeTag = new Border
+                {
+                    Background = new SolidColorBrush(dark ? Color.FromRgb(0x1E, 0x50, 0x7C) : Color.FromRgb(0xDE, 0xEC, 0xF9)),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(6, 2, 6, 2),
+                    Margin = new Thickness(8, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                typeTag.Child = new TextBlock
+                {
+                    Text = ex.Type,
+                    FontSize = 11, FontFamily = codeFont,
+                    Foreground = primary,
+                };
+                Grid.SetColumn(typeTag, 1);
+                titleRow.Children.Add(typeTag);
+
+                // 复制代码按钮
+                var btnCopyCode = new Button
+                {
+                    Content = "📋 复制代码",
+                    Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Height = 24, MinWidth = 0, Padding = new Thickness(8, 0, 8, 0),
+                    FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
+                };
+                btnCopyCode.Tag = ex.Code;
+                btnCopyCode.Click += (s, e) =>
+                {
+                    if (s is Button b && b.Tag is string code)
+                    {
+                        Clipboard.SetText(code);
+                        ShowCopyToastAndShake(b);
+                    }
+                };
+                Grid.SetColumn(btnCopyCode, 3);
+                titleRow.Children.Add(btnCopyCode);
+
+                card.Children.Add(titleRow);
+
+                // ——— 描述 ———
+                card.Children.Add(new TextBlock
+                {
+                    Text = ex.Desc,
+                    FontSize = 12, FontFamily = yaheiFont,
+                    Foreground = textSecondary, TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 10),
+                });
+
+                // ——— 协议格式 ———
+                var formatRow = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 4),
+                };
+                formatRow.Children.Add(new TextBlock
+                {
+                    Text = "协议格式",
+                    FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                    Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                    Width = 72,
+                });
+                formatRow.Children.Add(new TextBlock
+                {
+                    Text = ex.Format,
+                    FontSize = 12, FontFamily = codeFont,
+                    Foreground = textSecondary,
+                    VerticalAlignment = VerticalAlignment.Center,
+                });
+                card.Children.Add(formatRow);
+
+                // ——— 协议示例行 ———
+                var exampleRow = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 10),
+                };
+                exampleRow.Children.Add(new TextBlock
+                {
+                    Text = "协议示例",
+                    FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                    Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                    Width = 72,
+                });
+                // 示例文本（可选中复制）
+                var tbExample = new TextBox
+                {
+                    Text = ex.Example,
+                    IsReadOnly = true, BorderThickness = new Thickness(0),
+                    FontSize = 12, FontFamily = codeFont,
+                    Foreground = primary,
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
+                    Cursor = System.Windows.Input.Cursors.Arrow,
+                };
+                exampleRow.Children.Add(tbExample);
+
+                var btnCopyExample = new Button
+                {
+                    Content = "📋",
+                    Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
+                    FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(6, 0, 0, 0),
+                };
+                btnCopyExample.Tag = ex.Example;
+                btnCopyExample.Click += (s, e) =>
+                {
+                    if (s is Button b && b.Tag is string exp)
+                    {
+                        Clipboard.SetText(exp);
+                        ShowCopyToastAndShake(b);
+                    }
+                };
+                exampleRow.Children.Add(btnCopyExample);
+
+                card.Children.Add(exampleRow);
+
+                // ——— 参数 ———
+                if (ex.Params.Length > 0)
+                {
+                    var paramsHeader = new TextBlock
+                    {
+                        Text = "参数",
+                        FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
+                    };
+                    card.Children.Add(paramsHeader);
+
+                    foreach (var (name, desc) in ex.Params)
+                    {
+                        var paramRow = new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Margin = new Thickness(0, 0, 0, 3),
+                        };
+                        paramRow.Children.Add(new TextBlock
+                        {
+                            Text = name,
+                            FontSize = 11, FontFamily = codeFont,
+                            Foreground = textSecondary, Width = 72,
+                        });
+                        paramRow.Children.Add(new TextBlock
+                        {
+                            Text = desc,
+                            FontSize = 11, FontFamily = yaheiFont,
+                            Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
+                        });
+                        card.Children.Add(paramRow);
+                    }
+                }
+
+                // ——— 设备端代码 ———
+                var codeHeader = new TextBlock
+                {
+                    Text = "设备端代码",
+                    FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                    Foreground = textMuted, Margin = new Thickness(0, 10, 0, 6),
+                };
+                card.Children.Add(codeHeader);
+
+                var codeBlock = new Border
+                {
+                    Background = codeBg,
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(12, 10, 12, 10),
+                };
+                var codeText = new TextBlock
+                {
+                    Text = ex.Code,
+                    FontSize = 11, FontFamily = codeFont,
+                    Foreground = codeFg,
+                    TextWrapping = TextWrapping.Wrap,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                    LineHeight = 18,
+                };
+                codeBlock.Child = codeText;
+                card.Children.Add(codeBlock);
+
+                cardBorder.Child = card;
+                examplesListPanel.Children.Add(cardBorder);
+            }
+        }
 
         private void BtnCopyGitHub_Click(object sender, RoutedEventArgs e)
         {
@@ -1333,6 +1788,18 @@ namespace 串口助手
         {
             Clipboard.SetText(tbAboutDataPath.Text);
             if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        private void BtnCopyIssues_Click(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetText(tbAboutIssues.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        private void BtnOpenIssues_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(tbAboutIssues.Text) { UseShellExecute = true });
         }
 
         /// <summary>
@@ -1402,6 +1869,7 @@ namespace 串口助手
             _currentSettingsPage = page;
             settingsSerialPage.Visibility     = page == "serial"    ? Visibility.Visible : Visibility.Collapsed;
             settingsShortcutsPage.Visibility  = page == "shortcuts"  ? Visibility.Visible : Visibility.Collapsed;
+            settingsExamplesPage.Visibility   = page == "examples"   ? Visibility.Visible : Visibility.Collapsed;
             settingsAboutPage.Visibility      = page == "about"      ? Visibility.Visible : Visibility.Collapsed;
             // 有子页 → 主区显示设置面板（_previousContentTab 不动，保持之前内容标签）
             RefreshContentVisibility();

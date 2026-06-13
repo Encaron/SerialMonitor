@@ -245,11 +245,83 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Padding" Value="2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-        <Style TargetType="MenuItem">
+        <Style TargetType="{x:Type MenuItem}">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Padding" Value="8,4" />
+        </Style>
+        <Style x:Key="ContextMenuMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderThickness="0" SnapsToDevicePixels="True"
+                                Padding="{TemplateBinding Padding}" CornerRadius="4" Margin="3,1">
+                            <StackPanel Orientation="Horizontal">
+                                <ContentPresenter x:Name="icon"
+                                                  ContentSource="Icon" Margin="0,0,8,0"
+                                                  VerticalAlignment="Center" SnapsToDevicePixels="True"
+                                                  Width="16" Height="16"/>
+                                <ContentPresenter x:Name="header"
+                                                  ContentSource="Header" Margin="0,0,8,0"
+                                                  VerticalAlignment="Center" SnapsToDevicePixels="True"
+                                                  RecognizesAccessKey="True"/>
+                                <TextBlock x:Name="shortcut"
+                                           Text="{TemplateBinding InputGestureText}"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           FontSize="11" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="icon" Property="Width" Value="0"/>
+                                <Setter TargetName="icon" Property="Margin" Value="0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ContextMenuSeparatorStyle" TargetType="{x:Type Separator}">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Margin" Value="8,3"/>
+            <Setter Property="Opacity" Value="0.4"/>
+            <Setter Property="Background" Value="{DynamicResource CardBorderBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Background="{TemplateBinding Background}"
+                                Height="{TemplateBinding Height}"
+                                Margin="{TemplateBinding Margin}"
+                                SnapsToDevicePixels="True"
+                                Opacity="{TemplateBinding Opacity}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="ScrollViewer">
             <Setter Property="Background" Value="Transparent" />
@@ -1192,6 +1264,8 @@
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsSerial_Click"/>
                                 <Button Content="⌨ 快捷键提示" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsShortcuts_Click"/>
+                                <Button Content="📖 使用示例" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="36" Margin="0,0,0,4" Click="BtnSettingsExamples_Click"/>
                                 <Button Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAbout_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
@@ -1246,7 +1320,25 @@
                             Background="{DynamicResource ReceiveAreaBgBrush}"
                             Foreground="{DynamicResource LogReceivedBrush}"
                             BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
-                            Padding="6,4" SnapsToDevicePixels="True"/>
+                            Padding="6,4" SnapsToDevicePixels="True">
+                            <avalonedit:TextEditor.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="📋 复制" Click="EditorContext_Copy_Click"
+                                              InputGestureText="Ctrl+C"
+                                              Style="{StaticResource ContextMenuMenuItemStyle}"/>
+                                    <MenuItem Header="📄 全选" Click="EditorContext_SelectAll_Click"
+                                              InputGestureText="Ctrl+A"
+                                              Style="{StaticResource ContextMenuMenuItemStyle}"/>
+                                    <Separator Style="{StaticResource ContextMenuSeparatorStyle}"/>
+                                    <MenuItem Header="🗑 清空接收区" Click="EditorContext_Clear_Click"
+                                              InputGestureText="Ctrl+L"
+                                              Style="{StaticResource ContextMenuMenuItemStyle}"/>
+                                    <MenuItem Header="⏸ 暂停显示" x:Name="menuPauseDisplay"
+                                              Click="EditorContext_Pause_Click"
+                                              Style="{StaticResource ContextMenuMenuItemStyle}"/>
+                                </ContextMenu>
+                            </avalonedit:TextEditor.ContextMenu>
+                        </avalonedit:TextEditor>
                     </DockPanel>
                     <WrapPanel Grid.Row="2" x:Name="quickSendPanel" Margin="0,6,0,4" Visibility="Collapsed"/>
                     <Grid Grid.Row="3">
@@ -1259,7 +1351,7 @@
                                        FontSize="12" Padding="8,6,0,0" IsHitTestVisible="False"/>
                         </Grid>
                         <Grid Grid.Row="1" Margin="0,8,0,0">
-                            <TextBlock Text="Enter 发送  ·  Shift+Enter 换行  ·  Ctrl+Enter 开关串口"
+                            <TextBlock Text="Enter 发送  ·  Shift+Enter 换行  ·  Ctrl+L 清空接收  ·  Ctrl+P 暂停  ·  Ctrl+Enter 开关串口"
                                        FontSize="10" Foreground="{DynamicResource TextSubtleBrush}" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="清空发送区" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1503,23 +1595,31 @@
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="数据位" Style="{DynamicResource FormLabelStyle}"/>
-                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbDataBits"/>
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbDataBits"
+                                          ToolTip="每个字节的数据位数。常用 8 位"/>
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="停止位" Style="{DynamicResource FormLabelStyle}"/>
-                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbStopBits"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbStopBits"
+                                          ToolTip="每个字节后的停止位数。常用 1 位"/>
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="校验位" Style="{DynamicResource FormLabelStyle}"/>
-                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbParity"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbParity"
+                                          ToolTip="错误检测方式。None=不校验，Odd=奇校验，Even=偶校验"/>
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="流控" Style="{DynamicResource FormLabelStyle}"/>
-                                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbFlowControl"/>
+                                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbFlowControl"
+                                          ToolTip="数据流控制。None=无，RTS=硬件流控，XOnXOff=软件流控"/>
                             </Grid>
                             <CheckBox x:Name="chkDtr" Content="DTR（数据终端就绪）" Margin="0,8,0,0"
-                                      Checked="chkDtr_Changed" Unchecked="chkDtr_Changed"/>
+                                      Checked="chkDtr_Changed" Unchecked="chkDtr_Changed"
+                                      ToolTip="数据终端就绪信号。某些设备需拉高此信号才开始工作"/>
                             <CheckBox x:Name="chkRts" Content="RTS（请求发送）"
-                                      Checked="chkRts_Changed" Unchecked="chkRts_Changed"/>
+                                      Checked="chkRts_Changed" Unchecked="chkRts_Changed"
+                                      ToolTip="请求发送信号。用于硬件流控或唤醒目标设备"/>
                             <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                             <CheckBox x:Name="chkAutoReconnect" Content="自动重连"
-                                      Checked="chkAutoReconnect_Changed" Unchecked="chkAutoReconnect_Changed"/>
+                                      Checked="chkAutoReconnect_Changed" Unchecked="chkAutoReconnect_Changed"
+                                      ToolTip="串口意外断开后自动尝试重新连接"/>
                             <CheckBox x:Name="chkPersistTraffic" Content="串口打开时不重置流量计数"
-                                      Checked="chkPersistTraffic_Changed" Unchecked="chkPersistTraffic_Changed"/>
+                                      Checked="chkPersistTraffic_Changed" Unchecked="chkPersistTraffic_Changed"
+                                      ToolTip="保持上次连接的收发字节计数，不清零"/>
                         </StackPanel>
                     </ScrollViewer>
                     <!-- 快捷键提示 -->
@@ -1529,8 +1629,25 @@
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
                             <TextBlock Text="快捷键提示" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,16"/>
-                            <TextBlock Text="（即将推出）" FontSize="13"
-                                       Foreground="{DynamicResource TextMutedBrush}"/>
+                            <StackPanel x:Name="shortcutListPanel"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <!-- 使用示例 -->
+                    <ScrollViewer x:Name="settingsExamplesPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="16,12">
+                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
+                                    Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
+                            <TextBlock Text="使用示例" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"
+                                       TextWrapping="Wrap">
+                                <Run Text="设备通过串口发送 "/><Run Text="[type,arg1,arg2,...]" FontFamily="Consolas"
+                                    Foreground="{DynamicResource PrimaryBrush}"/><Run Text=" 格式的消息，"/>
+                                <Run Text="工具自动解析并路由到对应面板。方括号 "/><Run Text="[ ]" FontFamily="Consolas"
+                                    Foreground="{DynamicResource PrimaryBrush}"/>
+                                <Run Text=" 包裹每条消息，参数用逗号分隔。含逗号的参数用双引号包裹。"/>
+                            </TextBlock>
+                            <StackPanel x:Name="examplesListPanel"/>
                         </StackPanel>
                     </ScrollViewer>
                     <!-- 关于 -->
@@ -1556,6 +1673,11 @@
                                 <Run Text="OxyPlot 2.2.0 · AvalonEdit 6.3.1"/><LineBreak/>
                                 <Run Text="CommunityToolkit.Mvvm"/>
                             </TextBlock>
+                            <!-- 运行时 -->
+                            <TextBlock Text="运行时" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="tbAboutRuntime" FontSize="13"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
                             <!-- GitHub -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Text="GitHub" FontSize="11" FontWeight="SemiBold"
@@ -1585,6 +1707,24 @@
                                      Background="Transparent" Padding="0" Margin="0,0,0,16"
                                      TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled"
                                      MinLines="3" Cursor="Arrow"/>
+
+                            <!-- Issue 反馈 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="反馈" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
+                                <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="24" MinWidth="0" Padding="8,0" FontSize="11"
+                                        Margin="8,0,0,0" Click="BtnCopyIssues_Click"/>
+                                <Button Content="↗ 打开" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="24" MinWidth="0" Padding="8,0" FontSize="11"
+                                        Margin="6,0,0,0" Click="BtnOpenIssues_Click"/>
+                            </StackPanel>
+                            <TextBox x:Name="tbAboutIssues" IsReadOnly="True" BorderThickness="0"
+                                     FontSize="12" FontFamily="Consolas"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Background="Transparent" Padding="0" Margin="0,0,0,8"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled"
+                                     MinLines="1" Cursor="Arrow"/>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
