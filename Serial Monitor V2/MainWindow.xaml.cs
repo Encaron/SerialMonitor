@@ -1299,17 +1299,56 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 动态图标栏显隐：按键/滑杆图标仅在有控件时显示（决策 12）
+        /// 图标栏视觉状态：有控件的面板全不透明，空面板半透明（决策 12）
         /// </summary>
         private void RefreshIconBarVisibility()
         {
             bool hasKeys = _keyVM != null && _keyVM.Keys.Count > 0;
             bool hasSliders = _sliderVM != null && _sliderVM.Sliders.Count > 0;
-            tabKeys.Visibility = hasKeys ? Visibility.Visible : Visibility.Collapsed;
-            tabSliders.Visibility = hasSliders ? Visibility.Visible : Visibility.Collapsed;
-            // 如果当前标签的图标刚被隐藏，回退到接收区
-            if (_currentTab == "Keys" && !hasKeys) tabReceive.IsChecked = true;
-            if (_currentTab == "Sliders" && !hasSliders) tabReceive.IsChecked = true;
+            tabKeys.Opacity = hasKeys ? 1.0 : 0.35;
+            tabSliders.Opacity = hasSliders ? 1.0 : 0.35;
+            tabOLED.Opacity = 1.0;
+            tabJoystick.Opacity = 1.0;
+        }
+
+        /// <summary>
+        /// "+" 按钮下拉菜单：列出所有控件面板，活跃/非活跃颜色区分
+        /// </summary>
+        private void BtnAddPanel_Click(object sender, RoutedEventArgs e)
+        {
+            var menu = new ContextMenu { PlacementTarget = btnAddPanel };
+            InitKeyPanel(); InitSliderPanel(); InitOLEDPanel(); InitJoystickPanel();
+
+            AddPanelMenuItem(menu, "按键面板", "Keys",
+                _keyVM?.Keys.Count > 0, _keyVM?.Keys.Count ?? 0);
+            AddPanelMenuItem(menu, "滑杆面板", "Sliders",
+                _sliderVM?.Sliders.Count > 0, _sliderVM?.Sliders.Count ?? 0);
+            AddPanelMenuItem(menu, "OLED", "OLED", true, 0);
+            AddPanelMenuItem(menu, "摇杆面板", "Joystick",
+                _joyVM?.Joysticks.Count > 0, _joyVM?.Joysticks.Count ?? 0);
+
+            menu.IsOpen = true;
+        }
+
+        private void AddPanelMenuItem(ContextMenu menu, string label, string tab, bool isActive, int count)
+        {
+            var item = new MenuItem { Padding = new Thickness(12, 7, 12, 7), FontSize = 13 };
+            string prefix = isActive ? "✓ " : "  ";
+            string countStr = isActive && count > 0 ? $"  ({count})" : "";
+            item.Header = prefix + label + countStr;
+            item.Foreground = isActive
+                ? (Brush)FindResource("TextPrimaryBrush")
+                : (Brush)FindResource("TextMutedBrush");
+            item.FontWeight = isActive ? FontWeights.SemiBold : FontWeights.Regular;
+            item.Click += (s2, e2) => {
+                switch (tab) {
+                    case "Keys":     tabKeys.IsChecked = true; break;
+                    case "Sliders":  tabSliders.IsChecked = true; break;
+                    case "OLED":     tabOLED.IsChecked = true; break;
+                    case "Joystick": tabJoystick.IsChecked = true; break;
+                }
+            };
+            menu.Items.Add(item);
         }
 
         private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
