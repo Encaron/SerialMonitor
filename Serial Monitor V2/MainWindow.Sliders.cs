@@ -222,12 +222,38 @@ namespace 串口助手
                     var slider = new Slider {
                         Minimum = svm.MinValue, Maximum = svm.MaxValue, Value = svm.Value,
                         SmallChange = svm.Step, LargeChange = svm.Step * 10,
-                        IsSnapToTickEnabled = true, TickFrequency = svm.Step,
+                        // 不用 IsSnapToTickEnabled——.NET 8 下拖拽会卡在单格内
                         Height = 28, VerticalAlignment = VerticalAlignment.Center,
                         Tag = svm,
                     };
-                    slider.ValueChanged += Slider_ValueChanged;
-                    slider.PreviewMouseLeftButtonUp += Slider_DragCompleted;
+                    // 拖拽过程中持续更新数值显示 + 节流发送
+                    slider.ValueChanged += (s, e) => {
+                        if (_sliderVM.IsEditMode) return;
+                        var sl = s as Slider; var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
+                        // 按步长取整
+                        double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
+                        rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
+                        vm.Value = rounded;
+                        UpdateSliderValueDisplay(sl, vm);
+                        // 节流发送（200ms 默认间隔）
+                        var now = DateTime.Now;
+                        if (!_sliderLastSent.TryGetValue(vm.Name, out var last)
+                            || (now - last).TotalMilliseconds >= vm.SendIntervalMs)
+                        {
+                            _sliderLastSent[vm.Name] = now;
+                            SendSliderValue(vm);
+                        }
+                    };
+                    // 松手时取整 + 确保最终值发送
+                    slider.PreviewMouseLeftButtonUp += (s, e) => {
+                        if (_sliderVM.IsEditMode) return;
+                        var sl = s as Slider; var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
+                        double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
+                        rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
+                        sl.Value = rounded; vm.Value = rounded;
+                        UpdateSliderValueDisplay(sl, vm);
+                        SendSliderValue(vm);
+                    };
                     Grid.SetRow(slider, 1); Grid.SetColumn(slider, 0);
                     grid.Children.Add(slider);
 
@@ -245,36 +271,6 @@ namespace 串口助手
 
                 slidersPanel.Children.Add(card);
             }
-        }
-
-        // ——— 滑杆拖拽事件 ———
-        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            var slider = sender as Slider; if (slider == null) return;
-            var svm = slider.Tag as SliderViewModel; if (svm == null) return;
-            if (_sliderVM.IsEditMode) return;
-
-            // 更新值显示
-            svm.Value = slider.Value;
-            UpdateSliderValueDisplay(slider, svm);
-
-            // 节流发送
-            var now = DateTime.Now;
-            if (_sliderLastSent.TryGetValue(svm.Name, out var last)
-                && (now - last).TotalMilliseconds < svm.SendIntervalMs) return;
-
-            SendSliderValue(svm);
-        }
-
-        private void Slider_DragCompleted(object sender, MouseButtonEventArgs e)
-        {
-            var slider = sender as Slider; if (slider == null) return;
-            var svm = slider.Tag as SliderViewModel; if (svm == null) return;
-            if (_sliderVM.IsEditMode) return;
-
-            // 松手时确保最终值被发送
-            svm.Value = slider.Value;
-            SendSliderValue(svm);
         }
 
         private void SendSliderValue(SliderViewModel svm)
@@ -365,7 +361,26 @@ namespace 串口助手
             InitSliderPanel();
             if (double.TryParse(valStr, out double val)) {
                 _sliderVM.SetSliderValue(name, val);
-                Dispatcher.InvokeAsync(() => { RefreshSlidersUI(); });
+                // ⚠️ 不要调 RefreshSlidersUI()——会销毁当前正在拖拽的 Slider 控件！
+                // 改为仅更新对应 Slider 的数值显示
+                var svm = _sliderVM.Sliders.FirstOrDefault(s => s.Name == name);
+                if (svm == null) return;
+                Dispatcher.InvokeAsync(() => {
+                    // 找到该滑杆的 Slider 控件并同步显示
+                    foreach (Border card in slidersPanel.Children) {
+                        if (card.Tag is SliderViewModel tag && tag.Name == name) {
+                            if (!_sliderVM.IsEditMode && card.Child is Grid grid) {
+                                foreach (var child in grid.Children) {
+                                    if (child is Slider slider2 && slider2.Tag is SliderViewModel svm2 && svm2.Name == name)
+                                        slider2.Value = svm.Value;
+                                    if (child is TextBlock tb2 && Grid.GetRow(tb2) == 1 && Grid.GetColumn(tb2) == 1)
+                                        tb2.Text = svm.DisplayValue;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                });
             }
         }
 
