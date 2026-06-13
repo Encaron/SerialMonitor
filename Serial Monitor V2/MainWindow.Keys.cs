@@ -57,8 +57,7 @@ namespace 串口助手
             InitColorPanels();
             InitModuleColorPanel();
             RefreshKeysUI();
-            RefreshIconBarVisibility();
-        }
+                   }
 
         // ——— 颜色面板 ———
         private void InitColorPanels()
@@ -123,8 +122,7 @@ namespace 串口助手
             CancelConfirm();
             _keyVM.IsEditMode = false; _selectedKeys.Clear(); _selectedModuleGroupId = null;
             keysToolbarNormal.Visibility = Visibility.Visible; keysToolbarEdit.Visibility = Visibility.Collapsed;
-            RefreshKeysUI(); RefreshKeysSidePanel(); SaveKeysPrefs(); RefreshIconBarVisibility();
-        }
+            RefreshKeysUI(); RefreshKeysSidePanel(); SaveKeysPrefs();        }
 
         // ——— 添加 / 清空 / 删除 ———
         private void btnKeysAdd_Click(object sender, RoutedEventArgs e) {
@@ -134,14 +132,12 @@ namespace 串口助手
             var key = _keyVM.AddKey(name);
             if (!_groupNames.ContainsKey(key.GroupId)) _groupNames[key.GroupId] = "手动按键";
             _selectedModuleGroupId = null;
-            RefreshKeysUI(); RefreshKeysSidePanel(); RefreshIconBarVisibility();
-        }
+            RefreshKeysUI(); RefreshKeysSidePanel();        }
         private void btnKeysClearAll_Click(object sender, RoutedEventArgs e) {
             if (_keyVM == null || _keyVM.Keys.Count == 0) return;
             if (_confirmButton == btnKeysClearAll) {
                 _keyVM.ClearAll(); _selectedKeys.Clear(); _selectedModuleGroupId = null;
-                CancelConfirm(); RefreshKeysUI(); RefreshKeysSidePanel(); RefreshIconBarVisibility();
-            } else {
+                CancelConfirm(); RefreshKeysUI(); RefreshKeysSidePanel();            } else {
                 StartConfirm(btnKeysClearAll, "⚠ 确认清空");
             }
         }
@@ -164,8 +160,7 @@ namespace 串口助手
         private void btnKeyDelete_Click(object sender, RoutedEventArgs e) {
             if (_selectedKeys.Count == 0) return;
             foreach (var key in _selectedKeys.ToList()) _keyVM.RemoveKey(key);
-            _selectedKeys.Clear(); RefreshKeysUI(); RefreshKeysSidePanel(); RefreshIconBarVisibility();
-        }
+            _selectedKeys.Clear(); RefreshKeysUI(); RefreshKeysSidePanel();        }
 
         // ——— 键盘布局下拉 ———
         private void btnKeysLayout_Click(object sender, RoutedEventArgs e) {
@@ -527,8 +522,7 @@ namespace 串口助手
             var btn = sender as Button; if (btn == null) return;
             var keyVM = btn.Tag as KeyViewModel; if (keyVM == null || keyVM.IsShiftToggle) return;
             SwitchSidePanelToKeys();
-            _selectedKeys.Clear(); _keyVM.RemoveKey(keyVM); RefreshKeysUI(); RefreshKeysSidePanel(); RefreshIconBarVisibility();
-        }
+            _selectedKeys.Clear(); _keyVM.RemoveKey(keyVM); RefreshKeysUI(); RefreshKeysSidePanel();        }
 
         // ——— 按键按下/松开缩放动画 ———
         private void KeyButton_PressAnimation(object sender, MouseButtonEventArgs e)
@@ -681,8 +675,7 @@ namespace 串口助手
                 var mk = _keyVM.Keys.Where(k => k.GroupId == gid).ToList(); if (mk.Count == 0) return;
                 foreach (var k in mk) _keyVM.RemoveKey(k); _groupNames.Remove(gid);
                 _selectedModuleGroupId = null; _selectedKeys.Clear();
-                CancelConfirm(); RefreshKeysUI(); RefreshKeysSidePanel(); RefreshIconBarVisibility();
-            } else {
+                CancelConfirm(); RefreshKeysUI(); RefreshKeysSidePanel();            } else {
                 StartConfirm(btnModuleDelete, "⚠ 确认删除");
             }
         }

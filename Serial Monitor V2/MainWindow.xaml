@@ -423,14 +423,6 @@
                             Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
                             Margin="8,4,0,0" HorizontalAlignment="Center"
                             Click="BtnPanelCollapse_Click" ToolTip="折叠侧面板" />
-                    <!-- "+" 管理面板 -->
-                    <Button x:Name="btnAddPanel" DockPanel.Dock="Bottom"
-                            Width="32" Height="32" Margin="5,2" Padding="0"
-                            Foreground="{DynamicResource TextMutedBrush}"
-                            Background="Transparent" BorderThickness="0"
-                            FontSize="18" FontWeight="Bold" Cursor="Hand"
-                            Content="+" ToolTip="管理面板"
-                            Click="BtnAddPanel_Click" />
                     <RadioButton x:Name="tabSettings" DockPanel.Dock="Bottom"
                                  GroupName="IconBar" Style="{DynamicResource IconBarButtonStyle}"
                                  ToolTip="串口设置" Margin="0,4" Checked="TabSettings_Checked">
@@ -502,6 +494,14 @@
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
+                        <!-- "+" 管理面板下拉 -->
+                        <Button x:Name="btnAddPanel"
+                                Width="42" Height="42" Padding="0"
+                                Foreground="{DynamicResource TextMutedBrush}"
+                                Background="Transparent" BorderThickness="0"
+                                FontSize="20" FontWeight="Bold" Cursor="Hand"
+                                Content="+" ToolTip="管理标签显示"
+                                Click="BtnAddPanel_Click" />
                     </StackPanel>
                 </DockPanel>
             </Border>

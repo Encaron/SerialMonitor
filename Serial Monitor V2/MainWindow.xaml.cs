@@ -102,6 +102,14 @@ namespace 串口助手
         private string _previousContentTab = "Receive";
         private SearchPanel _searchPanel;
 
+        // 图标栏面板显隐管理（决策 12改：+ 下拉菜单切换）
+        // Receive 和 Settings 常驻，不在字典中
+        private Dictionary<string, bool> _panelVisible = new Dictionary<string, bool>
+        {
+            ["Plot"] = true, ["Keys"] = true, ["Sliders"] = true,
+            ["OLED"] = true, ["Joystick"] = true,
+        };
+
         private static readonly Dictionary<string, (Color Light, Color Dark)> ThemeMap =
             new Dictionary<string, (Color, Color)>
         {
@@ -140,6 +148,19 @@ namespace 串口助手
 
             // 恢复上次窗口位置和大小（可能触发 ApplyTheme → UpdateThemeColors）
             LoadWindowSettings();
+
+            // 加载图标栏面板显隐偏好
+            if (_prefsData != null && _prefsData.TryGetValue("panelVisible", out var pvObj)
+                && pvObj is Dictionary<string, object> pvDict)
+            {
+                foreach (var kv in pvDict)
+                    if (kv.Value is bool b) _panelVisible[kv.Key] = b;
+            }
+            RefreshIconBarVisibility();
+
+            // "+" 按钮 hover 效果
+            btnAddPanel.MouseEnter += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextPrimaryBrush");
+            btnAddPanel.MouseLeave += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
 
             // 创建串口会话
             _session = new SerialPortSession(Dispatcher);
@@ -1299,56 +1320,77 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 图标栏视觉状态：有控件的面板全不透明，空面板半透明（决策 12）
+        /// 图标栏显隐刷新：根据 _panelVisible 控制图标可见性（决策 12 改）
+        /// Receive/Settings 常驻，Plot/Keys/Sliders/OLED/Joystick 由 + 菜单切换
         /// </summary>
         private void RefreshIconBarVisibility()
         {
-            bool hasKeys = _keyVM != null && _keyVM.Keys.Count > 0;
-            bool hasSliders = _sliderVM != null && _sliderVM.Sliders.Count > 0;
-            tabKeys.Opacity = hasKeys ? 1.0 : 0.35;
-            tabSliders.Opacity = hasSliders ? 1.0 : 0.35;
-            tabOLED.Opacity = 1.0;
-            tabJoystick.Opacity = 1.0;
+            tabPlot.Visibility     = _panelVisible["Plot"]     ? Visibility.Visible : Visibility.Collapsed;
+            tabKeys.Visibility     = _panelVisible["Keys"]     ? Visibility.Visible : Visibility.Collapsed;
+            tabSliders.Visibility  = _panelVisible["Sliders"]  ? Visibility.Visible : Visibility.Collapsed;
+            tabOLED.Visibility     = _panelVisible["OLED"]     ? Visibility.Visible : Visibility.Collapsed;
+            tabJoystick.Visibility = _panelVisible["Joystick"] ? Visibility.Visible : Visibility.Collapsed;
+            // 隐藏的图标如果正处于选中状态，回退到接收区
+            string tab = _currentTab;
+            if ((tab == "Plot" && !_panelVisible["Plot"])
+                || (tab == "Keys" && !_panelVisible["Keys"])
+                || (tab == "Sliders" && !_panelVisible["Sliders"])
+                || (tab == "OLED" && !_panelVisible["OLED"])
+                || (tab == "Joystick" && !_panelVisible["Joystick"]))
+                tabReceive.IsChecked = true;
         }
 
         /// <summary>
-        /// "+" 按钮下拉菜单：列出所有控件面板，活跃/非活跃颜色区分
+        /// "+" 按钮下拉菜单：列出所有面板（接收区常驻不可切换，其余可切换显隐）
         /// </summary>
         private void BtnAddPanel_Click(object sender, RoutedEventArgs e)
         {
             var menu = new ContextMenu { PlacementTarget = btnAddPanel };
-            InitKeyPanel(); InitSliderPanel(); InitOLEDPanel(); InitJoystickPanel();
 
-            AddPanelMenuItem(menu, "按键面板", "Keys",
-                _keyVM?.Keys.Count > 0, _keyVM?.Keys.Count ?? 0);
-            AddPanelMenuItem(menu, "滑杆面板", "Sliders",
-                _sliderVM?.Sliders.Count > 0, _sliderVM?.Sliders.Count ?? 0);
-            AddPanelMenuItem(menu, "OLED", "OLED", true, 0);
-            AddPanelMenuItem(menu, "摇杆面板", "Joystick",
-                _joyVM?.Joysticks.Count > 0, _joyVM?.Joysticks.Count ?? 0);
+            // 接收区：常驻
+            AddToggleItem(menu, "📡 接收区", "Receive", isVisible: true, canToggle: false);
+            menu.Items.Add(new Separator());
+
+            // 可切换面板
+            AddToggleItem(menu, "📈 波形图", "Plot", _panelVisible["Plot"]);
+            AddToggleItem(menu, "🎮 按键面板", "Keys", _panelVisible["Keys"]);
+            AddToggleItem(menu, "🎚 滑杆面板", "Sliders", _panelVisible["Sliders"]);
+            AddToggleItem(menu, "📱 OLED", "OLED", _panelVisible["OLED"]);
+            AddToggleItem(menu, "🕹 摇杆面板", "Joystick", _panelVisible["Joystick"]);
 
             menu.IsOpen = true;
         }
 
-        private void AddPanelMenuItem(ContextMenu menu, string label, string tab, bool isActive, int count)
+        private void AddToggleItem(ContextMenu menu, string label, string tab, bool isVisible, bool canToggle = true)
         {
-            var item = new MenuItem { Padding = new Thickness(12, 7, 12, 7), FontSize = 13 };
-            string prefix = isActive ? "✓ " : "  ";
-            string countStr = isActive && count > 0 ? $"  ({count})" : "";
-            item.Header = prefix + label + countStr;
-            item.Foreground = isActive
-                ? (Brush)FindResource("TextPrimaryBrush")
+            var item = new MenuItem { Padding = new Thickness(12, 7, 24, 7), FontSize = 13 };
+            item.Header = (isVisible ? "✓  " : "    ") + label;
+            item.Foreground = isVisible
+                ? (Brush)FindResource("PrimaryBrush")
                 : (Brush)FindResource("TextMutedBrush");
-            item.FontWeight = isActive ? FontWeights.SemiBold : FontWeights.Regular;
-            item.Click += (s2, e2) => {
-                switch (tab) {
-                    case "Keys":     tabKeys.IsChecked = true; break;
-                    case "Sliders":  tabSliders.IsChecked = true; break;
-                    case "OLED":     tabOLED.IsChecked = true; break;
-                    case "Joystick": tabJoystick.IsChecked = true; break;
-                }
-            };
+            item.FontWeight = isVisible ? FontWeights.SemiBold : FontWeights.Regular;
+            if (canToggle)
+            {
+                item.Click += (s2, e2) => {
+                    _panelVisible[tab] = !_panelVisible[tab];
+                    RefreshIconBarVisibility();
+                    SavePanelVisibility();
+                };
+            }
+            else
+            {
+                item.IsEnabled = false;  // 接收区始终灰色不可点击
+            }
             menu.Items.Add(item);
+        }
+
+        private void SavePanelVisibility()
+        {
+            if (_prefsData == null) return;
+            var dict = new Dictionary<string, object>();
+            foreach (var kv in _panelVisible) dict[kv.Key] = kv.Value;
+            _prefsData["panelVisible"] = dict;
+            _prefs.Save(_prefsData);
         }
 
         private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
