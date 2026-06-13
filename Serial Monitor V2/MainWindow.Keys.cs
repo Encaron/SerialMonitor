@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace 串口助手
 {
@@ -26,7 +27,7 @@ namespace 串口助手
 
             // 恢复按键
             if (_prefsData != null && _prefsData.TryGetValue("keys", out var keysObj)
-                && keysObj is System.Collections.ArrayList arr && arr.Count > 0)
+                && keysObj is System.Collections.IList arr && arr.Count > 0)
             {
                 var keysList = new List<Dictionary<string, object>>();
                 foreach (var item in arr)
@@ -95,8 +96,13 @@ namespace 串口助手
                 BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 6, 6),
                 Cursor = Cursors.Hand, ToolTip = colorName, Tag = colorName,
             };
-            border.MouseLeftButtonDown += (s, e) => onClick((string)((Border)s).Tag);
+            border.PreviewMouseLeftButtonDown += (s, e) => { onClick((string)((Border)s).Tag); e.Handled = true; };
             return border;
+        }
+
+        // ——— 侧面板切换 ———
+        private void SwitchSidePanelToKeys() {
+            if (_currentTab != "Keys") { tabKeys.IsChecked = true; }
         }
 
         // ——— 编辑模式切换 ———
@@ -106,6 +112,7 @@ namespace 串口助手
             RefreshKeysUI(); RefreshKeysSidePanel();
         }
         private void btnKeysDone_Click(object sender, RoutedEventArgs e) {
+            CancelKeysConfirm();
             _keyVM.IsEditMode = false; _selectedKeys.Clear(); _selectedModuleGroupId = null;
             keysToolbarNormal.Visibility = Visibility.Visible; keysToolbarEdit.Visibility = Visibility.Collapsed;
             RefreshKeysUI(); RefreshKeysSidePanel(); SaveKeysPrefs();
@@ -114,17 +121,19 @@ namespace 串口助手
         // ——— 添加 / 清空 / 删除 ———
         private void btnKeysAdd_Click(object sender, RoutedEventArgs e) {
             InitKeyPanel();
+            SwitchSidePanelToKeys();
             string name = "Key" + (_keyVM.Keys.Count + 1);
             var key = _keyVM.AddKey(name);
             if (!_groupNames.ContainsKey(key.GroupId)) _groupNames[key.GroupId] = "手动按键";
-            _selectedModuleGroupId = null;
+            _selectedModuleGroupId = null; _selectedKeys.Clear(); _selectedKeys.Add(key);
             RefreshKeysUI(); RefreshKeysSidePanel();
         }
         private void btnKeysClearAll_Click(object sender, RoutedEventArgs e) {
             if (_keyVM == null || _keyVM.Keys.Count == 0) return;
-            if (MessageBox.Show(string.Format("确定要删除全部 {0} 个按键吗？", _keyVM.Keys.Count),
-                "清空全部按键", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-            { _keyVM.ClearAll(); _selectedKeys.Clear(); _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel(); }
+            if (_keysConfirmButton == btnKeysClearAll) {
+                _keyVM.ClearAll(); _selectedKeys.Clear(); _selectedModuleGroupId = null;
+                CancelKeysConfirm(); RefreshKeysUI(); RefreshKeysSidePanel();
+            } else { StartKeysConfirm(btnKeysClearAll, "⚠ 确认清空"); }
         }
         private void btnKeyDelete_Click(object sender, RoutedEventArgs e) {
             if (_selectedKeys.Count == 0) return;
@@ -135,14 +144,47 @@ namespace 串口助手
         // ——— 键盘布局 ———
         private void btnKeysLayout_Click(object sender, RoutedEventArgs e) {
             InitKeyPanel();
+            SwitchSidePanelToKeys();
             var menu = new ContextMenu { PlacementTarget = sender as UIElement, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-            AddLayoutItem(menu, "键盘布局（QWERTY 标准）", () => { var ks = _keyVM.CreateKeyboardLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "QWERTY 键盘"; _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel(); });
-            AddLayoutItem(menu, "方向键布局（↑ ↓ ← →）", () => { var ks = _keyVM.CreateDirectionalLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "方向键"; _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel(); });
-            AddLayoutItem(menu, "数字键盘布局（3×4 小键盘）", () => { var ks = _keyVM.CreateNumpadLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "数字键盘"; _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel(); });
+            var style = (Style)FindResource("ContextMenuMenuItemStyle");
+            var sepStyle = (Style)FindResource("ContextMenuSeparatorStyle");
+
+            AddLayoutItem(menu, "⌨  键盘布局（QWERTY 标准）", "数字行 + QWERTY 全键盘 + ⇧ 切换", style, () => {
+                var ks = _keyVM.CreateKeyboardLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "QWERTY 键盘";
+                _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel();
+            });
+            AddLayoutItem(menu, "🎯  方向键（↑ ↓ ← →）", "十字方向键布局", style, () => {
+                var ks = _keyVM.CreateDirectionalLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "方向键";
+                _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel();
+            });
+            AddLayoutItem(menu, "🔢  数字键盘（3×4 + 运算符）", "数字 0-9 + 运算符 + Enter", style, () => {
+                var ks = _keyVM.CreateNumpadLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "数字键盘";
+                _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel();
+            });
+
+            AddSeparator(menu, sepStyle);
+
+            AddLayoutItem(menu, "🎮  游戏键位（W A S D + Q E）", "WASD 移动 + QE 侧移键", style, () => {
+                var ks = _keyVM.CreateWASDLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "WASD 游戏键位";
+                _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel();
+            });
+            AddLayoutItem(menu, "⚙  功能键（F1 - F12）", "F1 到 F12 功能键，2 行 × 6 列", style, () => {
+                var ks = _keyVM.CreateFunctionKeyLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "F1-F12 功能键";
+                _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel();
+            });
+            AddLayoutItem(menu, "🔗  逻辑按键对", "up/down · on/off · open/close · start/stop · left/right · lock/unlock", style, () => {
+                var ks = _keyVM.CreateLogicPairLayout(); if (ks.Count > 0) _groupNames[ks[0].GroupId] = "逻辑按键对";
+                _selectedModuleGroupId = null; RefreshKeysUI(); RefreshKeysSidePanel();
+            });
+
             menu.IsOpen = true;
         }
-        private void AddLayoutItem(ContextMenu menu, string header, Action onClick) {
-            var item = new MenuItem { Header = header }; item.Click += (s, a) => onClick(); menu.Items.Add(item);
+        private void AddLayoutItem(ContextMenu menu, string header, string tooltip, Style style, Action onClick) {
+            var item = new MenuItem { Header = header, ToolTip = tooltip, Style = style };
+            item.Click += (s, a) => onClick(); menu.Items.Add(item);
+        }
+        private static void AddSeparator(ContextMenu menu, Style style) {
+            menu.Items.Add(new Separator { Style = style });
         }
 
         // ——— Ctrl+A 全选 ———
@@ -190,6 +232,7 @@ namespace 串口助手
                 int capturedGid = gid;
                 nameLabel.MouseLeftButtonDown += (s2, e2) => {
                     if (!isEdit) return;
+                    SwitchSidePanelToKeys();
                     _selectedModuleGroupId = capturedGid; _selectedKeys.Clear();
                     RefreshKeysUI(); RefreshKeysSidePanel();
                 };
@@ -214,6 +257,9 @@ namespace 串口助手
                     keysContent = BuildDirectionalGrid(groupKeys, isEdit);
                 } else if (maxRow >= 3 && maxCol >= 3 && groupKeys.Any(k => k.Name == "Enter")) {
                     keysContent = BuildNumpadGrid(groupKeys, isEdit);
+                } else if (maxRow >= 1 && groupKeys.GroupBy(k => k.LayoutY).Select(g => g.Count()).Distinct().Count() == 1) {
+                    // 统一列宽的网格布局（逻辑按键对、WASD、功能键等），不用 stagger
+                    keysContent = BuildUniformGrid(groupKeys, maxRow, maxCol, isEdit);
                 } else {
                     var stack = new StackPanel { Margin = new Thickness(2, 0, 0, 0) };
                     BuildRowBasedLayoutInto(stack, groupKeys, isEdit);
@@ -244,15 +290,20 @@ namespace 串口助手
                 Content = keyVM.Name, Width = keyVM.Width, Height = keyVM.Height,
                 Margin = new Thickness(0, 0, 6, 6), FontSize = 12,
                 FontFamily = new FontFamily("Microsoft YaHei"), Padding = new Thickness(4, 0, 4, 0), Tag = keyVM,
+                Template = (ControlTemplate)FindResource("KeyButtonTemplate"),
             };
             var isDark = isDarkTheme;
             string hex = KeyPanelViewModel.GetColorHex(keyVM.Color, isDark);
-            Brush bgBrush;
+            Brush bgBrush, fgBrush;
             if (hex != null) {
-                bgBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-                btn.Foreground = Brushes.White;
-            } else { bgBrush = (Brush)FindResource("CardBgBrush"); btn.Foreground = (Brush)FindResource("TextPrimaryBrush"); }
+                var color = (Color)ColorConverter.ConvertFromString(hex);
+                bgBrush = new SolidColorBrush(color);
+                // 亮度计算：浅底用深色字，深底用白色字
+                double lum = 0.299 * color.R + 0.587 * color.G + 0.114 * color.B;
+                fgBrush = lum > 140 ? new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A)) : Brushes.White;
+            } else { bgBrush = (Brush)FindResource("CardBgBrush"); fgBrush = (Brush)FindResource("TextPrimaryBrush"); }
             btn.Background = bgBrush;
+            btn.Foreground = fgBrush;
             btn.BorderBrush = (Brush)FindResource("CardBorderBrush");
             btn.BorderThickness = new Thickness(1);
             btn.Cursor = Cursors.Hand;
@@ -282,7 +333,9 @@ namespace 串口助手
                 if (_selectedKeys.Contains(keyVM)) {
                     var accent = isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
                     btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
-                    btn.Background = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x2E, 0x4A) : Color.FromRgb(0xE6, 0xF0, 0xFA));
+                    // 自定义颜色键保留原背景（边框已足够标记选中态）
+                    if (hex == null)
+                        btn.Background = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x2E, 0x4A) : Color.FromRgb(0xE6, 0xF0, 0xFA));
                 }
                 btn.Click += KeyButtonEdit_Click;
                 btn.MouseRightButtonDown += KeyButtonEdit_RightClick;
@@ -332,6 +385,18 @@ namespace 串口助手
                 parent.Children.Add(rp);
             }
         }
+        private Grid BuildUniformGrid(List<KeyViewModel> keys, int maxRow, int maxCol, bool isEdit) {
+            var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(2, 0, 0, 0) };
+            for (int c = 0; c <= maxCol; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            for (int r = 0; r <= maxRow; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            foreach (var kv in keys) {
+                var btn = CreateKeyButton(kv, isEdit);
+                btn.Margin = new Thickness(3);
+                Grid.SetRow(btn, kv.LayoutY); Grid.SetColumn(btn, kv.LayoutX);
+                grid.Children.Add(btn); _keyButtonMap[btn] = kv;
+            }
+            return grid;
+        }
 
         // ═══════════════════════════════════════
         //  发送逻辑（自锁 + 按下/松开分离）
@@ -340,49 +405,50 @@ namespace 串口助手
         private void KeyButtonSend_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button; if (btn == null) return;
-            var keyVM = btn.Tag as KeyViewModel; if (keyVM == null || keyVM.IsShiftToggle) return;
+            var keyVM = btn.Tag as KeyViewModel; if (keyVM == null) return;
+
+            // Shift 切换键：在正常模式也可用
             if (keyVM.IsShiftToggle)
             {
-                // Shift 切换键：在正常模式也可用
                 PulseElement(btn);
                 ToggleShift(keyVM.GroupId);
                 RefreshKeysUI();
                 return;
             }
 
+            SwitchSidePanelToKeys();
             if (_session == null || !_session.IsOpen) return;
 
-            // 动画反馈
-            PulseElement(btn);
             ShowKeySendFeedback(keyVM);
 
             if (keyVM.IsSelfLock)
             {
-                // 自锁模式：切换按下/松开
                 if (keyVM.IsPressed)
                 {
-                    // 松开：发送松开发送内容
                     string releaseContent = keyVM.GetReleaseContent();
                     if (!string.IsNullOrEmpty(releaseContent)) SendRaw(releaseContent, appendLineEnding: true);
                     keyVM.IsPressed = false;
                 }
                 else
                 {
-                    // 按下：发送按下内容
                     string pressContent = keyVM.GetPressContent();
                     if (!string.IsNullOrEmpty(pressContent)) SendRaw(pressContent, appendLineEnding: true);
                     keyVM.IsPressed = true;
                 }
+                // 自锁：状态变了必须重建 UI，之后在新按钮上做动画
+                RefreshKeysUI();
+                var kvp = _keyButtonMap.FirstOrDefault(x => x.Value == keyVM);
+                if (kvp.Key != null) PulseElement(kvp.Key);
             }
             else
             {
-                // 非自锁：先发按下，立即发松开
                 string pressContent = keyVM.GetPressContent();
                 string releaseContent = keyVM.GetReleaseContent();
                 if (!string.IsNullOrEmpty(pressContent)) SendRaw(pressContent, appendLineEnding: true);
                 if (!string.IsNullOrEmpty(releaseContent)) SendRaw(releaseContent, appendLineEnding: true);
+                // 非自锁：状态没变，不重建 UI，直接在当前按钮上做动画
+                PulseElement(btn);
             }
-            RefreshKeysUI();
         }
 
         /// <summary>切换大小写：翻转 ShiftActive，更新同组所有字母键的显示名和文本/HEX模式发送值</summary>
@@ -432,6 +498,7 @@ namespace 串口助手
         {
             var btn = sender as Button; if (btn == null) return;
             var keyVM = btn.Tag as KeyViewModel; if (keyVM == null) return;
+            SwitchSidePanelToKeys();
             _selectedModuleGroupId = null;
             bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
@@ -584,12 +651,33 @@ namespace 串口助手
         private void btnModuleDelete_Click(object sender, RoutedEventArgs e) {
             if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
             var mk = _keyVM.Keys.Where(k => k.GroupId == gid).ToList(); if (mk.Count == 0) return;
-            if (MessageBox.Show(string.Format("确定要删除模块「{0}」（{1} 个按键）吗？",
-                _groupNames.TryGetValue(gid, out var nm) ? nm : "未命名", mk.Count),
-                "删除模块", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes) {
+            if (_keysConfirmButton == btnModuleDelete) {
                 foreach (var k in mk) _keyVM.RemoveKey(k); _groupNames.Remove(gid);
-                _selectedModuleGroupId = null; _selectedKeys.Clear(); RefreshKeysUI(); RefreshKeysSidePanel();
+                _selectedModuleGroupId = null; _selectedKeys.Clear();
+                CancelKeysConfirm(); RefreshKeysUI(); RefreshKeysSidePanel();
+            } else {
+                string moduleName = _groupNames.TryGetValue(gid, out var nm) ? nm : "未命名";
+                StartKeysConfirm(btnModuleDelete, string.Format("⚠ 删除「{0}」", moduleName));
             }
+        }
+
+        // ——— 二次确认 ———
+        private Button _keysConfirmButton;
+        private string _keysConfirmOriginalText;
+        private DispatcherTimer _keysConfirmTimer;
+        private void StartKeysConfirm(Button btn, string confirmText) {
+            CancelKeysConfirm();
+            _keysConfirmButton = btn;
+            _keysConfirmOriginalText = btn.Content?.ToString() ?? "";
+            btn.Content = confirmText;
+            _keysConfirmTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            _keysConfirmTimer.Tick += (s2, e2) => CancelKeysConfirm();
+            _keysConfirmTimer.Start();
+        }
+        private void CancelKeysConfirm() {
+            if (_keysConfirmButton != null) _keysConfirmButton.Content = _keysConfirmOriginalText;
+            _keysConfirmTimer?.Stop(); _keysConfirmTimer = null;
+            _keysConfirmButton = null; _keysConfirmOriginalText = null;
         }
 
         // ═══════════════════════════════════════
@@ -603,7 +691,7 @@ namespace 串口助手
 
         private void SaveKeysPrefs() {
             if (_keyVM == null || _prefsData == null) return;
-            var arr = new System.Collections.ArrayList();
+            var arr = new List<object>();
             foreach (var d in _keyVM.SerializeKeys()) arr.Add(d);
             _prefsData["keys"] = arr;
             var nameDict = new Dictionary<string, object>();

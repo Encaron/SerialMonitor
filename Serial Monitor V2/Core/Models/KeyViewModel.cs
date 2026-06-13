@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace 串口助手
 {
@@ -151,6 +152,13 @@ namespace 串口助手
             // 确保有默认值
             if (string.IsNullOrEmpty(k.PressSendMode))  k.PressSendMode = "数据包";
             if (string.IsNullOrEmpty(k.ReleaseSendMode)) k.ReleaseSendMode = "数据包";
+
+            // 迁移：键盘布局按键的发送值从小写修正为匹配名称（如 Name="F9", Value="f9" → Value="F9"）
+            if (!string.IsNullOrEmpty(k.PressSendValue) && k.Name.Any(char.IsUpper)
+                && k.PressSendValue == k.Name.ToLowerInvariant())
+            {
+                k.PressSendValue = k.Name;
+            }
 
             return k;
         }

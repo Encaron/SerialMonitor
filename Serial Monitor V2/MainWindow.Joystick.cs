@@ -19,6 +19,10 @@ namespace 串口助手
         private Point _dragOrigin;
         private DateTime _lastJoySent;
 
+        private void SwitchSidePanelToJoystick() {
+            if (_currentTab != "Joystick") { tabJoystick.IsChecked = true; }
+        }
+
         // ——— 初始化 ———
         private void InitJoystickPanel()
         {
@@ -94,6 +98,7 @@ namespace 串口助手
                 // 鼠标事件
                 int capturedId = j.Id;
                 thumb.MouseLeftButtonDown += (s, e) => {
+                    SpringPress(s as FrameworkElement);
                     if (e.ClickCount == 2) {
                         // 双击回中
                         j.X = 0; j.Y = 0; SendJoystickValue(j); RefreshJoystickUI(); e.Handled = true; return;
@@ -146,6 +151,7 @@ namespace 串口助手
         private void JoystickThumb_MouseMove(object sender, MouseEventArgs e)
         {
             if (_draggingJoyId == 0) return;
+            SwitchSidePanelToJoystick();
             var j = _joyVM.GetJoystick(_draggingJoyId); if (j == null) return;
             if (!_joyElems.TryGetValue(_draggingJoyId, out var elems)) return;
 
@@ -183,6 +189,7 @@ namespace 串口助手
         private void JoystickThumb_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (_draggingJoyId == 0) return;
+            SpringRelease(sender as FrameworkElement);
             var t = sender as Ellipse; t?.ReleaseMouseCapture();
             var j = _joyVM.GetJoystick(_draggingJoyId);
             if (j != null) SendJoystickValue(j); // 松手发送最终值

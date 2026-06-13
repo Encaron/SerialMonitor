@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace 串口助手
@@ -218,20 +219,27 @@ namespace 串口助手
                     var slider = new Slider {
                         Minimum = svm.MinValue, Maximum = svm.MaxValue, Value = svm.Value,
                         SmallChange = svm.Step, LargeChange = svm.Step * 10,
-                        // 不用 IsSnapToTickEnabled——.NET 8 下拖拽会卡在单格内
                         Height = 28, VerticalAlignment = VerticalAlignment.Center,
+                        Style = (Style)FindResource("ColoredSliderStyle"),
                         Tag = svm,
+                    };
+                    // Q 弹：只作用于滑钮（Thumb），不缩放整条滑杆
+                    slider.PreviewMouseLeftButtonDown += (s, e) => {
+                        if (_sliderVM.IsEditMode) return;
+                        var sl = s as Slider; sl.ApplyTemplate();
+                        var thumb = sl.Template.FindName("Thumb", sl) as FrameworkElement;
+                        if (thumb != null) SpringPress(thumb);
                     };
                     // 拖拽过程中持续更新数值显示 + 节流发送
                     slider.ValueChanged += (s, e) => {
                         if (_sliderVM.IsEditMode) return;
+                        SwitchSidePanelToSliders();
                         var sl = s as Slider; var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
-                        // 按步长取整
                         double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
                         rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
                         vm.Value = rounded;
                         UpdateSliderValueDisplay(sl, vm);
-                        // 节流发送（200ms 默认间隔）
+                        UpdateSliderProgressBar(sl, vm);
                         var now = DateTime.Now;
                         if (!_sliderLastSent.TryGetValue(vm.Name, out var last)
                             || (now - last).TotalMilliseconds >= vm.SendIntervalMs)
@@ -240,14 +248,18 @@ namespace 串口助手
                             SendSliderValue(vm);
                         }
                     };
-                    // 松手时取整 + 确保最终值发送
+                    // 松手：Q 弹回弹（只作用于 Thumb）+ 取整 + 发送
                     slider.PreviewMouseLeftButtonUp += (s, e) => {
                         if (_sliderVM.IsEditMode) return;
-                        var sl = s as Slider; var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
+                        var sl = s as Slider; sl.ApplyTemplate();
+                        var thumb = sl.Template.FindName("Thumb", sl) as FrameworkElement;
+                        if (thumb != null) SpringRelease(thumb);
+                        var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
                         double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
                         rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
                         sl.Value = rounded; vm.Value = rounded;
                         UpdateSliderValueDisplay(sl, vm);
+                        UpdateSliderProgressBar(sl, vm);
                         SendSliderValue(vm);
                     };
                     Grid.SetRow(slider, 1); Grid.SetColumn(slider, 0);
@@ -261,6 +273,13 @@ namespace 串口助手
                     };
                     Grid.SetRow(valTb, 1); Grid.SetColumn(valTb, 1);
                     grid.Children.Add(valTb);
+
+                    // 等布局完成后刷新轨道彩色填充
+                    slider.Loaded += (s2, e2) => {
+                        var sl2 = s2 as Slider;
+                        var vm2 = sl2?.Tag as SliderViewModel;
+                        if (vm2 != null) UpdateSliderProgressBar(sl2, vm2);
+                    };
 
                     card.Child = grid;
                 }
@@ -280,11 +299,43 @@ namespace 串口助手
 
         private void UpdateSliderValueDisplay(Slider slider, SliderViewModel svm)
         {
-            // 找到同 Grid 中的数值 TextBlock
             var grid = slider.Parent as Grid; if (grid == null) return;
             foreach (var child in grid.Children)
                 if (child is TextBlock tb && Grid.GetRow(tb) == 1 && Grid.GetColumn(tb) == 1)
                     { tb.Text = svm.DisplayValue; break; }
+        }
+
+        private void UpdateSliderProgressBar(Slider slider, SliderViewModel svm)
+        {
+            var fill = slider.Template?.FindName("trackFill", slider) as Border;
+            string hex = SliderPanelViewModel.GetColorHex(svm.Color, isDarkTheme);
+            Color baseColor;
+            if (hex != null)
+                baseColor = (Color)ColorConverter.ConvertFromString(hex);
+            else
+                baseColor = ((SolidColorBrush)FindResource("PrimaryBrush")).Color;
+
+            if (fill != null)
+            {
+                double pct = (svm.Value - svm.MinValue) / (svm.MaxValue - svm.MinValue);
+                fill.Width = Math.Max(0, slider.ActualWidth * pct);
+                fill.Background = new SolidColorBrush(baseColor);
+            }
+
+            // 滑钮比轨道深 40%，色差感（thumbDot 在 Thumb 的子模板里，需两层查找）
+            var thumb = slider.Template?.FindName("Thumb", slider) as Thumb;
+            if (thumb != null)
+            {
+                thumb.ApplyTemplate();
+                var thumbDot = thumb.Template?.FindName("thumbDot", thumb) as Ellipse;
+                if (thumbDot != null)
+                {
+                    byte r = (byte)(baseColor.R * 0.60);
+                    byte g = (byte)(baseColor.G * 0.60);
+                    byte b = (byte)(baseColor.B * 0.60);
+                    thumbDot.Fill = new SolidColorBrush(Color.FromRgb(r, g, b));
+                }
+            }
         }
 
         private void ShowSliderFeedback(SliderViewModel svm)

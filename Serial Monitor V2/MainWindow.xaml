@@ -102,6 +102,72 @@
             </Setter>
         </Style>
 
+        <!-- ===== 按键面板按钮模板（无悬停蒙层） ===== -->
+        <ControlTemplate x:Key="KeyButtonTemplate" TargetType="Button">
+            <Border x:Name="border"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="3"
+                    Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  TextBlock.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+        </ControlTemplate>
+
+        <!-- ===== 彩色滑杆（轨道左半填充自定义颜色） ===== -->
+        <Style x:Key="ColoredSliderStyle" TargetType="Slider">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="28">
+                            <!-- 轨道底色（全宽灰条） -->
+                            <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                    Background="{DynamicResource CardBorderBrush}"
+                                    Margin="0,0,0,0"/>
+                            <!-- 彩色填充（宽度+颜色由代码控制） -->
+                            <Border x:Name="trackFill" Height="4" CornerRadius="2"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Width="0"/>
+                            <!-- 透明轨道（覆盖在上面，接收鼠标交互） -->
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse x:Name="thumbDot"
+                                                         Fill="{DynamicResource PrimaryBrush}"
+                                                         Stroke="White" StrokeThickness="2"
+                                                         Width="16" Height="16"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ===== Buttons ===== -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="32" /><Setter Property="MinWidth" Value="72" />

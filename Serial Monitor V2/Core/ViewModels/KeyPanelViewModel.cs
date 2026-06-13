@@ -196,12 +196,80 @@ namespace 串口助手
             return newKeys;
         }
 
-        private static KeyViewModel MakeKey(string name, string pressSendValue, int gid, int lx, int ly, double w, double h)
+        /// <summary>
+        /// 创建游戏键位布局（W A S D + Q E）—— 2 行
+        /// Row 0: Q W E (col 0,1,2)  Row 1: A S D (col 0,1,2)
+        /// </summary>
+        public List<KeyViewModel> CreateWASDLayout()
         {
+            var newKeys = new List<KeyViewModel>();
+            int gid = NewGroupId();
+            double keyW = 48, keyH = 34;
+
+            // Row 0: Q W E
+            newKeys.Add(MakeKey("Q", "", gid, 0, 0, keyW, keyH, upper: true));
+            newKeys.Add(MakeKey("W", "", gid, 1, 0, keyW, keyH, upper: true));
+            newKeys.Add(MakeKey("E", "", gid, 2, 0, keyW, keyH, upper: true));
+            // Row 1: A S D
+            newKeys.Add(MakeKey("A", "", gid, 0, 1, keyW, keyH, upper: true));
+            newKeys.Add(MakeKey("S", "", gid, 1, 1, keyW, keyH, upper: true));
+            newKeys.Add(MakeKey("D", "", gid, 2, 1, keyW, keyH, upper: true));
+
+            Keys.AddRange(newKeys);
+            return newKeys;
+        }
+
+        /// <summary>
+        /// 创建功能键布局（F1 - F12）—— 2 行 × 6 列
+        /// Row 0: F1 F2 F3 F4  F5 F6   Row 1: F7 F8 F9 F10 F11 F12
+        /// </summary>
+        public List<KeyViewModel> CreateFunctionKeyLayout()
+        {
+            var newKeys = new List<KeyViewModel>();
+            int gid = NewGroupId();
+            double keyW = 44, keyH = 30;
+
+            for (int i = 1; i <= 6; i++)
+                newKeys.Add(MakeKey("F" + i, "", gid, i - 1, 0, keyW, keyH, upper: true));
+            for (int i = 7; i <= 12; i++)
+                newKeys.Add(MakeKey("F" + i, "", gid, i - 7, 1, keyW, keyH, upper: true));
+
+            Keys.AddRange(newKeys);
+            return newKeys;
+        }
+
+        /// <summary>
+        /// 创建逻辑按键对布局 —— 6 对常用反义词，2 行 × 6 列横排
+        /// Row 0: up    on    open    start    left    lock
+        /// Row 1: down  off   close   stop     right   unlock
+        /// </summary>
+        public List<KeyViewModel> CreateLogicPairLayout()
+        {
+            var newKeys = new List<KeyViewModel>();
+            int gid = NewGroupId();
+            double keyW = 62, keyH = 30;
+
+            string[] row0 = { "up", "on", "open", "start", "left", "lock" };
+            string[] row1 = { "down", "off", "close", "stop", "right", "unlock" };
+
+            for (int col = 0; col < row0.Length; col++)
+            {
+                newKeys.Add(MakeKey(row0[col], row0[col], gid, col, 0, keyW, keyH));
+                newKeys.Add(MakeKey(row1[col], row1[col], gid, col, 1, keyW, keyH));
+            }
+
+            Keys.AddRange(newKeys);
+            return newKeys;
+        }
+
+        private static KeyViewModel MakeKey(string name, string pressSendValue, int gid, int lx, int ly, double w, double h, bool upper = false)
+        {
+            string finalName = upper ? name.ToUpperInvariant() : name.ToLowerInvariant();
             return new KeyViewModel
             {
-                Name = name.ToLowerInvariant(),
-                PressSendMode = "数据包", PressSendValue = pressSendValue ?? "",
+                Name = finalName,
+                PressSendMode = "数据包",
+                PressSendValue = string.IsNullOrEmpty(pressSendValue) ? finalName : pressSendValue,
                 ReleaseSendMode = "无", ReleaseSendValue = "",
                 GroupId = gid, LayoutX = lx, LayoutY = ly, Width = w, Height = h,
             };
