@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -275,7 +276,7 @@ namespace 串口助手
             int pad = j.PadSize;
             double half = pad / 2.0, thumbR = 16, maxR = half - thumbR;
 
-            var canvas = new Canvas { Width = pad, Height = pad, Background = Brushes.Transparent };
+            var canvas = new Canvas { Width = pad, Height = pad + 24, Background = Brushes.Transparent };
             if (j.Id != 1) canvas.Margin = new Thickness(32, 0, 0, 0);
 
             var borderBrush = (Brush)FindResource("CardBorderBrush");
@@ -387,7 +388,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值
-            var posTb = MakePosTextBlock(j, pad, pad - 10, centerX: true, twoLine: false);
+            var posTb = MakePosTextBlock(j, pad, twoLine: false);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -404,7 +405,7 @@ namespace 串口助手
             int pad = j.PadSize;
             double half = pad / 2.0, thumbR = 14, maxR = half - thumbR;
 
-            var canvas = new Canvas { Width = pad, Height = pad, Background = Brushes.Transparent };
+            var canvas = new Canvas { Width = pad, Height = pad + 24, Background = Brushes.Transparent };
             if (j.Id != 1) canvas.Margin = new Thickness(24, 0, 0, 0);
 
             var border  = (Brush)FindResource("CardBorderBrush");
@@ -492,7 +493,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值（两行）
-            var posTb = MakePosTextBlock(j, pad, pad - 22, centerX: true, twoLine: true);
+            var posTb = MakePosTextBlock(j, pad, twoLine: true);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -509,7 +510,7 @@ namespace 串口助手
             int pad = j.PadSize;
             double half = pad / 2.0, thumbR = 16, maxR = half - thumbR;
 
-            var canvas = new Canvas { Width = pad, Height = pad, Background = Brushes.Transparent };
+            var canvas = new Canvas { Width = pad, Height = pad + 24, Background = Brushes.Transparent };
             if (j.Id != 1) canvas.Margin = new Thickness(32, 0, 0, 0);
 
             var borderBrush = (Brush)FindResource("CardBorderBrush");
@@ -595,7 +596,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值（两行分列）
-            var posTb = MakePosTextBlock(j, pad, pad - 12, centerX: true, twoLine: true);
+            var posTb = MakePosTextBlock(j, pad, twoLine: true);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -612,7 +613,7 @@ namespace 串口助手
             int pad = j.PadSize;
             double half = pad / 2.0, thumbR = 16, maxR = half - thumbR;
 
-            var canvas = new Canvas { Width = pad, Height = pad, Background = Brushes.Transparent };
+            var canvas = new Canvas { Width = pad, Height = pad + 24, Background = Brushes.Transparent };
             if (j.Id != 1) canvas.Margin = new Thickness(32, 0, 0, 0);
 
             var borderBrush = (Brush)FindResource("CardBorderBrush");
@@ -663,7 +664,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值
-            var posTb = MakePosTextBlock(j, pad, pad - 10, centerX: true, twoLine: false);
+            var posTb = MakePosTextBlock(j, pad, twoLine: false);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -673,24 +674,46 @@ namespace 串口助手
 
         // ═══ 共用组件 ═══
 
-        private TextBlock MakePosTextBlock(JoystickViewModel j, int width, double top, bool centerX, bool twoLine)
+        private static readonly Brush JoyGreenBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // Material Green 500
+
+        /// <summary>
+        /// 生成彩色 X/Y 文字块。X 用主题蓝（PrimaryBrush），Y 用绿色。
+        /// 放在大圆盘下方 pad+4 位置。
+        /// </summary>
+        private TextBlock MakePosTextBlock(JoystickViewModel j, int padWidth, bool twoLine)
         {
-            string text = twoLine
-                ? string.Format("X {0:+0.00;-0.00; 0.00}\nY {1:+0.00;-0.00; 0.00}", j.X, j.Y)
-                : string.Format("X {0:+0.00;-0.00; 0.00}  Y {1:+0.00;-0.00; 0.00}", j.X, j.Y);
+            var primary = (Brush)FindResource("PrimaryBrush");
+            var textBrush = (Brush)FindResource("TextSecondaryBrush");
+
             var tb = new TextBlock {
-                Text = text, FontSize = 12,
+                FontSize = 13,
                 FontFamily = new FontFamily("Sarasa Mono SC, Consolas, Courier New"),
-                FontWeight = FontWeights.Medium,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                TextAlignment = centerX ? TextAlignment.Center : TextAlignment.Left,
-                Background = (Brush)FindResource("WindowBgBrush"),
-                Opacity = 0.85,
+                FontWeight = FontWeights.SemiBold,
+                TextAlignment = TextAlignment.Center,
+                Width = padWidth,
             };
-            tb.Padding = new Thickness(6, 2, 6, 2);
-            Canvas.SetLeft(tb, centerX ? 0 : 4);
-            Canvas.SetTop(tb, top);
-            if (centerX) tb.Width = width;
+            Canvas.SetTop(tb, padWidth + 4);
+            Canvas.SetLeft(tb, 0);
+
+            // X 行
+            var xLabel = new Run("X ") { Foreground = textBrush, FontSize = 11, FontWeight = FontWeights.Normal };
+            var xVal  = new Run(string.Format("{0:+0.00;-0.00; 0.00}", j.X)) { Foreground = primary };
+            tb.Inlines.Add(xLabel); tb.Inlines.Add(xVal);
+
+            if (twoLine)
+            {
+                tb.Inlines.Add(new LineBreak());
+            }
+            else
+            {
+                tb.Inlines.Add(new Run("  ") { Foreground = textBrush });
+            }
+
+            // Y 行
+            var yLabel = new Run("Y ") { Foreground = textBrush, FontSize = 11, FontWeight = FontWeights.Normal };
+            var yVal   = new Run(string.Format("{0:+0.00;-0.00; 0.00}", j.Y)) { Foreground = JoyGreenBrush };
+            tb.Inlines.Add(yLabel); tb.Inlines.Add(yVal);
+
             return tb;
         }
 
