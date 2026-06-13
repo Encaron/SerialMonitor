@@ -5,7 +5,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>串口助手</RootNamespace>
     <AssemblyName>Serial Monitor</AssemblyName>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>Icons/icon.ico</ApplicationIcon>
     <LangVersion>12.0</LangVersion>
     <Nullable>disable</Nullable>
     <NoWarn>CA1416</NoWarn>
@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="icon.ico" />
+    <Resource Include="Icons/icon.ico" />
     <Resource Include="Icons\tabs\receive.png" />
     <Resource Include="Icons\tabs\plot.png" />
     <Resource Include="Icons\tabs\keys.png" />
