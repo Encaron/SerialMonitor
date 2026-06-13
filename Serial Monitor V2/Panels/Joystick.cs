@@ -680,6 +680,18 @@ namespace 串口助手
         /// 生成彩色 X/Y 文字块。X 用主题蓝（PrimaryBrush），Y 用绿色。
         /// 放在大圆盘下方 pad+4 位置。
         /// </summary>
+        /// <summary>只更新 X/Y 数值 Run，不破坏彩色格式</summary>
+        private static void UpdatePosTextValues(TextBlock tb, JoystickViewModel j)
+        {
+            var inlines = tb.Inlines;
+            if (inlines.Count < 4) return;
+            // Inlines 结构：[0] "X " [1] X值 [2] "  "/LB [3] "Y " [4] Y值
+            if (inlines.ElementAt(1) is Run xRun)
+                xRun.Text = string.Format("{0:+0.00;-0.00; 0.00}", j.X);
+            if (inlines.ElementAt(inlines.Count - 1) is Run yRun)
+                yRun.Text = string.Format("{0:+0.00;-0.00; 0.00}", j.Y);
+        }
+
         private TextBlock MakePosTextBlock(JoystickViewModel j, int padWidth, bool twoLine)
         {
             var primary = (Brush)FindResource("PrimaryBrush");
@@ -770,8 +782,8 @@ namespace 串口助手
             Canvas.SetLeft(elems.thumb, tx - thumbR); Canvas.SetTop(elems.thumb, ty - thumbR);
             // 更新方向线 / X 色条（全量重建更可靠，但为了流畅只移拇指）
 
-            // 更新读数（主区 + 侧面板）
-            elems.pos.Text = string.Format("X:{0:+0.00;-0.00; 0.00}  Y:{1:+0.00;-0.00; 0.00}", j.X, j.Y);
+            // 更新读数（不改 Inline 结构，只替换数值 Run）
+            UpdatePosTextValues(elems.pos, j);
             RefreshJoystickSideValues();
 
             // 节流发送
