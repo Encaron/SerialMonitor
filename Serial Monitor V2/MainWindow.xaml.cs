@@ -161,12 +161,13 @@ namespace 串口助手
             }
             RefreshIconBarVisibility();
 
-            // 关于页：版本号 + 数据路径（可选中复制）
+            // 关于页：版本号 + GitHub + 数据路径（可选中复制）
             tbAboutVersion.Text = "v2.0.0 (build b4625cb)";
             string dataDir = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "SerialMonitor");
-            tbAboutDataPath.Text = dataDir + "\r\n  prefs.json    偏好配置\r\n  crash.log     崩溃日志\r\n  quick_sends.cfg  快捷发送";
+            tbAboutDataPath.Text = "github.com/Encaron/SerialMonitor\r\n\r\n"
+                + dataDir + "\r\n  prefs.json    偏好配置\r\n  crash.log     崩溃日志\r\n  quick_sends.cfg  快捷发送";
 
             // "+" 按钮 hover 效果
             btnAddPanel.MouseEnter += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextPrimaryBrush");

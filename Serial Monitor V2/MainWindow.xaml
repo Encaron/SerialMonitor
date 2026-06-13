@@ -1556,8 +1556,8 @@
                                 <Run Text="OxyPlot 2.2.0 · AvalonEdit 6.3.1"/><LineBreak/>
                                 <Run Text="CommunityToolkit.Mvvm"/>
                             </TextBlock>
-                            <!-- 数据（可选中复制） -->
-                            <TextBlock Text="数据文件" FontSize="11" FontWeight="SemiBold"
+                            <!-- 链接 & 数据（可选中复制） -->
+                            <TextBlock Text="链接 &amp; 数据" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
                             <TextBox x:Name="tbAboutDataPath" IsReadOnly="True" BorderThickness="0"
                                      FontSize="12" FontFamily="Consolas"
