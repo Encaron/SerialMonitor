@@ -72,11 +72,15 @@ namespace 串口助手
             // Phase 3: 同步 OxyPlot 颜色
             _plotVM?.UpdateThemeColors(dark);
 
-            // Phase 4: 重建按键/滑杆面板（颜色随主题更新）
+            // Phase 4: 重建控制面板（颜色随主题更新——代码创建的控件不自动跟随 DynamicResource）
             if (_keyVM != null && _keyVM.Keys.Count > 0)
                 RefreshKeysUI();
             if (_sliderVM != null && _sliderVM.Sliders.Count > 0)
                 RefreshSlidersUI();
+            if (_joyVM != null)
+                RefreshJoystickUI();
+            if (_displayVM != null)
+                RefreshOLEDUI();
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)
