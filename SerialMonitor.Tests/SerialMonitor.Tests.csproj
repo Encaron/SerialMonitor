@@ -14,6 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Serial Monitor V2\串口助手-WPF.csproj" />
+    <ProjectReference Include="..\Serial Monitor V2\SerialMonitor.csproj" />
   </ItemGroup>
 </Project>
