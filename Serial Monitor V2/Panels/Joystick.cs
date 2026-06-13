@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
 namespace 串口助手
@@ -130,6 +131,38 @@ namespace 串口助手
             _prefs.Save(_prefsData);
         }
 
+        // ═══ 图片加载（优先图片 → 回退代码绘制） ═══
+
+        /// <summary>
+        /// 尝试从 WPF 资源加载图片。文件未放入 Icons/joystick/ 或未注册 .csproj → 返回 null，调用方回退代码绘制。
+        /// </summary>
+        private static ImageBrush TryLoadImageBrush(string relativePath)
+        {
+            try
+            {
+                var uri = new Uri(relativePath, UriKind.Relative);
+                var streamInfo = Application.GetResourceStream(uri);
+                if (streamInfo == null) return null;
+
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = streamInfo.Stream;
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+                bmp.Freeze();
+                return new ImageBrush(bmp) { Stretch = Stretch.Uniform };
+            }
+            catch { return null; }
+        }
+
+        private static (ImageBrush pad, ImageBrush thumb) LoadJoyImages(string styleName)
+        {
+            return (
+                TryLoadImageBrush($"Icons/joystick/pad_{styleName}.png"),
+                TryLoadImageBrush($"Icons/joystick/thumb_{styleName}.png")
+            );
+        }
+
         // ═══ UI 构建 — 入口 ═══
 
         private void RefreshJoystickUI()
@@ -165,80 +198,101 @@ namespace 串口助手
             var borderBrush = (Brush)FindResource("CardBorderBrush");
             var mutedBrush  = (Brush)FindResource("TextMutedBrush");
 
-            // 暗色圆形底板
-            var baseCircle = new Ellipse {
-                Width = pad, Height = pad,
-                Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
-                Stroke = borderBrush, StrokeThickness = 2,
-            };
-            canvas.Children.Add(baseCircle);
+            // 尝试加载图片，找不到则回退代码绘制
+            var (padImg, thumbImg) = LoadJoyImages("gamepad");
+            Ellipse baseCircle;
 
-            // 三圈同心参考圆（25% / 50% / 75%）
-            double[] radii = { 0.25, 0.50, 0.75 };
-            double[] opacities = { 0.25, 0.35, 0.25 };
-            for (int r = 0; r < radii.Length; r++)
+            if (padImg != null)
             {
-                double d = pad * radii[r];
-                var ring = new Ellipse {
-                    Width = d, Height = d,
-                    Stroke = borderBrush, StrokeThickness = 0.8,
-                    Opacity = opacities[r],
+                // 图片底座（圆形裁切）
+                baseCircle = new Ellipse {
+                    Width = pad, Height = pad,
+                    Fill = padImg,
+                    Stroke = borderBrush, StrokeThickness = 2,
                 };
-                Canvas.SetLeft(ring, half - d/2); Canvas.SetTop(ring, half - d/2);
-                canvas.Children.Add(ring);
+                canvas.Children.Add(baseCircle);
             }
-
-            // 8 方向小标记（外圈边缘）
-            for (int a = 0; a < 8; a++)
+            else
             {
-                double angle = a * Math.PI / 4 - Math.PI / 2;
-                double cx = half + Math.Cos(angle) * (half - 8);
-                double cy = half + Math.Sin(angle) * (half - 8);
-                var dot = new Ellipse {
-                    Width = 4, Height = 4,
-                    Fill = mutedBrush, Opacity = 0.5,
+                // 代码绘制：暗色圆形底板
+                baseCircle = new Ellipse {
+                    Width = pad, Height = pad,
+                    Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
+                    Stroke = borderBrush, StrokeThickness = 2,
                 };
-                Canvas.SetLeft(dot, cx - 2); Canvas.SetTop(dot, cy - 2);
-                canvas.Children.Add(dot);
+                canvas.Children.Add(baseCircle);
+
+                // 三圈同心参考圆（25% / 50% / 75%）
+                double[] radii = { 0.25, 0.50, 0.75 };
+                double[] opacities = { 0.25, 0.35, 0.25 };
+                for (int r = 0; r < radii.Length; r++)
+                {
+                    double d = pad * radii[r];
+                    var ring = new Ellipse {
+                        Width = d, Height = d,
+                        Stroke = borderBrush, StrokeThickness = 0.8,
+                        Opacity = opacities[r],
+                    };
+                    Canvas.SetLeft(ring, half - d/2); Canvas.SetTop(ring, half - d/2);
+                    canvas.Children.Add(ring);
+                }
+
+                // 8 方向小标记（外圈边缘）
+                for (int a = 0; a < 8; a++)
+                {
+                    double angle = a * Math.PI / 4 - Math.PI / 2;
+                    double cx = half + Math.Cos(angle) * (half - 8);
+                    double cy = half + Math.Sin(angle) * (half - 8);
+                    var dot = new Ellipse {
+                        Width = 4, Height = 4,
+                        Fill = mutedBrush, Opacity = 0.5,
+                    };
+                    Canvas.SetLeft(dot, cx - 2); Canvas.SetTop(dot, cy - 2);
+                    canvas.Children.Add(dot);
+                }
+
+                // 十字参考线（半透明）
+                foreach (var (x1,y1,x2,y2) in new[] {
+                    (10.0, half, pad-10.0, half),
+                    (half, 10.0, half, pad-10.0) })
+                {
+                    var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
+                        Stroke = borderBrush, StrokeThickness = 0.5, Opacity = 0.4 };
+                    canvas.Children.Add(line);
+                }
+
+                // 方向指示线（中心 → 拇指）
+                double tx = half + j.X * maxR;
+                double ty = half - j.Y * maxR;
+                var guide = new Line {
+                    X1 = half, Y1 = half, X2 = tx, Y2 = ty,
+                    Stroke = (Brush)FindResource("PrimaryBrush"),
+                    StrokeThickness = 1.5, Opacity = 0.35,
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Triangle,
+                };
+                canvas.Children.Add(guide);
             }
 
-            // 十字参考线（半透明）
-            foreach (var (x1,y1,x2,y2) in new[] {
-                (10.0, half, pad-10.0, half),
-                (half, 10.0, half, pad-10.0) })
-            {
-                var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
-                    Stroke = borderBrush, StrokeThickness = 0.5, Opacity = 0.4 };
-                canvas.Children.Add(line);
-            }
+            // 拇指位置
+            double thumbX = half + j.X * maxR;
+            double thumbY = half - j.Y * maxR;
 
-            // 方向指示线（中心 → 拇指）
-            double tx = half + j.X * maxR;
-            double ty = half - j.Y * maxR;
-            var guide = new Line {
-                X1 = half, Y1 = half, X2 = tx, Y2 = ty,
-                Stroke = (Brush)FindResource("PrimaryBrush"),
-                StrokeThickness = 1.5, Opacity = 0.35,
-                StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Triangle,
-            };
-            canvas.Children.Add(guide);
-
-            // 拇指：径向渐变模拟 3D 凸起（代码创建 RadialGradientBrush）
-            var thumbGrad = new RadialGradientBrush(
-                Color.FromRgb(0x40, 0xA0, 0xFF),  // 中心亮蓝
-                Color.FromRgb(0x0E, 0x63, 0x9C))   // 边缘暗蓝
+            // 拇指：图片优先，回退径向渐变
+            var thumbFill = thumbImg ?? (Brush)new RadialGradientBrush(
+                Color.FromRgb(0x40, 0xA0, 0xFF),
+                Color.FromRgb(0x0E, 0x63, 0x9C))
             { GradientOrigin = new Point(0.35, 0.35) };
             var thumb = new Ellipse {
                 Width = thumbR * 2, Height = thumbR * 2,
-                Fill = thumbGrad,
+                Fill = thumbFill,
                 Stroke = Brushes.White, StrokeThickness = 1.5,
                 Cursor = Cursors.Hand,
                 Effect = new System.Windows.Media.Effects.DropShadowEffect {
                     Color = Colors.Black, BlurRadius = 6, ShadowDepth = 2, Opacity = 0.4,
                 },
             };
-            Canvas.SetLeft(thumb, tx - thumbR); Canvas.SetTop(thumb, ty - thumbR);
+            Canvas.SetLeft(thumb, thumbX - thumbR); Canvas.SetTop(thumb, thumbY - thumbR);
             canvas.Children.Add(thumb);
 
             // J1/J2 标签
@@ -270,37 +324,73 @@ namespace 串口助手
             var canvas = new Canvas { Width = pad, Height = pad, Background = Brushes.Transparent };
             if (j.Id != 1) canvas.Margin = new Thickness(24, 0, 0, 0);
 
-            var cardBg  = (Brush)FindResource("CardBgBrush");
             var border  = (Brush)FindResource("CardBorderBrush");
             var muted   = (Brush)FindResource("TextMutedBrush");
             var primary = (Brush)FindResource("PrimaryBrush");
             var secondary = (Brush)FindResource("TextSecondaryBrush");
 
-            // 圆角方形底座
-            var baseRect = new System.Windows.Shapes.Rectangle {
-                Width = pad, Height = pad, RadiusX = 16, RadiusY = 16,
-                Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
-                Stroke = border, StrokeThickness = 1,
-            };
-            canvas.Children.Add(baseRect);
+            // 尝试加载图片
+            var (padImg, thumbImg) = LoadJoyImages("minimal");
 
-            // 2px 网格点阵（淡色参考网格）
-            for (int gx = 0; gx <= 4; gx++)
-            for (int gy = 0; gy <= 4; gy++)
+            if (padImg != null)
             {
-                double px = half + (gx - 2) * (half * 0.4);
-                double py = half + (gy - 2) * (half * 0.4);
-                var dot = new Ellipse { Width = 2, Height = 2, Fill = muted, Opacity = 0.3 };
-                Canvas.SetLeft(dot, px - 1); Canvas.SetTop(dot, py - 1);
-                canvas.Children.Add(dot);
+                // 图片底座
+                var baseRect = new System.Windows.Shapes.Rectangle {
+                    Width = pad, Height = pad, RadiusX = 16, RadiusY = 16,
+                    Fill = padImg,
+                    Stroke = border, StrokeThickness = 1,
+                };
+                canvas.Children.Add(baseRect);
+            }
+            else
+            {
+                // 代码绘制：圆角方形底座
+                var baseRect = new System.Windows.Shapes.Rectangle {
+                    Width = pad, Height = pad, RadiusX = 16, RadiusY = 16,
+                    Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
+                    Stroke = border, StrokeThickness = 1,
+                };
+                canvas.Children.Add(baseRect);
+
+                // 2px 网格点阵（淡色参考网格）
+                for (int gx = 0; gx <= 4; gx++)
+                for (int gy = 0; gy <= 4; gy++)
+                {
+                    double px = half + (gx - 2) * (half * 0.4);
+                    double py = half + (gy - 2) * (half * 0.4);
+                    var dot = new Ellipse { Width = 2, Height = 2, Fill = muted, Opacity = 0.3 };
+                    Canvas.SetLeft(dot, px - 1); Canvas.SetTop(dot, py - 1);
+                    canvas.Children.Add(dot);
+                }
+
+                // 水平色条（底部）— X 偏移可视化
+                var xBarBg = new System.Windows.Shapes.Rectangle {
+                    Width = pad - 40, Height = 4, RadiusX = 2, RadiusY = 2,
+                    Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
+                    Stroke = border, StrokeThickness = 0.5,
+                };
+                Canvas.SetLeft(xBarBg, 20); Canvas.SetTop(xBarBg, pad - 22);
+                canvas.Children.Add(xBarBg);
+
+                // 色条上的当前位置标记
+                double xIndicatorX = 20 + (pad - 40) * (j.X + 1) / 2;
+                var xIndicator = new Ellipse {
+                    Width = 6, Height = 6,
+                    Fill = primary, Stroke = Brushes.White, StrokeThickness = 1,
+                };
+                Canvas.SetLeft(xIndicator, xIndicatorX - 3); Canvas.SetTop(xIndicator, pad - 23);
+                canvas.Children.Add(xIndicator);
             }
 
-            // 拇指：干净扁平圆形 + 阴影
+            // 拇指位置
             double tx = half + j.X * maxR;
             double ty = half - j.Y * maxR;
+
+            // 拇指：图片优先，回退纯色
+            var thumbFill = thumbImg ?? primary;
             var thumb = new Ellipse {
                 Width = thumbR * 2, Height = thumbR * 2,
-                Fill = primary,
+                Fill = thumbFill,
                 Stroke = Brushes.White, StrokeThickness = 2,
                 Cursor = Cursors.Hand,
                 Effect = new System.Windows.Media.Effects.DropShadowEffect {
@@ -309,24 +399,6 @@ namespace 串口助手
             };
             Canvas.SetLeft(thumb, tx - thumbR); Canvas.SetTop(thumb, ty - thumbR);
             canvas.Children.Add(thumb);
-
-            // 水平色条（底部）— X 偏移可视化
-            var xBarBg = new System.Windows.Shapes.Rectangle {
-                Width = pad - 40, Height = 4, RadiusX = 2, RadiusY = 2,
-                Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
-                Stroke = border, StrokeThickness = 0.5,
-            };
-            Canvas.SetLeft(xBarBg, 20); Canvas.SetTop(xBarBg, pad - 22);
-            canvas.Children.Add(xBarBg);
-
-            // 色条上的当前位置标记
-            double xIndicatorX = 20 + (pad - 40) * (j.X + 1) / 2; // map [-1,1] → [20, pad-20]
-            var xIndicator = new Ellipse {
-                Width = 6, Height = 6,
-                Fill = primary, Stroke = Brushes.White, StrokeThickness = 1,
-            };
-            Canvas.SetLeft(xIndicator, xIndicatorX - 3); Canvas.SetTop(xIndicator, pad - 23);
-            canvas.Children.Add(xIndicator);
 
             // 标签
             var label = new TextBlock {
@@ -360,48 +432,68 @@ namespace 串口助手
             var borderBrush = (Brush)FindResource("CardBorderBrush");
             var mutedBrush  = (Brush)FindResource("TextMutedBrush");
 
-            // 外圈（保留原版）
-            var ring = new Ellipse {
-                Width = pad, Height = pad,
-                Stroke = borderBrush, StrokeThickness = 2,
-                Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
-            };
-            canvas.Children.Add(ring);
+            // 尝试加载图片
+            var (padImg, thumbImg) = LoadJoyImages("classic");
+            Ellipse ring;
 
-            // 暗色中心圆底（50% 范围）
-            var innerBg = new Ellipse {
-                Width = pad * 0.5, Height = pad * 0.5,
-                Fill = (Brush)FindResource("CardBgBrush"),
-                Stroke = borderBrush, StrokeThickness = 0.8, Opacity = 0.6,
-            };
-            Canvas.SetLeft(innerBg, half - pad*0.25); Canvas.SetTop(innerBg, half - pad*0.25);
-            canvas.Children.Add(innerBg);
-
-            // 50% 虚线参考圆
-            var dashCircle = new Ellipse {
-                Width = pad * 0.5, Height = pad * 0.5,
-                Stroke = mutedBrush, StrokeThickness = 1,
-                StrokeDashArray = new DoubleCollection { 4, 4 }, Opacity = 0.4,
-            };
-            Canvas.SetLeft(dashCircle, half - pad*0.25); Canvas.SetTop(dashCircle, half - pad*0.25);
-            canvas.Children.Add(dashCircle);
-
-            // 十字线（比原版更淡）
-            foreach (var (x1,y1,x2,y2) in new[] {
-                (10.0, half, pad-10.0, half),
-                (half, 10.0, half, pad-10.0) })
+            if (padImg != null)
             {
-                var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
-                    Stroke = borderBrush, StrokeThickness = 0.5, Opacity = 0.35 };
-                canvas.Children.Add(line);
+                // 图片底座（圆形裁切）
+                ring = new Ellipse {
+                    Width = pad, Height = pad,
+                    Fill = padImg,
+                    Stroke = borderBrush, StrokeThickness = 2,
+                };
+                canvas.Children.Add(ring);
+            }
+            else
+            {
+                // 代码绘制：外圈
+                ring = new Ellipse {
+                    Width = pad, Height = pad,
+                    Stroke = borderBrush, StrokeThickness = 2,
+                    Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
+                };
+                canvas.Children.Add(ring);
+
+                // 暗色中心圆底（50% 范围）
+                var innerBg = new Ellipse {
+                    Width = pad * 0.5, Height = pad * 0.5,
+                    Fill = (Brush)FindResource("CardBgBrush"),
+                    Stroke = borderBrush, StrokeThickness = 0.8, Opacity = 0.6,
+                };
+                Canvas.SetLeft(innerBg, half - pad*0.25); Canvas.SetTop(innerBg, half - pad*0.25);
+                canvas.Children.Add(innerBg);
+
+                // 50% 虚线参考圆
+                var dashCircle = new Ellipse {
+                    Width = pad * 0.5, Height = pad * 0.5,
+                    Stroke = mutedBrush, StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 4, 4 }, Opacity = 0.4,
+                };
+                Canvas.SetLeft(dashCircle, half - pad*0.25); Canvas.SetTop(dashCircle, half - pad*0.25);
+                canvas.Children.Add(dashCircle);
+
+                // 十字线（比原版更淡）
+                foreach (var (x1,y1,x2,y2) in new[] {
+                    (10.0, half, pad-10.0, half),
+                    (half, 10.0, half, pad-10.0) })
+                {
+                    var line = new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
+                        Stroke = borderBrush, StrokeThickness = 0.5, Opacity = 0.35 };
+                    canvas.Children.Add(line);
+                }
             }
 
-            // 拇指：带阴影
+            // 拇指位置
             double tx = half + j.X * maxR;
             double ty = half - j.Y * maxR;
+
+            // 拇指：图片优先，回退主题色
+            var thumbFill = thumbImg ?? (Brush)FindResource("PrimaryBrush");
             var thumb = new Ellipse {
                 Width = thumbR * 2, Height = thumbR * 2,
-                Fill = (Brush)FindResource("PrimaryBrush"),
+                Fill = thumbFill,
                 Stroke = Brushes.White, StrokeThickness = 2,
                 Cursor = Cursors.Hand,
                 Effect = new System.Windows.Media.Effects.DropShadowEffect {
