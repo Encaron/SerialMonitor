@@ -387,7 +387,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值
-            var posTb = MakePosTextBlock(j, pad, pad - 18, centerX: true, twoLine: false);
+            var posTb = MakePosTextBlock(j, pad, pad - 10, centerX: true, twoLine: false);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -492,7 +492,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值（两行）
-            var posTb = MakePosTextBlock(j, pad, pad - 30, centerX: true, twoLine: true);
+            var posTb = MakePosTextBlock(j, pad, pad - 22, centerX: true, twoLine: true);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -595,7 +595,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值（两行分列）
-            var posTb = MakePosTextBlock(j, pad, pad - 20, centerX: true, twoLine: true);
+            var posTb = MakePosTextBlock(j, pad, pad - 12, centerX: true, twoLine: true);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -663,7 +663,7 @@ namespace 串口助手
             canvas.Children.Add(label);
 
             // 数值
-            var posTb = MakePosTextBlock(j, pad, pad - 18, centerX: true, twoLine: false);
+            var posTb = MakePosTextBlock(j, pad, pad - 10, centerX: true, twoLine: false);
             canvas.Children.Add(posTb);
 
             WireJoystickEvents(thumb, canvas, j);
@@ -677,13 +677,17 @@ namespace 串口助手
         {
             string text = twoLine
                 ? string.Format("X {0:+0.00;-0.00; 0.00}\nY {1:+0.00;-0.00; 0.00}", j.X, j.Y)
-                : string.Format("X:{0:+0.00;-0.00; 0.00}  Y:{1:+0.00;-0.00; 0.00}", j.X, j.Y);
+                : string.Format("X {0:+0.00;-0.00; 0.00}  Y {1:+0.00;-0.00; 0.00}", j.X, j.Y);
             var tb = new TextBlock {
-                Text = text, FontSize = 10,
+                Text = text, FontSize = 12,
                 FontFamily = new FontFamily("Sarasa Mono SC, Consolas, Courier New"),
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                FontWeight = FontWeights.Medium,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 TextAlignment = centerX ? TextAlignment.Center : TextAlignment.Left,
+                Background = (Brush)FindResource("WindowBgBrush"),
+                Opacity = 0.85,
             };
+            tb.Padding = new Thickness(6, 2, 6, 2);
             Canvas.SetLeft(tb, centerX ? 0 : 4);
             Canvas.SetTop(tb, top);
             if (centerX) tb.Width = width;
