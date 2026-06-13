@@ -27,6 +27,26 @@ namespace 串口助手
                     brush.Color = target;
             }
 
+            // 覆盖系统颜色，修复 ComboBox/TextBox 等原生控件在暗色下的白色背景
+            if (dark)
+            {
+                Resources[System.Windows.SystemColors.WindowBrushKey]         = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x26));
+                Resources[System.Windows.SystemColors.WindowTextBrushKey]     = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4));
+                Resources[System.Windows.SystemColors.ControlBrushKey]        = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
+                Resources[System.Windows.SystemColors.ControlTextBrushKey]    = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD4));
+                Resources[System.Windows.SystemColors.HighlightBrushKey]      = new SolidColorBrush(Color.FromRgb(0x0E, 0x63, 0x9C));
+                Resources[System.Windows.SystemColors.HighlightTextBrushKey]  = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
+            }
+            else
+            {
+                Resources[System.Windows.SystemColors.WindowBrushKey]         = new SolidColorBrush(Colors.White);
+                Resources[System.Windows.SystemColors.WindowTextBrushKey]     = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x2D));
+                Resources[System.Windows.SystemColors.ControlBrushKey]        = new SolidColorBrush(Color.FromRgb(0xF0, 0xF0, 0xF0));
+                Resources[System.Windows.SystemColors.ControlTextBrushKey]    = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x2D));
+                Resources[System.Windows.SystemColors.HighlightBrushKey]      = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
+                Resources[System.Windows.SystemColors.HighlightTextBrushKey]  = new SolidColorBrush(Colors.White);
+            }
+
             // 同步 C# 颜色常量（暗色下改用 VS Code Dark+ 色值）
             LogReceivedColor = dark ? LogReceivedColorDark : LogReceivedColorLight;
             StatusDotIdle    = dark ? StatusDotIdleDark    : StatusDotIdleLight;

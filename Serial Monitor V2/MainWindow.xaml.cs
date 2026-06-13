@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Linq;
@@ -1340,48 +1341,95 @@ namespace 串口助手
                 tabReceive.IsChecked = true;
         }
 
+        private Popup _addPanelPopup;
+
         /// <summary>
-        /// "+" 按钮下拉菜单：列出所有面板（接收区常驻不可切换，其余可切换显隐）
+        /// "+" 按钮下拉面板：列出所有面板（接收区常驻不可切换，其余可切换显隐）
+        /// 使用 Popup 替代 ContextMenu：支持点击空白自动关闭 + 完全控制样式
         /// </summary>
         private void BtnAddPanel_Click(object sender, RoutedEventArgs e)
         {
-            var menu = new ContextMenu { PlacementTarget = btnAddPanel };
+            if (_addPanelPopup != null && _addPanelPopup.IsOpen) { _addPanelPopup.IsOpen = false; return; }
+
+            var panel = new StackPanel { MinWidth = 180 };
+
+            // 标题
+            panel.Children.Add(new TextBlock {
+                Text = "管理标签显示", FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                Margin = new Thickness(14, 10, 14, 6),
+            });
 
             // 接收区：常驻
-            AddToggleItem(menu, "📡 接收区", "Receive", isVisible: true, canToggle: false);
-            menu.Items.Add(new Separator());
+            AddPopupItem(panel, "📡 接收区", isVisible: true, canToggle: false);
+            panel.Children.Add(new Separator { Margin = new Thickness(10, 4, 10, 4),
+                Background = (Brush)FindResource("CardBorderBrush") });
 
             // 可切换面板
-            AddToggleItem(menu, "📈 波形图", "Plot", _panelVisible["Plot"]);
-            AddToggleItem(menu, "🎮 按键面板", "Keys", _panelVisible["Keys"]);
-            AddToggleItem(menu, "🎚 滑杆面板", "Sliders", _panelVisible["Sliders"]);
-            AddToggleItem(menu, "📱 OLED", "OLED", _panelVisible["OLED"]);
-            AddToggleItem(menu, "🕹 摇杆面板", "Joystick", _panelVisible["Joystick"]);
+            AddPopupItem(panel, "📈 波形图", _panelVisible["Plot"], tab: "Plot");
+            AddPopupItem(panel, "🎮 按键面板", _panelVisible["Keys"], tab: "Keys");
+            AddPopupItem(panel, "🎚 滑杆面板", _panelVisible["Sliders"], tab: "Sliders");
+            AddPopupItem(panel, "📱 OLED", _panelVisible["OLED"], tab: "OLED");
+            AddPopupItem(panel, "🕹 摇杆面板", _panelVisible["Joystick"], tab: "Joystick");
 
-            menu.IsOpen = true;
+            var border = new Border {
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6),
+                Child = panel,
+            };
+
+            _addPanelPopup = new Popup {
+                PlacementTarget = btnAddPanel,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Left,
+                StaysOpen = false,
+                AllowsTransparency = true,
+                Child = border,
+                PopupAnimation = System.Windows.Controls.Primitives.PopupAnimation.Fade,
+                HorizontalOffset = -4,
+            };
+            _addPanelPopup.IsOpen = true;
         }
 
-        private void AddToggleItem(ContextMenu menu, string label, string tab, bool isVisible, bool canToggle = true)
+        private void AddPopupItem(StackPanel panel, string label, bool isVisible, string tab = null, bool canToggle = true)
         {
-            var item = new MenuItem { Padding = new Thickness(12, 7, 24, 7), FontSize = 13 };
-            item.Header = (isVisible ? "✓  " : "    ") + label;
-            item.Foreground = isVisible
+            var item = new Border {
+                Padding = new Thickness(14, 6, 14, 6),
+                Background = Brushes.Transparent,
+                Cursor = canToggle ? Cursors.Hand : Cursors.Arrow,
+                Tag = tab,
+            };
+
+            var tb = new TextBlock { FontSize = 13 };
+            tb.Text = (isVisible ? "✓  " : "    ") + label;
+            tb.Foreground = isVisible
                 ? (Brush)FindResource("PrimaryBrush")
                 : (Brush)FindResource("TextMutedBrush");
-            item.FontWeight = isVisible ? FontWeights.SemiBold : FontWeights.Regular;
+            tb.FontWeight = isVisible ? FontWeights.SemiBold : FontWeights.Regular;
+            item.Child = tb;
+
             if (canToggle)
             {
-                item.Click += (s2, e2) => {
+                item.MouseEnter += (s, e) => {
+                    item.Background = (Brush)FindResource("SecondaryHoverBgBrush");
+                };
+                item.MouseLeave += (s, e) => {
+                    item.Background = Brushes.Transparent;
+                };
+                item.MouseLeftButtonDown += (s2, e2) => {
                     _panelVisible[tab] = !_panelVisible[tab];
                     RefreshIconBarVisibility();
                     SavePanelVisibility();
+                    _addPanelPopup.IsOpen = false;
                 };
             }
             else
             {
-                item.IsEnabled = false;  // 接收区始终灰色不可点击
+                tb.Opacity = 0.5;
             }
-            menu.Items.Add(item);
+
+            panel.Children.Add(item);
         }
 
         private void SavePanelVisibility()

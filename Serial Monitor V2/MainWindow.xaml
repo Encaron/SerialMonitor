@@ -85,7 +85,7 @@
                             <Canvas Width="40" Height="22" ClipToBounds="True">
                                 <Border x:Name="SwitchTrack" Width="40" Height="22"
                                         CornerRadius="11" Background="{DynamicResource InputBorderBrush}" />
-                                <Ellipse x:Name="Knob" Width="18" Height="18" Fill="White"
+                                <Ellipse x:Name="Knob" Width="18" Height="18" Fill="{DynamicResource CardBgBrush}"
                                          Canvas.Left="2" Canvas.Top="2" />
                             </Canvas>
                             <ContentPresenter Grid.Column="1" Margin="8,0,0,0"
