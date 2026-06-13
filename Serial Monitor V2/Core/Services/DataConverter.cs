@@ -136,5 +136,28 @@ namespace 串口助手
 
             return bytes;
         }
+
+        /// <summary>
+        /// 检查 HEX 字符串中被 HexToBytes 过滤掉的无效字符。
+        /// 0-9、A-F、a-f 为合法 HEX 字符，空格视为分隔符不做提示，
+        /// '^' 因历史正则兼容也被保留。
+        /// 返回无效字符集合（去重，最多 10 个），无则返回空字符串。
+        /// </summary>
+        public static string ValidateHexString(string str)
+        {
+            var invalid = new HashSet<char>();
+            foreach (char c in str)
+            {
+                if ((c >= '0' && c <= '9')
+                    || (c >= 'A' && c <= 'F')
+                    || (c >= 'a' && c <= 'f')
+                    || c == ' ' || c == '^')
+                    continue;
+                invalid.Add(c);
+                if (invalid.Count >= 10) break;
+            }
+            if (invalid.Count == 0) return "";
+            return string.Join(" ", invalid);
+        }
     }
 }

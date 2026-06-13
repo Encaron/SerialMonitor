@@ -338,6 +338,48 @@ namespace 串口助手
             if (IsPaused) Flush();  // 暂停时刷新残留数据
         }
 
+        /// <summary>
+        /// 获取某条曲线的原始数据点（用于统计分析）。
+        /// </summary>
+        public List<DataPoint> GetChannelData(string channelName)
+        {
+            if (_series.TryGetValue(channelName, out var ls))
+                return new List<DataPoint>(ls.Points);
+            // 也搜索未注册到 _series 的曲线
+            foreach (var s in Model.Series)
+            {
+                if (s is LineSeries l && l.Title == channelName)
+                    return new List<DataPoint>(l.Points);
+            }
+            return new List<DataPoint>();
+        }
+
+        /// <summary>
+        /// 获取所有已注册曲线名。
+        /// </summary>
+        public List<string> GetChannelNames()
+        {
+            return _series.Keys.ToList();
+        }
+
+        /// <summary>
+        /// 获取图例显示名（Title）。
+        /// </summary>
+        public string GetLegendTitle(string channelName)
+        {
+            return channelName;
+        }
+
+        /// <summary>
+        /// 暂停/继续切换，同时返回新状态。
+        /// Pause → 冻结波形；Resume → 清空冻结标记。
+        /// </summary>
+        public bool TogglePauseAndReturnState()
+        {
+            TogglePause();
+            return IsPaused;
+        }
+
         public void SetMarkers(bool show)
         {
             ShowMarkers = show;

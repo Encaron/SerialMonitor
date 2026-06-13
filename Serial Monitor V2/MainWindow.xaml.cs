@@ -1263,6 +1263,11 @@ namespace 串口助手
                 byte[] dataSend;
                 if (sendMode == "HEX模式")
                 {
+                    string invalidChars = DataConverter.ValidateHexString(content);
+                    if (!string.IsNullOrEmpty(invalidChars))
+                    {
+                        LogSystem($"HEX 输入含无效字符，已忽略：{invalidChars}");
+                    }
                     dataSend = DataConverter.HexToBytes(content);
                 }
                 else
@@ -1807,17 +1812,17 @@ namespace 串口助手
         /// </summary>
         private void ShowCopyToastAndShake(Button btn)
         {
-            // ——— 抖动 ———
+            // ——— 快速抖动（150ms，干脆利落）———
             btn.RenderTransformOrigin = new Point(0.5, 0.5);
             var st = new ScaleTransform(1, 1);
             btn.RenderTransform = st;
 
-            var anim = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(240)) };
+            var anim = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(150)) };
             anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(0))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.15, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(50))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(0.88, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.04, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(170))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(220))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.12, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(33))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(0.90, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(75))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.03, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(110))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(140))));
 
             Dispatcher.BeginInvoke(new Action(() => {
                 st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
@@ -1855,10 +1860,10 @@ namespace 串口助手
 
             toast.IsOpen = true;
 
-            // 1.2 秒后自动关闭
+            // 0.8 秒后自动关闭
             var timer = new System.Windows.Threading.DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(1200),
+                Interval = TimeSpan.FromMilliseconds(800),
             };
             timer.Tick += (s2, e2) => { toast.IsOpen = false; timer.Stop(); };
             timer.Start();
@@ -1924,7 +1929,16 @@ namespace 串口助手
             panelSettings.Visibility = showSettingsPanel     ? Visibility.Visible : Visibility.Collapsed;
             // 侧面板
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
-            rightPlot.Visibility     = _currentTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
+            if (_currentTab == "Plot")
+            {
+                rightPlot.Visibility       = _plotShowDetail ? Visibility.Collapsed : Visibility.Visible;
+                rightPlotDetail.Visibility = _plotShowDetail ? Visibility.Visible      : Visibility.Collapsed;
+            }
+            else
+            {
+                rightPlot.Visibility       = Visibility.Collapsed;
+                rightPlotDetail.Visibility = Visibility.Collapsed;
+            }
             rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
             rightSliders.Visibility  = _currentTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
             rightJoystick.Visibility = _currentTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
@@ -2102,19 +2116,18 @@ namespace 串口助手
                 VerticalAlignment = VerticalAlignment.Stretch,
                 Background = System.Windows.Media.Brushes.Transparent, // 让父级背景透过来
             };
-            // 点击曲线 → 钉住十字光标标记
-            plotView.MouseDown += (s, e) =>
-            {
-                if (!_plotVM.IsPaused) _plotVM.TogglePause();
-                btnPlotPause.Content = _plotVM.IsPaused ? "▶ 继续" : "⏸ 暂停";
-            };
+            // 运行时禁用 OxyPlot 交互，暂停后启用默认控制器
+            plotView.Controller = null;
+            // 鼠标左键：运行中→暂停 / 暂停中→HitTest 曲线切详情 / 未命中→OxyPlot 默认 tracking
+            plotView.MouseLeftButtonDown += PlotView_MouseLeftButtonDown;
             plotArea.Children.Insert(0, plotView);
+            // 暗色模式追踪框颜色修复（ClassHandler 方式，TrackerControl 创建时自动设色）
+            FixPlotTrackerColors(isDarkTheme);
         }
 
         private void btnPlotPause_Click(object sender, RoutedEventArgs e)
         {
-            _plotVM.TogglePause();
-            btnPlotPause.Content = _plotVM.IsPaused ? "▶ 继续" : "⏸ 暂停";
+            TogglePlotPauseWithDetail();
         }
 
         private void btnPlotClear_Click(object sender, RoutedEventArgs e)

@@ -877,9 +877,112 @@
                                     <Run Text="滚轮缩放"/>
                                     <Run Text=" · 右键拖拽平移"/>
                                     <Run Text=" · 悬停查看数值"/>
+                                    <LineBreak/>
+                                    <Run Text="📊 暂停后点上方「详细」按钮，选择曲线查看统计数据"/>
                                 </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
+                        <!-- 曲线详情（暂停后点击曲线） -->
+                        <Grid x:Name="rightPlotDetail" Visibility="Collapsed" Margin="0,0,6,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- 返回按钮 — 固定顶部，不随滚动消失 -->
+                            <Button x:Name="btnPlotDetailBack" Grid.Row="0" Content="← 返回绘图设置"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" Margin="0,0,0,10" Click="btnPlotDetailBack_Click"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                                <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
+                                <!-- 曲线名 -->
+                                <TextBlock x:Name="tbPlotDetailTitle" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                <!-- 幅值区 -->
+                                <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="📊 幅值" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="峰峰值 Vpp" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailVpp" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="最大值 Vmax" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="tbDetailVmax" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="最小值 Vmin" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="tbDetailVmin" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="平均值 Avg" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="tbDetailAvg" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="有效值 RMS" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="tbDetailRms" Style="{DynamicResource FormLabelStyle}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- 频率/时间区 -->
+                                <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8" x:Name="borderDetailFreq">
+                                    <StackPanel>
+                                        <TextBlock Text="⏱ 时间 / 频率" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="频率" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailFreq" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="周期" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="tbDetailPeriod" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="占空比" Style="{DynamicResource FormLabelStyle}" x:Name="lblDuty"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="tbDetailDuty" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="高电平 Th" Style="{DynamicResource FormLabelStyle}" x:Name="lblHigh"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="tbDetailHigh" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="低电平 Tl" Style="{DynamicResource FormLabelStyle}" x:Name="lblLow"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="tbDetailLow" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="5" Grid.Column="0" Text="上升时间 Tr" Style="{DynamicResource FormLabelStyle}" x:Name="lblRise"/>
+                                            <TextBlock Grid.Row="5" Grid.Column="1" x:Name="tbDetailRise" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="下降时间 Tf" Style="{DynamicResource FormLabelStyle}" x:Name="lblFall"/>
+                                            <TextBlock Grid.Row="6" Grid.Column="1" x:Name="tbDetailFall" Style="{DynamicResource FormLabelStyle}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- 波形特征区 -->
+                                <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="📈 波形特征" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="双电平置信度" Style="{DynamicResource FormLabelStyle}" x:Name="lblConf"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailConf" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="边沿陡度" Style="{DynamicResource FormLabelStyle}" x:Name="lblSteep"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="tbDetailSteep" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="抖动 σ" Style="{DynamicResource FormLabelStyle}" x:Name="lblJitter"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="tbDetailJitter" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="信号类型" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="tbDetailSignalType" Style="{DynamicResource FormLabelStyle}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- 数据区 -->
+                                <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="📦 数据" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="数据点数" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailPoints" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="时间跨度" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="tbDetailSpan" Style="{DynamicResource FormLabelStyle}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Margin="0,0,0,6">
+                                    <Button Content="📄 复制数据" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnPlotDetailCopyData_Click" Margin="0,0,0,4"
+                                            ToolTip="复制原始波形数据点（CSV，可贴 Excel）"/>
+                                    <Button Content="📊 复制统计" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnPlotDetailCopyStats_Click" Margin="0,0,0,4"
+                                            ToolTip="复制波形分析统计（幅值/频率/占空比等）"/>
+                                    <Button Content="📋 全部复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnPlotDetailCopyAll_Click"
+                                            ToolTip="复制原始数据 + 分析统计，一份全带走"/>
+                                </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
                         <!-- 按键设置（Phase 4） -->
                         <ScrollViewer x:Name="rightKeys" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
@@ -1446,6 +1549,9 @@
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotCsv_Click"/>
                             <Button x:Name="btnPlotFit" Content="🔍 适应"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotFit_Click"/>
+                            <Button x:Name="btnPlotDetail" Content="📊 详细"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0"
+                                    Click="btnPlotDetail_Click" ToolTip="暂停后查看指定曲线的统计数据"/>
                         </StackPanel>
                     </Border>
                     <!-- 波形图区域（PlotView 在 C# 中懒加载） -->

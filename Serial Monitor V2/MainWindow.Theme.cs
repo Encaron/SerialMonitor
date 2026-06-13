@@ -71,6 +71,8 @@ namespace 串口助手
 
             // Phase 3: 同步 OxyPlot 颜色
             _plotVM?.UpdateThemeColors(dark);
+            // 追踪框（TrackerControl internal 类）背景/文字适配主题
+            FixPlotTrackerColors(dark);
 
             // Phase 4: 重建控制面板（颜色随主题更新——代码创建的控件不自动跟随 DynamicResource）
             if (_keyVM != null && _keyVM.Keys.Count > 0)
