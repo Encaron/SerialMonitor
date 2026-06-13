@@ -1541,8 +1541,8 @@
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,16"/>
                             <TextBlock Text="Serial Monitor" FontSize="18" FontWeight="Bold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock Text="v2.0.0" FontSize="13"
-                                       Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,20"/>
+                            <TextBlock x:Name="tbAboutVersion" FontSize="13"
+                                       Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,20" Text="v2.0.0"/>
                             <!-- 制作 -->
                             <TextBlock Text="制作" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
@@ -1556,16 +1556,15 @@
                                 <Run Text="OxyPlot 2.2.0 · AvalonEdit 6.3.1"/><LineBreak/>
                                 <Run Text="CommunityToolkit.Mvvm"/>
                             </TextBlock>
-                            <!-- 数据 -->
+                            <!-- 数据（可选中复制） -->
                             <TextBlock Text="数据文件" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
-                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                                       FontFamily="Consolas" Margin="0,0,0,16">
-                                <Run Text="%LocalAppData%\SerialMonitor\"/><LineBreak/>
-                                <Run Text="  ├─ prefs.json  "/><Run Text="偏好配置" Foreground="{DynamicResource TextMutedBrush}"/><LineBreak/>
-                                <Run Text="  ├─ crash.log  "/><Run Text="崩溃日志" Foreground="{DynamicResource TextMutedBrush}"/><LineBreak/>
-                                <Run Text="  └─ quick_sends.cfg  "/><Run Text="快捷发送" Foreground="{DynamicResource TextMutedBrush}"/>
-                            </TextBlock>
+                            <TextBox x:Name="tbAboutDataPath" IsReadOnly="True" BorderThickness="0"
+                                     FontSize="12" FontFamily="Consolas"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Background="Transparent" Padding="0" Margin="0,0,0,16"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled"
+                                     MinLines="3" Cursor="Arrow"/>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
