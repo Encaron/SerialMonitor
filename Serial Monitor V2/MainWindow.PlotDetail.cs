@@ -67,6 +67,19 @@ namespace 串口助手
                 btnPlotPause.Content = "⏸ 暂停";
                 if (_plotShowDetail)
                     ReturnToPlotConfig();
+
+                // 恢复时：① 重置节流时钟确保首个数据点立即刷新
+                //          ② 延迟强制 PlotView 重绘防 WPF 渲染合并丢帧
+                _plotVM.OnResumeDrawing();
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (plotView != null)
+                    {
+                        plotView.InvalidateMeasure();
+                        plotView.InvalidateVisual();
+                        _plotVM.Model.InvalidatePlot(false);
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
         }
 
@@ -199,14 +212,14 @@ namespace 串口助手
             sb.AppendLine("Timestamp,Y");
             foreach (var pt in data)
                 sb.AppendLine($"{pt.X:F6},{pt.Y:F6}");
-            Clipboard.SetText(sb.ToString());
+            SafeSetClipboard(sb.ToString());
             if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
         private void btnPlotDetailCopyStats_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_plotDetailCurveName)) return;
-            Clipboard.SetText(BuildStatsText());
+            SafeSetClipboard(BuildStatsText());
             if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
@@ -223,7 +236,7 @@ namespace 串口助手
             sb.AppendLine("Timestamp,Y");
             foreach (var pt in data)
                 sb.AppendLine($"{pt.X:F6},{pt.Y:F6}");
-            Clipboard.SetText(sb.ToString());
+            SafeSetClipboard(sb.ToString());
             if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
@@ -291,7 +304,11 @@ namespace 串口助手
             }
 
             var style = (Style)FindResource("ContextMenuMenuItemStyle");
-            var menu = new ContextMenu(); // 隐式 ContextMenu 样式自动生效
+            var menu = new ContextMenu
+            {
+                PlacementTarget = sender as UIElement,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
+            };
             foreach (var name in names)
             {
                 var item = new MenuItem { Header = $"📈 {name}", Style = style };

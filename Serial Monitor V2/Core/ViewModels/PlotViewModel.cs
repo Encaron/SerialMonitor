@@ -40,6 +40,8 @@ namespace 串口助手
         private DateTime _lastRefresh = DateTime.MinValue;
         private bool _dirty;
 
+        private const double SecPerDay = 86400.0;
+
         public PlotViewModel()
         {
             Model = new PlotModel
@@ -200,6 +202,12 @@ namespace 串口助手
             }
         }
 
+        /// <summary>恢复后重置节流计时器，确保首个数据点立即触发刷新</summary>
+        public void OnResumeDrawing()
+        {
+            _lastRefresh = DateTime.MinValue;
+        }
+
         /// <summary>扫描模式窗口：固定宽度，从 _sweepStartX 开始</summary>
         private void ApplySweepWindow()
         {
@@ -210,7 +218,7 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 滚动模式：根据 MaxDataPoints 调整 X 轴显示窗口。
+        /// 滚动模式：点索引基线（稳定滚动），时间上下界防抖动 + 防暂停 gap 压扁。
         /// </summary>
         public void ApplyXAxisWindow()
         {
@@ -223,7 +231,7 @@ namespace 串口助手
                 if (!(s is LineSeries ls) || ls.Points.Count == 0) continue;
                 totalPoints += ls.Points.Count;
 
-                // 窗口起点：第 (Count - MaxDataPoints) 个点
+                // 窗口起点：第 (Count - MaxDataPoints) 个点（原始逻辑，保证滚动稳定）
                 int startIdx = ls.Points.Count - MaxDataPoints;
                 if (startIdx < 0) startIdx = 0;
                 double startX = ls.Points[startIdx].X;
@@ -235,10 +243,25 @@ namespace 串口助手
 
             if (totalPoints > 0 && windowStart < windowEnd)
             {
-                double margin = (windowEnd - windowStart) * 0.02;
+                double windowRange = windowEnd - windowStart;
+                // 至少 3 秒宽：防止暂停恢复后窗口只剩几个新点 → 波形平缓
+                double minRange = 3.0 / SecPerDay;
+                if (windowRange < minRange)
+                {
+                    windowStart = windowEnd - minRange;
+                    windowRange = minRange;
+                }
+                // 最多 60 秒宽：防止含 gap 时窗口过宽 → 波形被压扁
+                double maxRange = 60.0 / SecPerDay;
+                if (windowRange > maxRange)
+                {
+                    windowStart = windowEnd - maxRange;
+                    windowRange = maxRange;
+                }
+                double margin = windowRange * 0.02;
                 _xAxis.Zoom(windowStart - margin, windowEnd + margin);
+                Model.InvalidatePlot(true);
             }
-            Model.InvalidatePlot(true);
         }
 
         /// <summary>用户手动设置 Y 轴范围（关掉自动时调用）</summary>

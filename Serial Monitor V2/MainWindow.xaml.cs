@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -1364,7 +1365,7 @@ namespace 串口助手
         private void EditorContext_Copy_Click(object sender, RoutedEventArgs e)
         {
             if (!string.IsNullOrEmpty(editor.SelectedText))
-                Clipboard.SetText(editor.SelectedText);
+                SafeSetClipboard(editor.SelectedText);
         }
 
         private void EditorContext_SelectAll_Click(object sender, RoutedEventArgs e)
@@ -1630,7 +1631,7 @@ namespace 串口助手
                 {
                     if (s is Button b && b.Tag is string code)
                     {
-                        Clipboard.SetText(code);
+                        SafeSetClipboard(code);
                         ShowCopyToastAndShake(b);
                     }
                 };
@@ -1709,7 +1710,7 @@ namespace 串口助手
                 {
                     if (s is Button b && b.Tag is string exp)
                     {
-                        Clipboard.SetText(exp);
+                        SafeSetClipboard(exp);
                         ShowCopyToastAndShake(b);
                     }
                 };
@@ -1785,19 +1786,19 @@ namespace 串口助手
 
         private void BtnCopyGitHub_Click(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetText(tbAboutGitHub.Text);
+            SafeSetClipboard(tbAboutGitHub.Text);
             if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
         private void BtnCopyDataPath_Click(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetText(tbAboutDataPath.Text);
+            SafeSetClipboard(tbAboutDataPath.Text);
             if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
         private void BtnCopyIssues_Click(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetText(tbAboutIssues.Text);
+            SafeSetClipboard(tbAboutIssues.Text);
             if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
@@ -1805,6 +1806,19 @@ namespace 串口助手
         {
             System.Diagnostics.Process.Start(
                 new System.Diagnostics.ProcessStartInfo(tbAboutIssues.Text) { UseShellExecute = true });
+        }
+
+        /// <summary>Clipboard.SetText 安全封装：后台 STA 线程执行，不阻塞 UI，不抛异常</summary>
+        private static void SafeSetClipboard(string text)
+        {
+            var t = new Thread(() =>
+            {
+                try { Clipboard.SetText(text); }
+                catch { /* 剪贴板被占用，静默放弃 */ }
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.IsBackground = true;
+            t.Start();
         }
 
         /// <summary>

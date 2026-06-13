@@ -1,6 +1,32 @@
-# Serial Monitor V2 — 图标规格
+# Serial Monitor V2 — 图标与图片素材规范
 
-## 方案 A：AI 自行设计（推荐，零外部依赖）
+## 目录结构
+
+```
+Icons/
+├── README.md            ← 本文件
+├── tabs/                ← 左侧标签栏图标（7 个）
+│   ├── receive.png
+│   ├── plot.png
+│   ├── keys.png
+│   ├── sliders.png
+│   ├── joystick.png
+│   ├── oled.png
+│   └── settings.png
+└── joystick/            ← 摇杆大圆盘素材（用户提供）
+    ├── pad_gamepad.png
+    ├── thumb_gamepad.png
+    ├── pad_minimal.png
+    ├── thumb_minimal.png
+    ├── pad_classic.png
+    └── thumb_classic.png
+```
+
+---
+
+## 一、标签栏图标（tabs/）
+
+### 方案 A：AI 自行设计（推荐，零外部依赖）
 
 使用 WPF XAML Path 矢量图标，嵌入 `MainWindow.xaml` 的 `IconBarButtonStyle` 模板内。
 
@@ -35,20 +61,20 @@
 </Viewbox>
 ```
 
-## 方案 B：用户提供图标文件
+### 方案 B：用户提供图标文件
 
-如果 AI 设计的矢量图标不满意，用户可将图标文件放入本目录。
+如果 AI 设计的矢量图标不满意，用户可将图标文件放入 `Icons/tabs/` 目录。
 
-### 格式要求
+#### 格式要求
 
 | 参数 | 规格 |
 |------|------|
 | 格式 | **PNG**（支持透明背景） |
 | 尺寸 | **32×32 像素**（在 42×42 按钮中居中显示，留 5px 内边距） |
-| 颜色 | **单色深灰**（#888888 左右），软件会自动着色 |
-| 命名 | 见下表（区分大小写） |
+| 颜色 | **单色深灰**（#888888 左右），软件用 `OpacityMask` 自动着色 |
+| 位置 | `Icons/tabs/` |
 
-### 文件命名
+#### 文件命名
 
 | 文件名 | 对应功能 |
 |--------|---------|
@@ -60,18 +86,57 @@
 | `oled.png` | 虚拟 OLED |
 | `settings.png` | 设置 |
 
-### 使用方式
-
-新 AI 在 XAML 中将图标栏按钮改为：
+#### 在 .csproj 中注册
 
 ```xml
-<RadioButton Style="{DynamicResource IconBarButtonStyle}" ToolTip="接收区">
-    <Image Source="Icons/receive.png" Width="18" Height="18" />
-</RadioButton>
+<Resource Include="Icons\tabs\receive.png" />
 ```
 
-文件放在 `Serial Monitor V2/Icons/` 目录下，编译时需在 `.csproj` 中注册为 Resource：
+---
+
+## 二、摇杆大圆盘素材（joystick/）
+
+摇杆面板有三种视觉风格（手柄风 / 极简风 / 经典风），每种需要底座 + 拇指两张图。
+图片放在 `Icons/joystick/`，**文件缺失时自动回退到代码绘制**。
+
+### 格式要求
+
+| 参数 | 底座 (pad) | 拇指 (thumb) |
+|------|:---:|:---:|
+| 格式 | PNG（透明背景） | PNG（透明背景） |
+| 尺寸 | **140×140** px | **32×32** px |
+| 位置 | `Icons/joystick/` | `Icons/joystick/` |
+
+### 文件命名
+
+```
+Icons/joystick/
+├── pad_gamepad.png       ← 手柄风底座
+├── thumb_gamepad.png     ← 手柄风拇指
+├── pad_minimal.png       ← 极简风底座
+├── thumb_minimal.png     ← 极简风拇指
+├── pad_classic.png       ← 经典风底座
+└── thumb_classic.png     ← 经典风拇指
+```
+
+### 在 .csproj 中注册
 
 ```xml
-<Resource Include="Icons\receive.png" />
+<Resource Include="Icons\joystick\pad_gamepad.png" />
+<Resource Include="Icons\joystick\thumb_gamepad.png" />
+<!-- 以此类推 -->
 ```
+
+### 代码逻辑
+
+渲染时优先查找图片：
+
+```csharp
+// 尝试加载图片，不存在则返回 null → 回退代码绘制
+var padUri = $"Icons/joystick/pad_{style}.png";
+var thumbUri = $"Icons/joystick/thumb_{style}.png";
+var padBrush = TryLoadImageBrush(padUri);   // null → 用 Ellipse 代码画
+var thumbBrush = TryLoadImageBrush(thumbUri); // null → 用 Ellipse 代码画
+```
+
+用户只需把 PNG 放进去 + 注册 .csproj，软件自动生效，三套风格独立。

@@ -655,7 +655,7 @@
                         <Rectangle Width="18" Height="18"
                                    Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                             <Rectangle.OpacityMask>
-                                <ImageBrush ImageSource="Icons/settings.png" />
+                                <ImageBrush ImageSource="Icons/tabs/settings.png" />
                             </Rectangle.OpacityMask>
                         </Rectangle>
                     </RadioButton>
@@ -674,7 +674,7 @@
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
-                                    <ImageBrush ImageSource="Icons/receive.png" />
+                                    <ImageBrush ImageSource="Icons/tabs/receive.png" />
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
@@ -684,7 +684,7 @@
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
-                                    <ImageBrush ImageSource="Icons/plot.png" />
+                                    <ImageBrush ImageSource="Icons/tabs/plot.png" />
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
@@ -694,7 +694,7 @@
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
-                                    <ImageBrush ImageSource="Icons/keys.png" />
+                                    <ImageBrush ImageSource="Icons/tabs/keys.png" />
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
@@ -704,7 +704,7 @@
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
-                                    <ImageBrush ImageSource="Icons/sliders.png" />
+                                    <ImageBrush ImageSource="Icons/tabs/sliders.png" />
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
@@ -714,7 +714,7 @@
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
-                                    <ImageBrush ImageSource="Icons/oled.png" />
+                                    <ImageBrush ImageSource="Icons/tabs/oled.png" />
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
@@ -724,7 +724,7 @@
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
-                                    <ImageBrush ImageSource="Icons/joystick.png" />
+                                    <ImageBrush ImageSource="Icons/tabs/joystick.png" />
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
@@ -1748,6 +1748,10 @@
                             <Button x:Name="btnJoystickCenter" Content="⟲ 回中"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
                                     Click="btnJoystickCenter_Click" ToolTip="将所有摇杆归零"/>
+                            <Button x:Name="btnJoystickStyle" Content="风格"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
+                                    Margin="4,0,0,0" Click="btnJoystickStyle_Click"
+                                    ToolTip="切换摇杆外观：手柄风 / 极简风 / 经典风"/>
                         </StackPanel>
                     </Border>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">

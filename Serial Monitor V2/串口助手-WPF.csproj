@@ -38,12 +38,12 @@
 
   <ItemGroup>
     <Resource Include="icon.ico" />
-    <Resource Include="Icons\receive.png" />
-    <Resource Include="Icons\plot.png" />
-    <Resource Include="Icons\keys.png" />
-    <Resource Include="Icons\sliders.png" />
-    <Resource Include="Icons\oled.png" />
-    <Resource Include="Icons\settings.png" />
-    <Resource Include="Icons\joystick.png" />
+    <Resource Include="Icons\tabs\receive.png" />
+    <Resource Include="Icons\tabs\plot.png" />
+    <Resource Include="Icons\tabs\keys.png" />
+    <Resource Include="Icons\tabs\sliders.png" />
+    <Resource Include="Icons\tabs\oled.png" />
+    <Resource Include="Icons\tabs\settings.png" />
+    <Resource Include="Icons\tabs\joystick.png" />
   </ItemGroup>
 </Project>
