@@ -5,6 +5,7 @@
 ```
 Icons/
 ├── README.md            ← 本文件
+├── icon.ico             ← 应用图标（exe 图标）
 ├── tabs/                ← 左侧标签栏图标（7 个）
 │   ├── receive.png
 │   ├── plot.png
