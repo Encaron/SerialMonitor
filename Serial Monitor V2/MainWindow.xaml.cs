@@ -1419,9 +1419,14 @@ namespace 串口助手
                 };
                 item.MouseLeftButtonDown += (s2, e2) => {
                     _panelVisible[tab] = !_panelVisible[tab];
+                    bool nowVisible = _panelVisible[tab];
+                    tb.Text = (nowVisible ? "✓  " : "    ") + label;
+                    tb.Foreground = nowVisible
+                        ? (Brush)FindResource("PrimaryBrush")
+                        : (Brush)FindResource("TextMutedBrush");
+                    tb.FontWeight = nowVisible ? FontWeights.SemiBold : FontWeights.Regular;
                     RefreshIconBarVisibility();
                     SavePanelVisibility();
-                    _addPanelPopup.IsOpen = false;
                 };
             }
             else
