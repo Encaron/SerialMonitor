@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Linq;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Search;
 
@@ -1290,6 +1291,56 @@ namespace 串口助手
             _currentTab = "Settings";
             RefreshContentVisibility();
         }
+
+        /// <summary>
+        /// 图标栏 Click：已选中图标的二次点击 → 侧面板抖动提醒
+        /// </summary>
+        private void IconBarIcon_Click(object sender, RoutedEventArgs e)
+        {
+            string clicked;
+            if (sender == tabReceive)   clicked = "Receive";
+            else if (sender == tabPlot) clicked = "Plot";
+            else if (sender == tabKeys) clicked = "Keys";
+            else if (sender == tabSliders) clicked = "Sliders";
+            else if (sender == tabOLED) clicked = "OLED";
+            else if (sender == tabJoystick) clicked = "Joystick";
+            else if (sender == tabSettings) clicked = "Settings";
+            else return;
+
+            if (clicked == _currentTab)
+                ShakeSidePanel();
+        }
+
+        /// <summary>
+        /// 侧面板水平抖动（已选中图标二次点击反馈）
+        /// </summary>
+        private void ShakeSidePanel()
+        {
+            var transform = sidePanelBorder.RenderTransform as TranslateTransform;
+            if (transform == null)
+            {
+                transform = new TranslateTransform();
+                sidePanelBorder.RenderTransform = transform;
+            }
+
+            var storyboard = new Storyboard();
+            var animation = new DoubleAnimationUsingKeyFrames
+            {
+                Duration = new Duration(TimeSpan.FromMilliseconds(350)),
+            };
+            animation.KeyFrames.Add(new LinearDoubleKeyFrame(0,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(0))));
+            animation.KeyFrames.Add(new LinearDoubleKeyFrame(6,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(60))));
+            animation.KeyFrames.Add(new LinearDoubleKeyFrame(-5,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(140))));
+            animation.KeyFrames.Add(new LinearDoubleKeyFrame(3,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(210))));
+            animation.KeyFrames.Add(new LinearDoubleKeyFrame(-2,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(270))));
+            animation.KeyFrames.Add(new LinearDoubleKeyFrame(0,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(330))));
+
+            Storyboard.SetTarget(animation, transform);
+            Storyboard.SetTargetProperty(animation, new PropertyPath(TranslateTransform.XProperty));
+            storyboard.Children.Add(animation);
+            storyboard.Begin();
+        }
+
         private void RefreshContentVisibility()
         {
             panelReceive.Visibility = _previousContentTab == "Receive" ? Visibility.Visible : Visibility.Collapsed;

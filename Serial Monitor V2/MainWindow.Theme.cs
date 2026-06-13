@@ -58,8 +58,11 @@ namespace 串口助手
             if (statusDotBrush != null && !statusDotBrush.IsFrozen)
                 statusDotBrush.Color = _session.IsOpen ? SuccessColor : StatusDotIdle;
 
-            // 切换按钮文字
+            // 切换按钮：文字 + 外观随主题变化（暗色下亮一点，亮色下暗一点）
             btnThemeSwitch.Content = dark ? "☀ 亮色模式" : "🌙 暗色模式";
+            btnThemeSwitch.Background = dark
+                ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
+                : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
 
             // 触发 LogColorizer 重新着色所有可见行
             editor.TextArea.TextView.Redraw();
