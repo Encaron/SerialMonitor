@@ -163,8 +163,8 @@ namespace 串口助手
 
             // 关于页：版本号 + GitHub + 数据路径
             tbAboutVersion.Text = "v2.0.0 (build b4625cb)";
-            tbAboutDataPath.Text = "github.com/Encaron/SerialMonitor\r\n"
-                + "%LocalAppData%\\SerialMonitor\\\r\n"
+            tbAboutGitHub.Text = "https://github.com/Encaron/SerialMonitor";
+            tbAboutDataPath.Text = "%LocalAppData%\\SerialMonitor\\\r\n"
                 + "  prefs.json    偏好配置\r\n"
                 + "  crash.log     崩溃日志\r\n"
                 + "  quick_sends.cfg  快捷发送";
@@ -1323,12 +1323,78 @@ namespace 串口助手
         private void BtnSettingsBack_Click(object sender, RoutedEventArgs e)
             => SwitchSettingsPage(null);
 
-        private void BtnCopyAboutPath_Click(object sender, RoutedEventArgs e)
+        private void BtnCopyGitHub_Click(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetText(tbAboutGitHub.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        private void BtnCopyDataPath_Click(object sender, RoutedEventArgs e)
         {
             Clipboard.SetText(tbAboutDataPath.Text);
-            var btn = sender as Button;
-            if (btn != null) { var orig = btn.Content; btn.Content = "✓ 已复制"; Dispatcher.BeginInvoke(
-                new Action(() => btn.Content = orig), System.Windows.Threading.DispatcherPriority.Background); }
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        /// <summary>
+        /// 复制按钮反馈：弹出"已复制"提示 + 按钮抖动
+        /// </summary>
+        private void ShowCopyToastAndShake(Button btn)
+        {
+            // ——— 抖动 ———
+            btn.RenderTransformOrigin = new Point(0.5, 0.5);
+            var st = new ScaleTransform(1, 1);
+            btn.RenderTransform = st;
+
+            var anim = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(240)) };
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(0))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.15, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(50))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(0.88, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.04, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(170))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(220))));
+
+            Dispatcher.BeginInvoke(new Action(() => {
+                st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
+                st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+            }), System.Windows.Threading.DispatcherPriority.Render);
+
+            // ——— 浮窗提示 ———
+            var toastBorder = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x30)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4D)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(10, 5, 10, 5),
+                SnapsToDevicePixels = true,
+            };
+            toastBorder.Child = new TextBlock
+            {
+                Text = "✓ 已复制",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Colors.White),
+                FontFamily = btn.FontFamily,
+            };
+
+            var toast = new Popup
+            {
+                PlacementTarget = btn,
+                Placement = PlacementMode.Top,
+                HorizontalOffset = 0,
+                VerticalOffset = -4,
+                StaysOpen = false,
+                AllowsTransparency = true,
+                Child = toastBorder,
+            };
+
+            toast.IsOpen = true;
+
+            // 1.2 秒后自动关闭
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(1200),
+            };
+            timer.Tick += (s2, e2) => { toast.IsOpen = false; timer.Stop(); };
+            timer.Start();
         }
 
         private void SwitchSettingsPage(string page)

@@ -1556,17 +1556,35 @@
                                 <Run Text="OxyPlot 2.2.0 · AvalonEdit 6.3.1"/><LineBreak/>
                                 <Run Text="CommunityToolkit.Mvvm"/>
                             </TextBlock>
-                            <!-- 链接 & 数据 -->
+                            <!-- GitHub -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="链接 &amp; 数据" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="GitHub" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
                                 <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
-                                        Margin="8,0,0,0" Click="BtnCopyAboutPath_Click"/>
+                                        Margin="8,0,0,0" Click="BtnCopyGitHub_Click"/>
                             </StackPanel>
-                            <TextBlock x:Name="tbAboutDataPath" FontSize="12" FontFamily="Consolas"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       Margin="0,0,0,16"/>
+                            <TextBox x:Name="tbAboutGitHub" IsReadOnly="True" BorderThickness="0"
+                                     FontSize="12" FontFamily="Consolas"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Background="Transparent" Padding="0" Margin="0,0,0,12"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled"
+                                     MinLines="1" Cursor="Arrow"/>
+
+                            <!-- 数据路径 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="数据" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
+                                <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="24" MinWidth="0" Padding="8,0" FontSize="11"
+                                        Margin="8,0,0,0" Click="BtnCopyDataPath_Click"/>
+                            </StackPanel>
+                            <TextBox x:Name="tbAboutDataPath" IsReadOnly="True" BorderThickness="0"
+                                     FontSize="12" FontFamily="Consolas"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     Background="Transparent" Padding="0" Margin="0,0,0,16"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled"
+                                     MinLines="3" Cursor="Arrow"/>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
