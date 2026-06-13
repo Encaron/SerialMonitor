@@ -1556,15 +1556,17 @@
                                 <Run Text="OxyPlot 2.2.0 · AvalonEdit 6.3.1"/><LineBreak/>
                                 <Run Text="CommunityToolkit.Mvvm"/>
                             </TextBlock>
-                            <!-- 链接 & 数据（可选中复制） -->
-                            <TextBlock Text="链接 &amp; 数据" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
-                            <TextBox x:Name="tbAboutDataPath" IsReadOnly="True" BorderThickness="0"
-                                     FontSize="12" FontFamily="Consolas"
-                                     Foreground="{DynamicResource TextSecondaryBrush}"
-                                     Background="Transparent" Padding="0" Margin="0,0,0,16"
-                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled"
-                                     MinLines="3" Cursor="Arrow"/>
+                            <!-- 链接 & 数据 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="链接 &amp; 数据" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="24" MinWidth="0" Padding="8,0" FontSize="11"
+                                        Margin="8,0,0,0" Click="BtnCopyAboutPath_Click"/>
+                            </StackPanel>
+                            <TextBlock x:Name="tbAboutDataPath" FontSize="12" FontFamily="Consolas"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,16"/>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
