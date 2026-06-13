@@ -1293,9 +1293,9 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 图标栏 Click：已选中图标的二次点击 → 图标自身水平抖动
+        /// 图标栏 Click：已选中图标二次点击 → 水平脉冲（缩放 X 1→1.25→0.85→1）
         /// </summary>
-        private void IconBarIcon_Click(object sender, RoutedEventArgs e)
+        private void IconBarIcon_Click(object sender, MouseButtonEventArgs e)
         {
             if (sender is not FrameworkElement fe) return;
 
@@ -1311,28 +1311,18 @@ namespace 串口助手
 
             if (clicked != _currentTab) return;
 
-            // 抖动图标自身
-            var transform = fe.RenderTransform as TranslateTransform;
-            if (transform == null)
-            {
-                transform = new TranslateTransform();
-                fe.RenderTransform = transform;
-            }
+            fe.RenderTransformOrigin = new Point(0.5, 0.5);
+            var st = new ScaleTransform(1, 1);
+            fe.RenderTransform = st;
 
-            var sb = new Storyboard();
-            var anim = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(300)) };
-            // 右 → 左 → 右 → 左 → 归位
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(0,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(0))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(8,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(55))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(-6,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(4,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(185))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(-2,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(240))));
-            anim.KeyFrames.Add(new LinearDoubleKeyFrame(0,   KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(290))));
+            var animX = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(280)) };
+            animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(0))));
+            animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.25, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(60))));
+            animX.KeyFrames.Add(new LinearDoubleKeyFrame(0.85, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(140))));
+            animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.08, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(200))));
+            animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(260))));
 
-            Storyboard.SetTarget(anim, transform);
-            Storyboard.SetTargetProperty(anim, new PropertyPath(TranslateTransform.XProperty));
-            sb.Children.Add(anim);
-            sb.Begin();
+            st.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
         }
 
         private void RefreshContentVisibility()

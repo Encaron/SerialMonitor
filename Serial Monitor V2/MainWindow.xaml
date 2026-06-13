@@ -513,7 +513,7 @@
                             Click="BtnPanelCollapse_Click" ToolTip="折叠侧面板" />
                     <RadioButton x:Name="tabSettings" DockPanel.Dock="Bottom"
                                  GroupName="IconBar" Style="{DynamicResource IconBarButtonStyle}"
-                                 ToolTip="串口设置" Margin="0,4" Checked="TabSettings_Checked" Click="IconBarIcon_Click">
+                                 ToolTip="串口设置" Margin="0,4" Checked="TabSettings_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                         <Rectangle Width="18" Height="18"
                                    Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                             <Rectangle.OpacityMask>
@@ -532,7 +532,7 @@
                     <StackPanel Margin="0,4,0,0">
                         <RadioButton x:Name="tabReceive" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="接收区" Checked="TabContent_Checked" Click="IconBarIcon_Click">
+                                     ToolTip="接收区" Checked="TabContent_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -542,7 +542,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabPlot" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="波形图" Checked="TabContent_Checked" Click="IconBarIcon_Click">
+                                     ToolTip="波形图" Checked="TabContent_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -552,7 +552,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabKeys" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="按键面板" Checked="TabContent_Checked" Click="IconBarIcon_Click">
+                                     ToolTip="按键面板" Checked="TabContent_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -562,7 +562,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabSliders" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="滑杆面板" Checked="TabContent_Checked" Click="IconBarIcon_Click">
+                                     ToolTip="滑杆面板" Checked="TabContent_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -572,7 +572,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabOLED" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="OLED" Checked="TabContent_Checked" Click="IconBarIcon_Click">
+                                     ToolTip="OLED" Checked="TabContent_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -582,7 +582,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabJoystick" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="摇杆面板" Checked="TabContent_Checked" Click="IconBarIcon_Click">
+                                     ToolTip="摇杆面板" Checked="TabContent_Checked" PreviewMouseLeftButtonDown="IconBarIcon_Click">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
