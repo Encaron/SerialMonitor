@@ -1183,33 +1183,18 @@
                                 </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
-                        <!-- 设置面板 -->
+                        <!-- 设置面板（导航） -->
                         <ScrollViewer x:Name="rightSettings" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <TextBlock Text="串口配置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="数据位" Style="{DynamicResource FormLabelStyle}"/>
-                                    <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbDataBits"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="停止位" Style="{DynamicResource FormLabelStyle}"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbStopBits"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="校验位" Style="{DynamicResource FormLabelStyle}"/>
-                                    <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbParity"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="流控" Style="{DynamicResource FormLabelStyle}"/>
-                                    <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbFlowControl"/>
-                                </Grid>
-                                <CheckBox x:Name="chkDtr" Content="DTR（数据终端就绪）"
-                                          Checked="chkDtr_Changed" Unchecked="chkDtr_Changed"/>
-                                <CheckBox x:Name="chkRts" Content="RTS（请求发送）"
-                                          Checked="chkRts_Changed" Unchecked="chkRts_Changed"/>
+                                <TextBlock Text="设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                <Button Content="📡 串口配置" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="36" Margin="0,0,0,4" Click="BtnSettingsSerial_Click"/>
+                                <Button Content="⌨ 快捷键提示" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="36" Margin="0,0,0,4" Click="BtnSettingsShortcuts_Click"/>
+                                <Button Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="36" Margin="0,0,0,4" Click="BtnSettingsAbout_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <CheckBox x:Name="chkAutoReconnect" Content="自动重连"
-                                          Checked="chkAutoReconnect_Changed" Unchecked="chkAutoReconnect_Changed"/>
-                                <CheckBox x:Name="chkPersistTraffic" Content="串口打开时不重置流量计数"
-                                          Checked="chkPersistTraffic_Changed" Unchecked="chkPersistTraffic_Changed"/>
-                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <TextBlock Text="外观" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                 <Button x:Name="btnThemeSwitch" Height="36" FontSize="13"
                                         Content="🌙 暗色模式" Style="{DynamicResource SecondaryButtonStyle}"
                                         Click="btnThemeSwitch_Click"/>
@@ -1504,6 +1489,66 @@
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="joystickPanel" Margin="16,12,16,12" Orientation="Horizontal"
                                     HorizontalAlignment="Center"/>
+                    </ScrollViewer>
+                </Grid>
+                <!-- 设置子页面 -->
+                <Grid x:Name="panelSettings" Visibility="Collapsed">
+                    <!-- 串口配置 -->
+                    <ScrollViewer x:Name="settingsSerialPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="16,12">
+                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
+                                    Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
+                            <TextBlock Text="串口配置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="数据位" Style="{DynamicResource FormLabelStyle}"/>
+                                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbDataBits"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="停止位" Style="{DynamicResource FormLabelStyle}"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbStopBits"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="校验位" Style="{DynamicResource FormLabelStyle}"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbParity"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="流控" Style="{DynamicResource FormLabelStyle}"/>
+                                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbFlowControl"/>
+                            </Grid>
+                            <CheckBox x:Name="chkDtr" Content="DTR（数据终端就绪）" Margin="0,8,0,0"
+                                      Checked="chkDtr_Changed" Unchecked="chkDtr_Changed"/>
+                            <CheckBox x:Name="chkRts" Content="RTS（请求发送）"
+                                      Checked="chkRts_Changed" Unchecked="chkRts_Changed"/>
+                            <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                            <CheckBox x:Name="chkAutoReconnect" Content="自动重连"
+                                      Checked="chkAutoReconnect_Changed" Unchecked="chkAutoReconnect_Changed"/>
+                            <CheckBox x:Name="chkPersistTraffic" Content="串口打开时不重置流量计数"
+                                      Checked="chkPersistTraffic_Changed" Unchecked="chkPersistTraffic_Changed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <!-- 快捷键提示 -->
+                    <ScrollViewer x:Name="settingsShortcutsPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="16,12">
+                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
+                                    Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
+                            <TextBlock Text="快捷键提示" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,16"/>
+                            <TextBlock Text="（即将推出）" FontSize="13"
+                                       Foreground="{DynamicResource TextMutedBrush}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <!-- 关于 -->
+                    <ScrollViewer x:Name="settingsAboutPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="16,12">
+                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
+                                    Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
+                            <TextBlock Text="Serial Monitor V2" FontSize="16" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                            <TextBlock Text="v2.0.0" FontSize="13"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2">
+                                <Run Text="基于 WPF .NET 8"/><LineBreak/>
+                                <Run Text="STM32 串口调试助手"/><LineBreak/>
+                                <Run Text="支持协议解析：波形图 / 按键 / 滑杆 / OLED / 摇杆"/>
+                            </TextBlock>
+                        </StackPanel>
                     </ScrollViewer>
                 </Grid>
             </Grid>

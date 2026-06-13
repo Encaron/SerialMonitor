@@ -102,6 +102,7 @@ namespace 串口助手
         // Phase 2: 标签切换
         private string _currentTab = "Receive";
         private string _previousContentTab = "Receive";
+        private string _currentSettingsPage; // null = 未展开子页 / "serial" / "shortcuts" / "about"
         private SearchPanel _searchPanel;
 
         // 图标栏面板显隐管理（决策 12改：+ 下拉菜单切换）
@@ -1284,6 +1285,7 @@ namespace 串口助手
         // ==================================================================
         private void TabContent_Checked(object sender, RoutedEventArgs e)
         {
+            _currentSettingsPage = null; // 离开设置子页面
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
             else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); }
             else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; InitKeyPanel(); }
@@ -1295,6 +1297,31 @@ namespace 串口助手
         private void TabSettings_Checked(object sender, RoutedEventArgs e)
         {
             _currentTab = "Settings";
+            _currentSettingsPage = null;
+            RefreshContentVisibility();
+        }
+
+        // ═══ 设置子页面导航 ═══
+
+        private void BtnSettingsSerial_Click(object sender, RoutedEventArgs e)
+            => SwitchSettingsPage("serial");
+
+        private void BtnSettingsShortcuts_Click(object sender, RoutedEventArgs e)
+            => SwitchSettingsPage("shortcuts");
+
+        private void BtnSettingsAbout_Click(object sender, RoutedEventArgs e)
+            => SwitchSettingsPage("about");
+
+        private void BtnSettingsBack_Click(object sender, RoutedEventArgs e)
+            => SwitchSettingsPage(null);
+
+        private void SwitchSettingsPage(string page)
+        {
+            _currentSettingsPage = page;
+            settingsSerialPage.Visibility     = page == "serial"    ? Visibility.Visible : Visibility.Collapsed;
+            settingsShortcutsPage.Visibility  = page == "shortcuts"  ? Visibility.Visible : Visibility.Collapsed;
+            settingsAboutPage.Visibility      = page == "about"      ? Visibility.Visible : Visibility.Collapsed;
+            // 有子页 → 主区显示设置面板（_previousContentTab 不动，保持之前内容标签）
             RefreshContentVisibility();
         }
 
@@ -1335,12 +1362,17 @@ namespace 串口助手
 
         private void RefreshContentVisibility()
         {
-            panelReceive.Visibility = _previousContentTab == "Receive" ? Visibility.Visible : Visibility.Collapsed;
-            panelPlot.Visibility    = _previousContentTab == "Plot"    ? Visibility.Visible : Visibility.Collapsed;
-            panelKeys.Visibility    = _previousContentTab == "Keys"    ? Visibility.Visible : Visibility.Collapsed;
-            panelSliders.Visibility = _previousContentTab == "Sliders" ? Visibility.Visible : Visibility.Collapsed;
-            panelOLED.Visibility    = _previousContentTab == "OLED"    ? Visibility.Visible : Visibility.Collapsed;
-            panelJoystick.Visibility = _previousContentTab == "Joystick"? Visibility.Visible : Visibility.Collapsed;
+            // 设置面板有子页展开时 → 主区显示设置页；否则 → 保持 _previousContentTab 面板不动
+            bool showSettingsPanel = _currentTab == "Settings" && _currentSettingsPage != null;
+            string mainTab = showSettingsPanel ? null : _previousContentTab;
+            panelReceive.Visibility  = mainTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
+            panelPlot.Visibility     = mainTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
+            panelKeys.Visibility     = mainTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
+            panelSliders.Visibility  = mainTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
+            panelOLED.Visibility     = mainTab == "OLED"     ? Visibility.Visible : Visibility.Collapsed;
+            panelJoystick.Visibility = mainTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
+            panelSettings.Visibility = showSettingsPanel     ? Visibility.Visible : Visibility.Collapsed;
+            // 侧面板
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
             rightPlot.Visibility     = _currentTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
             rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
@@ -1356,7 +1388,7 @@ namespace 串口助手
                 case "Sliders":  tbSidePanelTitle.Text = "滑杆属性"; break;
                 case "Joystick": tbSidePanelTitle.Text = "摇杆设置"; break;
                 case "OLED":     tbSidePanelTitle.Text = "OLED 设置"; break;
-                case "Settings": tbSidePanelTitle.Text = "串口配置"; break;
+                case "Settings": tbSidePanelTitle.Text = "设置"; break;
             }
             // 切换到按键/滑杆面板时刷新侧面板
             if (_currentTab == "Keys") RefreshKeysSidePanel();
