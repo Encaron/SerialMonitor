@@ -495,7 +495,7 @@
                             </Rectangle>
                         </RadioButton>
                     </StackPanel>
-                    <!-- "+" 管理面板下拉（固定在设置上方，不随图标数量移动） -->
+                    <!-- "+" 管理面板下拉（固定在设置上方） -->
                     <Button x:Name="btnAddPanel" DockPanel.Dock="Bottom"
                             Width="42" Height="42" Padding="0"
                             Foreground="{DynamicResource TextMutedBrush}"
