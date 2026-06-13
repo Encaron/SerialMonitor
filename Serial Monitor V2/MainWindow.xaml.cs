@@ -1297,6 +1297,21 @@ namespace 串口助手
             if (_currentTab == "Keys") RefreshKeysSidePanel();
             if (_currentTab == "Sliders") RefreshSlidersSidePanel();
         }
+
+        /// <summary>
+        /// 动态图标栏显隐：按键/滑杆图标仅在有控件时显示（决策 12）
+        /// </summary>
+        private void RefreshIconBarVisibility()
+        {
+            bool hasKeys = _keyVM != null && _keyVM.Keys.Count > 0;
+            bool hasSliders = _sliderVM != null && _sliderVM.Sliders.Count > 0;
+            tabKeys.Visibility = hasKeys ? Visibility.Visible : Visibility.Collapsed;
+            tabSliders.Visibility = hasSliders ? Visibility.Visible : Visibility.Collapsed;
+            // 如果当前标签的图标刚被隐藏，回退到接收区
+            if (_currentTab == "Keys" && !hasKeys) tabReceive.IsChecked = true;
+            if (_currentTab == "Sliders" && !hasSliders) tabReceive.IsChecked = true;
+        }
+
         private void BtnPanelCollapse_Click(object sender, RoutedEventArgs e)
         {
             if (colSidePanel.Width.Value > 30)

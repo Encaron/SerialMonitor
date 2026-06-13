@@ -26,10 +26,10 @@ namespace 串口助手
             _joyVM = new JoystickPanelViewModel();
 
             if (_prefsData != null && _prefsData.TryGetValue("joysticks", out var joyObj)
-                && joyObj is System.Collections.ArrayList arr && arr.Count > 0)
+                && joyObj is List<object> rawList && rawList.Count > 0)
             {
                 var list = new List<Dictionary<string, object>>();
-                foreach (var item in arr)
+                foreach (var item in rawList)
                     if (item is Dictionary<string, object> d) list.Add(d);
                 if (list.Count > 0) _joyVM.DeserializeJoysticks(list);
             }

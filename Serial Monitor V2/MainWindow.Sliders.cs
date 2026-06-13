@@ -25,16 +25,17 @@ namespace 串口助手
 
             // 恢复滑杆
             if (_prefsData != null && _prefsData.TryGetValue("sliders", out var slidersObj)
-                && slidersObj is System.Collections.ArrayList arr && arr.Count > 0)
+                && slidersObj is List<object> rawList && rawList.Count > 0)
             {
                 var list = new List<Dictionary<string, object>>();
-                foreach (var item in arr)
+                foreach (var item in rawList)
                     if (item is Dictionary<string, object> d) list.Add(d);
                 if (list.Count > 0) _sliderVM.DeserializeSliders(list);
             }
 
             InitSlidersColorPanel();
             RefreshSlidersUI();
+            RefreshIconBarVisibility();
         }
 
         // ——— 颜色面板 ———
@@ -79,7 +80,7 @@ namespace 串口助手
             CancelSlidersConfirm();
             _sliderVM.IsEditMode = false; _selectedSliders.Clear();
             slidersToolbarNormal.Visibility = Visibility.Visible; slidersToolbarEdit.Visibility = Visibility.Collapsed;
-            RefreshSlidersUI(); RefreshSlidersSidePanel(); SaveSlidersPrefs();
+            RefreshSlidersUI(); RefreshSlidersSidePanel(); SaveSlidersPrefs(); RefreshIconBarVisibility();
         }
 
         // ——— 添加 / 清空 / 删除 ———
@@ -89,19 +90,19 @@ namespace 串口助手
             string name = "Slider" + (_sliderVM.Sliders.Count + 1);
             var s = _sliderVM.AddSlider(name);
             _selectedSliders.Clear(); _selectedSliders.Add(s);
-            RefreshSlidersUI(); RefreshSlidersSidePanel();
+            RefreshSlidersUI(); RefreshSlidersSidePanel(); RefreshIconBarVisibility();
         }
         private void btnSlidersClearAll_Click(object sender, RoutedEventArgs e) {
             if (_sliderVM == null || _sliderVM.Sliders.Count == 0) return;
             if (_slidersConfirmButton == btnSlidersClearAll) {
                 _sliderVM.ClearAll(); _selectedSliders.Clear();
-                CancelSlidersConfirm(); RefreshSlidersUI(); RefreshSlidersSidePanel();
+                CancelSlidersConfirm(); RefreshSlidersUI(); RefreshSlidersSidePanel(); RefreshIconBarVisibility();
             } else { StartSlidersConfirm(btnSlidersClearAll, "⚠ 确认清空"); }
         }
         private void btnSliderDelete_Click(object sender, RoutedEventArgs e) {
             if (_selectedSliders.Count == 0) return;
             foreach (var s in _selectedSliders.ToList()) _sliderVM.RemoveSlider(s);
-            _selectedSliders.Clear(); RefreshSlidersUI(); RefreshSlidersSidePanel();
+            _selectedSliders.Clear(); RefreshSlidersUI(); RefreshSlidersSidePanel(); RefreshIconBarVisibility();
         }
 
         // ——— 二次确认 ———
