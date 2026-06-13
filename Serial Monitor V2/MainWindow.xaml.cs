@@ -164,6 +164,12 @@ namespace 串口助手
             btnAddPanel.MouseEnter += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextPrimaryBrush");
             btnAddPanel.MouseLeave += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
 
+            // 图标栏二次点击抖动：handledEventsToo=true 确保 ButtonBase 不吞事件
+            var icons = new RadioButton[] { tabReceive, tabPlot, tabKeys, tabSliders, tabOLED, tabJoystick, tabSettings };
+            foreach (var icon in icons)
+                icon.AddHandler(PreviewMouseLeftButtonDownEvent,
+                    new MouseButtonEventHandler(IconBarIcon_Click), handledEventsToo: true);
+
             // 创建串口会话
             _session = new SerialPortSession(Dispatcher);
             _session.LineReceived += OnLineReceived;
@@ -1322,7 +1328,9 @@ namespace 串口助手
             animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.08, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(200))));
             animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(260))));
 
-            st.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
+            Dispatcher.BeginInvoke(new Action(() => {
+                st.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
+            }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         private void RefreshContentVisibility()
