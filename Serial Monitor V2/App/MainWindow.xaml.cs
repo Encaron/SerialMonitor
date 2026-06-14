@@ -166,7 +166,7 @@ namespace 串口助手
             RefreshIconBarVisibility();
 
             // 关于页：版本号 + 运行时 + GitHub + 数据路径 + Issue 反馈
-            tbAboutVersion.Text = "v2.1.0 (build 6488e73)";
+            tbAboutVersion.Text = "v2.1.0 (build aa0309a)";
             tbAboutRuntime.Text = $"{RuntimeInformation.FrameworkDescription} · {RuntimeInformation.ProcessArchitecture}";
             tbAboutGitHub.Text = "https://github.com/Encaron/SerialMonitor";
             tbAboutIssues.Text = "https://github.com/Encaron/SerialMonitor/issues";
