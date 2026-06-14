@@ -1,0 +1,61 @@
+Serial Monitor v2.1.0 — 使用说明
+================================
+
+📦 文件说明
+-----------
+Serial Monitor.exe          主程序（双击运行）
+Serial Monitor.dll          程序主体
+Serial Monitor.deps.json    依赖清单
+Serial Monitor.runtimeconfig.json  运行时配置
+ICSharpCode.AvalonEdit.dll  接收区渲染库
+OxyPlot*.dll                波形图绘图库
+System.IO.Ports.dll         串口通信库
+Icons/                      图标与素材文件夹
+
+⚠️ 系统要求
+-----------
+Windows 10/11
+.NET 8 桌面运行时（必须安装）
+下载地址：https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0
+选择 "运行桌面应用" → 下载 Windows x64 版本安装。
+
+🚀 快速开始
+-----------
+1. 安装 .NET 8 运行时（如已安装可跳过）
+2. 双击 Serial Monitor.exe
+3. 选择串口号和波特率 → 打开串口 → 开始收发
+
+🕹 摇杆 / 🎚 滑杆 — 自定义图片素材
+---------------------------------------
+摇杆和滑杆支持自定义 PNG 图片风格。
+详见软件内 设置 → 素材自定义 页面，或查看 Icons 文件夹下的 README。
+
+⌨ 快捷键
+---------
+Ctrl+Enter    打开/关闭串口
+Ctrl+P        暂停/继续显示
+Ctrl+L        清空接收区
+Ctrl+Shift+L  清空发送区
+Ctrl+F        搜索接收区内容
+
+📋 协议格式（STM32 → PC）
+-------------------------
+格式：[类型, 参数1, 参数2, ...]
+  [plot,曲线名,数值]        波形图数据
+  [slider,名称,百分比]       滑杆控件
+  [key,名字,状态]           按键控件
+  [joystick,编号,h1,v1,h2,v2] 摇杆控件
+  [display,x,y,"文本",字号]  虚拟 OLED
+
+示例：
+  Serial_Printf(&huart1, "[plot,P,%f]\r\n", pid_p);
+  Serial_Printf(&huart1, "[slider,kp,%f]\r\n", kp_val);
+
+🌐 GitHub
+---------
+https://github.com/Encaron/SerialMonitor
+
+📝 制作
+-------
+冯毅力 (Encaron)
+MIT License
