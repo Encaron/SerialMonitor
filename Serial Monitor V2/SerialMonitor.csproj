@@ -19,7 +19,7 @@
 
     <!-- 发布配置 -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishSingleFile>false</PublishSingleFile>
+    <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
 
     <!-- 瘦身：WPF 不支持裁剪，用功能开关砍 BCL 多余部分 -->
