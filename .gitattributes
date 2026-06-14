@@ -1,2 +1,1 @@
-Serial[[:space:]]Monitor[[:space:]]V2/Serial[[:space:]]Monitor.exe filter=lfs diff=lfs merge=lfs -text
 *.exe !text !filter !merge !diff
