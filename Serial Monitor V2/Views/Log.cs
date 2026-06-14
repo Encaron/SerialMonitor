@@ -142,6 +142,7 @@ namespace 串口助手
                     _pausedLines.RemoveAt(0);
                 if (bufferWasFull)
                 {
+                    LogSystem("⚠ 暂停缓冲已满（2000 条），最早的数据已被丢弃");
                     lbSystemLog.Items.Add("---- ⚠ 暂停缓冲已满，最早的数据已被丢弃 ----");
                     while (lbSystemLog.Items.Count > 50)
                         lbSystemLog.Items.RemoveAt(0);
