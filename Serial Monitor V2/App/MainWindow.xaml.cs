@@ -166,7 +166,7 @@ namespace 串口助手
             RefreshIconBarVisibility();
 
             // 关于页：版本号 + 运行时 + GitHub + 数据路径 + Issue 反馈
-            tbAboutVersion.Text = "v2.0.0 (build b4625cb)";
+            tbAboutVersion.Text = "v2.1.0 (build 6488e73)";
             tbAboutRuntime.Text = $"{RuntimeInformation.FrameworkDescription} · {RuntimeInformation.ProcessArchitecture}";
             tbAboutGitHub.Text = "https://github.com/Encaron/SerialMonitor";
             tbAboutIssues.Text = "https://github.com/Encaron/SerialMonitor/issues";
@@ -272,6 +272,12 @@ namespace 串口助手
             // 加载快捷发送按钮
             LoadQuickSends();
             RefreshQuickSendButtons();
+
+            // 确保主题按钮背景在首次加载时正确（亮色模式下 ApplyTheme 尚未被调用）
+            btnThemeSwitch.Content = isDarkTheme ? "☀ 亮色模式" : "🌙 暗色模式";
+            btnThemeSwitch.Background = isDarkTheme
+                ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
+                : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
         }
 
         // ==================================================================
@@ -1405,6 +1411,7 @@ namespace 串口助手
                 ("全局", new[] {"Ctrl", "P"},           "暂停 / 继续显示"),
                 ("全局", new[] {"Ctrl", "L"},           "清空接收区"),
                 ("全局", new[] {"Ctrl", "Shift", "L"},  "清空发送区"),
+            ("全局", new[] {"Ctrl", "F"},           "呼出接收区搜索栏"),
                 ("发送区", new[] {"Enter"},             "发送"),
                 ("发送区", new[] {"Shift", "Enter"},    "换行"),
             };
