@@ -18,3 +18,7 @@ obj/
 *.nlp
 zh-Hans/
 /Serial Monitor.exe
+
+# Installer
+Installer/Output/
+Installer/dotnet-runtime-*.exe
