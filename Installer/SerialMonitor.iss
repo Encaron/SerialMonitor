@@ -3,7 +3,7 @@
 #define MyAppPublisher "Encaron"
 #define MyAppURL "https://github.com/Encaron/SerialMonitor"
 #define MyAppExeName "Serial Monitor.exe"
-#define MySourceDir "D:\STM32CubeIDE_1.17.0\serial\Serial Monitor V2"
+#define MySourceDir "E:\serial\Serial Monitor V2"
 #define DotNetRuntime "dotnet-runtime-8.0.28-win-x64.exe"
 
 [Setup]
