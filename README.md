@@ -1,11 +1,18 @@
-<p align="center">
-  <img src="assets/logo.png" width="128" alt="Serial Monitor">
-</p>
+<h1 align="center">
+  <img src="assets/logo.png" alt="Serial Monitor" width="128" />
+  <br>
+  Serial Monitor V2
+  <br>
+</h1>
+
+<h3 align="center">
+基于 WPF + AvalonEdit + OxyPlot 的串口调试工具。
+</h3>
 
 <p align="center">
-  <b>串口调试工具</b> — 基于 WPF + AvalonEdit + OxyPlot，专为嵌入式开发设计<br>
-  支持波形图实时绘制、按键/滑杆/摇杆/OLED 双向控制面板<br>
-  Languages: 简体中文 · <a href="README.md">English</a>
+  Languages:
+  <a href="./README.md">简体中文</a> ·
+  <a href="./README.md">English</a>
 </p>
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
