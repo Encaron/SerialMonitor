@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
@@ -19,6 +21,39 @@ namespace 串口助手
         private Dictionary<string, DateTime> _sliderLastSent = new Dictionary<string, DateTime>();
         // 缓存模板部件：避免 ValueChanged 每次 FindName+ApplyTemplate 造成拖拽卡顿
         private readonly Dictionary<Slider, (Border trackFill, Ellipse thumbDot, TextBlock valueTb)> _sliderPartsCache = new();
+
+        // ——— 风格系统 ———
+
+        private class SliderStyleParams
+        {
+            public string Name;           // Display name
+            public double TrackH;         // Track background height
+            public double TrackR;         // Track corner radius
+            public double ThumbW;         // Thumb width
+            public double ThumbH;         // Thumb height
+            public double StrokeThick;    // Thumb stroke thickness (0 when using image)
+            public bool IsSquare;         // True = rectangle thumb, false = round
+            public string TrackImg;       // Relative path to track image (null = code-drawn track)
+            public string ThumbImg;       // Relative path to thumb image (null = code-drawn thumb)
+        }
+
+        private static readonly SliderStyleParams DefaultStyleParams = new SliderStyleParams
+        {
+            Name = "默认", TrackH = 4, TrackR = 2, ThumbW = 16, ThumbH = 16,
+            StrokeThick = 2
+        };
+
+        private static readonly SliderStyleParams MinimalStyleParams = new SliderStyleParams
+        {
+            Name = "极简", TrackH = 2, TrackR = 1, ThumbW = 12, ThumbH = 12,
+            StrokeThick = 1
+        };
+
+        private static readonly SliderStyleParams SquareStyleParams = new SliderStyleParams
+        {
+            Name = "方块", TrackH = 4, TrackR = 2, ThumbW = 14, ThumbH = 14,
+            StrokeThick = 0, IsSquare = true
+        };
 
         // ——— 初始化 ———
         private void InitSliderPanel()
@@ -123,12 +158,280 @@ namespace 串口助手
         }
 
         // ═══════════════════════════════════════
+        //  风格系统（每个滑杆独立风格）
+        // ═══════════════════════════════════════
+
+        private SliderStyleParams ResolveTrackParams(string styleName)
+        {
+            if (styleName == "极简") return MinimalStyleParams;
+            if (styleName == "默认" || string.IsNullOrEmpty(styleName)) return DefaultStyleParams;
+            return BuildTrackParams(styleName);
+        }
+
+        private SliderStyleParams ResolveThumbParams(string styleName)
+        {
+            if (styleName == "极简") return MinimalStyleParams;
+            if (styleName == "方块") return SquareStyleParams;
+            if (styleName == "默认" || string.IsNullOrEmpty(styleName)) return DefaultStyleParams;
+            return BuildThumbParams(styleName);
+        }
+
+        private SliderStyleParams BuildTrackParams(string styleName)
+        {
+            var path = $"Icons/sliders/track_{styleName}.png";
+            double h = 4, r = 2;
+            try
+            {
+                var brush = TryLoadImageBrush(path);
+                if (brush?.ImageSource is BitmapSource bmp)
+                {
+                    h = Math.Max(1, Math.Min(16, bmp.PixelHeight));
+                    r = Math.Max(0, Math.Min(8, h / 2.0));
+                    return new SliderStyleParams { Name = styleName, TrackH = h, TrackR = r, TrackImg = path };
+                }
+            }
+            catch { }
+            return new SliderStyleParams { Name = styleName, TrackH = h, TrackR = r };
+        }
+
+        private SliderStyleParams BuildThumbParams(string styleName)
+        {
+            var path = $"Icons/sliders/thumb_{styleName}.png";
+            double w = 16, h = 16;
+            try
+            {
+                var brush = TryLoadImageBrush(path);
+                if (brush?.ImageSource is BitmapSource bmp)
+                {
+                    w = Math.Max(8, Math.Min(48, bmp.PixelWidth));
+                    h = Math.Max(8, Math.Min(48, bmp.PixelHeight));
+                    return new SliderStyleParams { Name = styleName, ThumbW = w, ThumbH = h, StrokeThick = 0, ThumbImg = path };
+                }
+            }
+            catch { }
+            return new SliderStyleParams { Name = styleName, ThumbW = w, ThumbH = h, StrokeThick = 2 };
+        }
+
+        /// <summary>将轨道和拇指各自独立的风格应用到已加载的 Slider 控件</summary>
+        private void ApplySliderStyleToControl(Slider slider, string trackStyle, string thumbStyle)
+        {
+            var tp = ResolveTrackParams(trackStyle ?? "默认");
+            var thp = ResolveThumbParams(thumbStyle ?? "默认");
+            if (tp == null || thp == null) return;
+            var p = new SliderStyleParams
+            {
+                TrackH = tp.TrackH, TrackR = tp.TrackR, TrackImg = tp.TrackImg,
+                ThumbW = thp.ThumbW, ThumbH = thp.ThumbH, StrokeThick = thp.StrokeThick,
+                IsSquare = thp.IsSquare, ThumbImg = thp.ThumbImg,
+            };
+            slider.ApplyTemplate();
+
+            // —— Slider 控件 + 内部 Grid 高度（跟随拇指大小自适应）——
+            double sliderH = Math.Max(28, p.ThumbH + 12);
+            slider.Height = sliderH;
+            var root = slider.Template?.FindName("sliderRoot", slider) as Grid;
+            if (root != null) root.Height = sliderH;
+
+            // —— 轨道：有图用图，无图代码绘制 ——
+            var trackBg = slider.Template?.FindName("trackBg", slider) as Border;
+            var trackImage = slider.Template?.FindName("trackImage", slider) as Image;
+            bool hasTrackImg = !string.IsNullOrEmpty(p.TrackImg);
+
+            if (trackBg != null)
+            {
+                trackBg.Height = p.TrackH;
+                trackBg.CornerRadius = new CornerRadius(p.TrackR);
+                trackBg.Visibility = hasTrackImg ? Visibility.Collapsed : Visibility.Visible;
+            }
+            if (trackImage != null)
+            {
+                if (hasTrackImg)
+                {
+                    var brush = TryLoadImageBrush(p.TrackImg);
+                    if (brush != null)
+                    {
+                        trackImage.Source = brush.ImageSource;
+                        trackImage.Height = p.TrackH;
+                        trackImage.Stretch = Stretch.Fill;
+                        trackImage.VerticalAlignment = VerticalAlignment.Center;
+                        trackImage.Visibility = Visibility.Visible;
+                    }
+                    else { trackImage.Visibility = Visibility.Collapsed; if (trackBg != null) trackBg.Visibility = Visibility.Visible; }
+                }
+                else trackImage.Visibility = Visibility.Collapsed;
+            }
+
+            // —— 彩色填充条尺寸 ——
+            var trackFill = slider.Template?.FindName("trackFill", slider) as Border;
+            if (trackFill != null)
+            {
+                trackFill.Height = p.TrackH;
+                trackFill.CornerRadius = new CornerRadius(p.TrackR);
+            }
+
+            // —— 拇指：有图用图，无图代码绘制 ——
+            var thumb = slider.Template?.FindName("Thumb", slider) as Thumb;
+            if (thumb != null)
+            {
+                thumb.ApplyTemplate();
+                var thumbDot = thumb.Template?.FindName("thumbDot", thumb) as Ellipse;
+                var thumbRect = thumb.Template?.FindName("thumbRect", thumb) as Rectangle;
+                var thumbImage = thumb.Template?.FindName("thumbImage", thumb) as Image;
+                bool hasThumbImg = !string.IsNullOrEmpty(p.ThumbImg);
+
+                // 圆形拇指
+                if (thumbDot != null)
+                {
+                    thumbDot.Width = p.ThumbW;
+                    thumbDot.Height = p.ThumbH;
+                    thumbDot.StrokeThickness = p.StrokeThick;
+                    thumbDot.Visibility = (hasThumbImg || p.IsSquare) ? Visibility.Collapsed : Visibility.Visible;
+                }
+                // 方形拇指
+                if (thumbRect != null)
+                {
+                    thumbRect.Width = p.ThumbW;
+                    thumbRect.Height = p.ThumbH;
+                    thumbRect.Visibility = (!hasThumbImg && p.IsSquare) ? Visibility.Visible : Visibility.Collapsed;
+                }
+                if (thumbImage != null)
+                {
+                    if (hasThumbImg)
+                    {
+                        var brush = TryLoadImageBrush(p.ThumbImg);
+                        if (brush != null)
+                        {
+                            thumbImage.Source = brush.ImageSource;
+                            thumbImage.Width = p.ThumbW;
+                            thumbImage.Height = p.ThumbH;
+                            thumbImage.Stretch = Stretch.Uniform;
+                            thumbImage.Visibility = Visibility.Visible;
+                        }
+                        else { thumbImage.Visibility = Visibility.Collapsed; if (thumbDot != null) thumbDot.Visibility = Visibility.Visible; }
+                    }
+                    else thumbImage.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        // ——— 侧面板轨道 / 拇指独立下拉菜单 ———
+
+        private void btnSliderTrackStyle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedSliders.Count != 1) return;
+            var svm = _selectedSliders[0];
+            ShowStyleMenu(sender, svm, isTrack: true);
+        }
+
+        private void btnSliderThumbStyle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedSliders.Count != 1) return;
+            var svm = _selectedSliders[0];
+            ShowStyleMenu(sender, svm, isTrack: false);
+        }
+
+        private void ShowStyleMenu(object sender, SliderViewModel svm, bool isTrack)
+        {
+            var button = sender as Button;
+            if (button == null) return;
+
+            var menu = new ContextMenu
+            {
+                PlacementTarget = button,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
+            };
+            var itemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
+            var sepStyle = (Style)FindResource("ContextMenuSeparatorStyle");
+
+            string current = isTrack ? svm.TrackStyle : svm.ThumbStyle;
+            string desc = isTrack ? "4px / 2px 轨道高度" : "16px / 12px 圆形拖钮";
+
+            // 把菜单绑定到按钮上（确保能正确打开）
+            button.ContextMenu = menu;
+
+            AddStyleMenuItem(menu, "默认", desc, itemStyle, current == "默认", svm, isTrack);
+            AddStyleMenuItem(menu, "极简", desc, itemStyle, current == "极简", svm, isTrack);
+            if (!isTrack) AddStyleMenuItem(menu, "方块", "14×14 方角矩形 · 无描边", itemStyle, current == "方块", svm, isTrack);
+
+            var customs = isTrack ? ScanCustomTrackStyles() : ScanCustomSliderThumbStyles();
+            if (customs.Count > 0)
+            {
+                menu.Items.Add(new Separator { Style = sepStyle });
+                foreach (var name in customs)
+                    AddStyleMenuItem(menu, name, "图片自定义", itemStyle, current == name, svm, isTrack);
+            }
+
+            menu.IsOpen = true;
+        }
+
+        private void AddStyleMenuItem(ContextMenu menu, string name, string desc, Style style, bool isCurrent,
+            SliderViewModel svm, bool isTrack)
+        {
+            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            headerPanel.Children.Add(new TextBlock
+            {
+                Text = (isCurrent ? "✓ " : "   ") + name,
+                FontSize = 12, FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            headerPanel.Children.Add(new TextBlock
+            {
+                Text = "  " + desc, FontSize = 10,
+                Foreground = (Brush)FindResource("TextMutedBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            var item = new MenuItem { Header = headerPanel, Style = style, Tag = name };
+            item.Click += (s2, e2) =>
+            {
+                if (isTrack) svm.TrackStyle = (string)((MenuItem)s2).Tag;
+                else svm.ThumbStyle = (string)((MenuItem)s2).Tag;
+                RefreshSlidersUI();
+                RefreshSlidersSidePanel();
+                SaveSlidersPrefs();
+            };
+            menu.Items.Add(item);
+        }
+
+        private static List<string> ScanCustomTrackStyles()
+        {
+            return ScanStyleFiles("track_*.png", "track_");
+        }
+
+        private static List<string> ScanCustomSliderThumbStyles()
+        {
+            return ScanStyleFiles("thumb_*.png", "thumb_");
+        }
+
+        private static List<string> ScanStyleFiles(string pattern, string prefix)
+        {
+            var result = new List<string>();
+            try
+            {
+                var exeDir = AppContext.BaseDirectory;
+                var slidersDir = System.IO.Path.Combine(exeDir, "Icons", "sliders");
+                if (!Directory.Exists(slidersDir)) return result;
+
+                foreach (var file in Directory.GetFiles(slidersDir, pattern))
+                {
+                    var name = System.IO.Path.GetFileNameWithoutExtension(file);
+                    if (name.StartsWith(prefix) && name.Length > prefix.Length)
+                        name = name.Substring(prefix.Length);
+                    if (!string.IsNullOrEmpty(name) && !result.Contains(name))
+                        result.Add(name);
+                }
+            }
+            catch { }
+            return result;
+        }
+
+        // ═══════════════════════════════════════
         //  滑杆 UI 刷新
         // ═══════════════════════════════════════
 
         private void RefreshSlidersUI()
         {
             if (_sliderVM == null) return;
+            _sliderPartsCache.Clear();
             slidersPanel.Children.Clear();
             bool hasSliders = _sliderVM.Sliders.Count > 0;
             bool isEdit = _sliderVM.IsEditMode;
@@ -171,39 +474,8 @@ namespace 串口助手
                     }
                 }
 
-                if (isEdit)
                 {
-                    // ── 编辑模式：紧凑单行 ──
-                    var editRow = new Grid { Height = 28 };
-                    editRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                    editRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                    var nameLabel = new TextBlock {
-                        Text = "✎ " + svm.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
-                        Foreground = (Brush)FindResource("PrimaryBrush"),
-                        VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand,
-                    };
-                    nameLabel.MouseLeftButtonDown += (s2, e2) => {
-                        _selectedSliders.Clear(); _selectedSliders.Add(svm);
-                        SwitchSidePanelToSliders();
-                        RefreshSlidersUI(); RefreshSlidersSidePanel();
-                    };
-                    Grid.SetColumn(nameLabel, 0); editRow.Children.Add(nameLabel);
-
-                    var valTb = new TextBlock {
-                        Text = string.Format("{0} — {1} · {2}", svm.DisplayValue,
-                            svm.MinValue + "~" + svm.MaxValue,
-                            "步长" + svm.Step),
-                        FontSize = 10, Foreground = (Brush)FindResource("TextMutedBrush"),
-                        VerticalAlignment = VerticalAlignment.Center,
-                    };
-                    Grid.SetColumn(valTb, 1); editRow.Children.Add(valTb);
-
-                    card.Child = editRow;
-                }
-                else
-                {
-                    // ── 正常模式：名字 + 滑杆 + 数值 ──
+                    // ── 名字 + 滑杆 + 数值（编辑和正常模式都显示滑杆预览）──
                     var grid = new Grid();
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -211,17 +483,27 @@ namespace 串口助手
                     grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
                     var nameLabel = new TextBlock {
-                        Text = svm.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
-                        Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                        Text = isEdit ? "✎ " + svm.Name : svm.Name,
+                        FontSize = 12, FontWeight = FontWeights.SemiBold,
+                        Foreground = isEdit ? (Brush)FindResource("PrimaryBrush") : (Brush)FindResource("TextPrimaryBrush"),
                         Margin = new Thickness(0, 0, 0, 6),
+                        Cursor = isEdit ? Cursors.Hand : Cursors.Arrow,
                     };
+                    if (isEdit)
+                    {
+                        nameLabel.MouseLeftButtonDown += (s2, e2) => {
+                            _selectedSliders.Clear(); _selectedSliders.Add(svm);
+                            SwitchSidePanelToSliders();
+                            RefreshSlidersUI(); RefreshSlidersSidePanel();
+                        };
+                    }
                     Grid.SetRow(nameLabel, 0); Grid.SetColumn(nameLabel, 0); Grid.SetColumnSpan(nameLabel, 2);
                     grid.Children.Add(nameLabel);
 
                     var slider = new Slider {
                         Minimum = svm.MinValue, Maximum = svm.MaxValue, Value = svm.Value,
                         SmallChange = svm.Step, LargeChange = svm.Step * 10,
-                        Height = 28, VerticalAlignment = VerticalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
                         Style = (Style)FindResource("ColoredSliderStyle"),
                         Tag = svm,
                     };
@@ -284,6 +566,7 @@ namespace 串口助手
                         var sl2 = s2 as Slider;
                         var vm2 = sl2?.Tag as SliderViewModel;
                         if (vm2 == null) return;
+                        ApplySliderStyleToControl(sl2, vm2.TrackStyle ?? "默认", vm2.ThumbStyle ?? "默认");
                         var tFill = sl2.Template?.FindName("trackFill", sl2) as Border;
                         var thumb2 = sl2.Template?.FindName("Thumb", sl2) as Thumb;
                         Ellipse tDot = null;
@@ -338,6 +621,21 @@ namespace 串口助手
                 byte b = (byte)(baseColor.B * 0.60);
                 thumbDot.Fill = new SolidColorBrush(Color.FromRgb(r, g, b));
             }
+
+            // 方形拇指也同步颜色
+            var thumb = slider.Template?.FindName("Thumb", slider) as Thumb;
+            if (thumb != null)
+            {
+                thumb.ApplyTemplate();
+                var thumbRect = thumb.Template?.FindName("thumbRect", thumb) as Rectangle;
+                if (thumbRect != null && thumbRect.Visibility == Visibility.Visible)
+                {
+                    byte r = (byte)(baseColor.R * 0.60);
+                    byte g = (byte)(baseColor.G * 0.60);
+                    byte b = (byte)(baseColor.B * 0.60);
+                    thumbRect.Fill = new SolidColorBrush(Color.FromRgb(r, g, b));
+                }
+            }
         }
 
         private void ShowSliderFeedback(SliderViewModel svm)
@@ -367,6 +665,8 @@ namespace 串口助手
             var svm = _selectedSliders[0];
             rightSlidersSingleSelect.Visibility = Visibility.Visible;
             tbSliderName.Text = svm.Name;
+            btnSliderTrackStyle.Content = (svm.TrackStyle ?? "默认") + " ▾";
+            btnSliderThumbStyle.Content = (svm.ThumbStyle ?? "默认") + " ▾";
             tbSliderMin.Text = svm.MinValue.ToString();
             tbSliderMax.Text = svm.MaxValue.ToString();
             tbSliderStep.Text = svm.Step.ToString();

@@ -14,13 +14,19 @@ Icons/
 │   ├── joystick.png
 │   ├── oled.png
 │   └── settings.png
-└── joystick/            ← 摇杆大圆盘素材（用户提供）
-    ├── pad_gamepad.png
-    ├── thumb_gamepad.png
-    ├── pad_minimal.png
-    ├── thumb_minimal.png
-    ├── pad_classic.png
-    └── thumb_classic.png
+├── joystick/            ← 摇杆大圆盘素材（用户提供）
+│   ├── pad_gamepad.png
+│   ├── thumb_gamepad.png
+│   ├── pad_minimal.png
+│   ├── thumb_minimal.png
+│   ├── pad_classic.png
+│   └── thumb_classic.png
+└── sliders/             ← 滑杆轨道+滑钮素材（用户提供）
+    ├── README.md
+    ├── track_default.png    ← 可选：覆盖内置"默认"轨道
+    ├── thumb_default.png    ← 可选：覆盖内置"默认"滑钮
+    ├── track_minimal.png    ← 可选：覆盖内置"极简"轨道
+    └── thumb_minimal.png    ← 可选：覆盖内置"极简"滑钮
 ```
 
 ---

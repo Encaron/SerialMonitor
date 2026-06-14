@@ -22,11 +22,17 @@ namespace 串口助手
         private Point _dragOrigin;
         private DateTime _lastJoySent;
 
-        private enum JoyStyle { Gamepad, Minimal, Classic, Custom }
-        private JoyStyle _joyStyle = JoyStyle.Gamepad;
-        private string _customJoyStyle = "";
-        private const string JoyStyleKey = "joystickStyle";
-        private const string JoyCustomStyleKey = "joystickCustomStyle";
+        // 底板和拇指独立风格（用字符串：内置="手柄风"/"极简风"/"经典风"，自定义=任意名）
+        private string _padStyle = "手柄风";
+        private string _thumbStyle = "手柄风";
+        private string _customPadStyle = "";
+        private string _customThumbStyle = "";
+        private const string JoyPadStyleKey = "joystickPadStyle";
+        private const string JoyThumbStyleKey = "joystickThumbStyle";
+        private const string JoyCustomPadKey = "joystickCustomPad";
+        private const string JoyCustomThumbKey = "joystickCustomThumb";
+
+        private static readonly HashSet<string> BuiltInJoyStyles = new HashSet<string> { "手柄风", "极简风", "经典风" };
 
         private void SwitchSidePanelToJoystick() {
             if (_currentTab != "Joystick") { tabJoystick.IsChecked = true; }
@@ -57,111 +63,115 @@ namespace 串口助手
 
         // ═══ 风格切换（下拉菜单，参照键盘布局菜单模式） ═══
 
-        private void btnJoystickStyle_Click(object sender, RoutedEventArgs e)
+        // ——— 底板 / 拇指独立下拉菜单 ———
+
+        private void btnJoystickPadStyle_Click(object sender, RoutedEventArgs e) => ShowJoyStyleMenu(sender, isPad: true);
+        private void btnJoystickThumbStyle_Click(object sender, RoutedEventArgs e) => ShowJoyStyleMenu(sender, isPad: false);
+
+        private void ShowJoyStyleMenu(object sender, bool isPad)
         {
+            var button = sender as Button;
+            if (button == null) return;
+
             var menu = new ContextMenu
             {
-                PlacementTarget = sender as UIElement,
+                PlacementTarget = button,
                 Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
             };
-            var style = (Style)FindResource("ContextMenuMenuItemStyle");
+            button.ContextMenu = menu;
+
+            var itemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
             var sepStyle = (Style)FindResource("ContextMenuSeparatorStyle");
 
-            // —— 三个内置风格（始终存在）——
-            AddBuiltinJoyItem(menu, "手柄风", "同心参考圆 + 8 方向标记 + 方向指示线 + 3D 拇指", style);
-            AddBuiltinJoyItem(menu, "极简风", "圆角底座 + 网格点阵 + X 色条指示器 + 扁平拇指", style);
-            AddBuiltinJoyItem(menu, "经典风", "原版结构 + 50% 虚线圆 + 阴影拇指 + X/Y 分行", style);
+            string current = isPad ? (_padStyle) : (_thumbStyle);
+            if (!BuiltInJoyStyles.Contains(current)) current = _customPadStyle; // custom
 
-            // —— 自动发现自定义风格（Icons/joystick/ 下 pad_xxx.png）——
-            var customs = ScanCustomJoyStyles();
+            AddJoyStyleMenuItem(menu, "手柄风", "同心参考圆 + 8 方向标记 + 方向指示线", itemStyle, current == "手柄风", isPad);
+            AddJoyStyleMenuItem(menu, "极简风", "圆角底座 + 网格点阵 + X 色条", itemStyle, current == "极简风", isPad);
+            AddJoyStyleMenuItem(menu, "经典风", "50% 虚线圆 + 阴影 + X/Y 分行", itemStyle, current == "经典风", isPad);
+
+            var customs = isPad ? ScanCustomPadStyles() : ScanCustomThumbStyles();
             if (customs.Count > 0)
             {
                 menu.Items.Add(new Separator { Style = sepStyle });
                 foreach (var name in customs)
-                    AddCustomJoyItem(menu, name, style);
+                    AddJoyStyleMenuItem(menu, name, "图片自定义", itemStyle, current == name, isPad);
             }
 
             menu.IsOpen = true;
         }
 
-        private void AddBuiltinJoyItem(ContextMenu menu, string label, string tooltip, Style style)
+        private void AddJoyStyleMenuItem(ContextMenu menu, string label, string desc, Style style, bool isCurrent, bool isPad)
         {
-            bool isCurrent = _joyStyle != JoyStyle.Custom && label.Contains(_joyStyle switch
+            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            headerPanel.Children.Add(new TextBlock
             {
-                JoyStyle.Gamepad => "手柄风", JoyStyle.Minimal => "极简风", _ => "经典风",
+                Text = (isCurrent ? "✓ " : "   ") + label,
+                FontSize = 12, FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
+                VerticalAlignment = VerticalAlignment.Center,
             });
-            var item = new MenuItem
+            headerPanel.Children.Add(new TextBlock
             {
-                Header = (isCurrent ? "✓ " : "    ") + label,
-                ToolTip = tooltip,
-                Style = style,
-            };
-            string capturedLabel = label;
-            item.Click += (s, e) =>
+                Text = "  " + desc, FontSize = 10,
+                Foreground = (Brush)FindResource("TextMutedBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            var item = new MenuItem { Header = headerPanel, Style = style, Tag = label };
+            item.Click += (s2, e2) =>
             {
-                _joyStyle = capturedLabel.Contains("手柄风") ? JoyStyle.Gamepad
-                          : capturedLabel.Contains("极简风") ? JoyStyle.Minimal
-                          : JoyStyle.Classic;
-                _customJoyStyle = "";
-                btnJoystickStyle.Content = CurrentJoyStyleLabel();
+                string chosen = (string)((MenuItem)s2).Tag;
+                if (BuiltInJoyStyles.Contains(chosen))
+                {
+                    if (isPad) { _padStyle = chosen; _customPadStyle = ""; }
+                    else { _thumbStyle = chosen; _customThumbStyle = ""; }
+                }
+                else
+                {
+                    if (isPad) { _padStyle = "自定义"; _customPadStyle = chosen; }
+                    else { _thumbStyle = "自定义"; _customThumbStyle = chosen; }
+                }
+                btnJoystickPadStyle.Content = JoyPadLabel() + " ▾";
+                btnJoystickThumbStyle.Content = JoyThumbLabel() + " ▾";
                 RefreshJoystickUI();
-                SaveJoystickStyleInPrefs();
+                SaveJoyStylePrefs();
             };
             menu.Items.Add(item);
         }
 
-        private void AddCustomJoyItem(ContextMenu menu, string name, Style style)
-        {
-            bool isCurrent = _joyStyle == JoyStyle.Custom && _customJoyStyle == name;
-            var item = new MenuItem
-            {
-                Header = (isCurrent ? "✓ " : "    ") + name,
-                ToolTip = $"自定义：Icons/joystick/pad_{name}.png + thumb_{name}.png",
-                Style = style,
-            };
-            string captured = name;
-            item.Click += (s, e) =>
-            {
-                _joyStyle = JoyStyle.Custom;
-                _customJoyStyle = captured;
-                btnJoystickStyle.Content = CurrentJoyStyleLabel();
-                RefreshJoystickUI();
-                SaveJoystickStyleInPrefs();
-            };
-            menu.Items.Add(item);
-        }
-
-        private string CurrentJoyStyleLabel()
-        {
-            if (_joyStyle == JoyStyle.Custom) return _customJoyStyle;
-            return _joyStyle switch { JoyStyle.Gamepad => "手柄风", JoyStyle.Minimal => "极简风", _ => "经典风" };
-        }
+        private string JoyPadLabel() => BuiltInJoyStyles.Contains(_padStyle) ? _padStyle : _customPadStyle;
+        private string JoyThumbLabel() => BuiltInJoyStyles.Contains(_thumbStyle) ? _thumbStyle : _customThumbStyle;
 
         private void LoadJoystickStyleFromPrefs()
         {
-            if (_prefsData != null && _prefsData.TryGetValue(JoyStyleKey, out var v) && v is string s)
+            if (_prefsData == null) return;
+            // 兼容旧格式
+            if (_prefsData.TryGetValue("joystickStyle", out var oldStyle) && oldStyle is string oldStr)
             {
-                switch (s)
-                {
-                    case "Custom":
-                        _joyStyle = JoyStyle.Custom;
-                        if (_prefsData.TryGetValue(JoyCustomStyleKey, out var cs) && cs is string csStr)
-                            _customJoyStyle = csStr;
+                switch (oldStr) {
+                    case "Minimal": _padStyle = "极简风"; _thumbStyle = "极简风"; break;
+                    case "Classic": _padStyle = "经典风"; _thumbStyle = "经典风"; break;
+                    case "Custom": if (_prefsData.TryGetValue("joystickCustomStyle", out var cs) && cs is string csStr)
+                        { _padStyle = "自定义"; _thumbStyle = "自定义"; _customPadStyle = csStr; _customThumbStyle = csStr; }
                         break;
-                    case "Minimal": _joyStyle = JoyStyle.Minimal; break;
-                    case "Classic": _joyStyle = JoyStyle.Classic; break;
-                    default:        _joyStyle = JoyStyle.Gamepad; break;
+                    default: _padStyle = "手柄风"; _thumbStyle = "手柄风"; break;
                 }
             }
-            btnJoystickStyle.Content = CurrentJoyStyleLabel();
+            // 新格式覆盖
+            if (_prefsData.TryGetValue(JoyPadStyleKey, out var ps) && ps is string psStr) _padStyle = psStr;
+            if (_prefsData.TryGetValue(JoyThumbStyleKey, out var ts) && ts is string tsStr) _thumbStyle = tsStr;
+            if (_prefsData.TryGetValue(JoyCustomPadKey, out var cp) && cp is string cpStr) _customPadStyle = cpStr;
+            if (_prefsData.TryGetValue(JoyCustomThumbKey, out var ct) && ct is string ctStr) _customThumbStyle = ctStr;
+            btnJoystickPadStyle.Content = JoyPadLabel() + " ▾";
+            btnJoystickThumbStyle.Content = JoyThumbLabel() + " ▾";
         }
 
-        private void SaveJoystickStyleInPrefs()
+        private void SaveJoyStylePrefs()
         {
             if (_prefsData == null) return;
-            _prefsData[JoyStyleKey] = _joyStyle.ToString();
-            if (_joyStyle == JoyStyle.Custom)
-                _prefsData[JoyCustomStyleKey] = _customJoyStyle;
+            _prefsData[JoyPadStyleKey] = _padStyle;
+            _prefsData[JoyThumbStyleKey] = _thumbStyle;
+            if (!string.IsNullOrEmpty(_customPadStyle)) _prefsData[JoyCustomPadKey] = _customPadStyle;
+            if (!string.IsNullOrEmpty(_customThumbStyle)) _prefsData[JoyCustomThumbKey] = _customThumbStyle;
             _prefs.Save(_prefsData);
         }
 
@@ -219,11 +229,13 @@ namespace 串口助手
             );
         }
 
-        /// <summary>
-        /// 扫描 Icons/joystick/ 下 pad_*.png，提取自定义风格名（排除内置的 gamepad/minimal/classic）。
-        /// 以后用户只需放 pad_xxx.png + thumb_xxx.png，下拉菜单自动出现。
-        /// </summary>
-        private static List<string> ScanCustomJoyStyles()
+        private static List<string> ScanCustomPadStyles()
+            => ScanJoyFiles("pad_*.png", "pad_");
+
+        private static List<string> ScanCustomThumbStyles()
+            => ScanJoyFiles("thumb_*.png", "thumb_");
+
+        private static List<string> ScanJoyFiles(string pattern, string prefix)
         {
             var result = new List<string>();
             try
@@ -232,13 +244,12 @@ namespace 串口助手
                 var joyDir = System.IO.Path.Combine(exeDir, "Icons", "joystick");
                 if (!Directory.Exists(joyDir)) return result;
 
-                var builtIn = new HashSet<string> { "gamepad", "minimal", "classic" };
-                foreach (var file in Directory.GetFiles(joyDir, "pad_*.png"))
+                foreach (var file in Directory.GetFiles(joyDir, pattern))
                 {
-                    var name = System.IO.Path.GetFileNameWithoutExtension(file); // "pad_xxx"
-                    if (name.StartsWith("pad_") && name.Length > 4)
-                        name = name.Substring(4); // "xxx"
-                    if (!builtIn.Contains(name) && !result.Contains(name))
+                    var name = System.IO.Path.GetFileNameWithoutExtension(file);
+                    if (name.StartsWith(prefix) && name.Length > prefix.Length)
+                        name = name.Substring(prefix.Length);
+                    if (!string.IsNullOrEmpty(name) && !result.Contains(name))
                         result.Add(name);
                 }
             }
@@ -252,15 +263,26 @@ namespace 串口助手
         {
             if (_joyVM == null) return;
             joystickPanel.Children.Clear(); _joyElems.Clear();
+
+            // 同风格内置 → 走原路径（性能最优，完整装饰）
+            bool sameBuiltIn = BuiltInJoyStyles.Contains(_padStyle)
+                            && _padStyle == _thumbStyle;
+
             foreach (var j in _joyVM.Joysticks)
             {
                 Canvas canvas;
-                switch (_joyStyle)
+                if (sameBuiltIn)
                 {
-                    case JoyStyle.Gamepad:  canvas = BuildGamepadStyle(j);  break;
-                    case JoyStyle.Minimal:  canvas = BuildMinimalStyle(j);  break;
-                    case JoyStyle.Classic:  canvas = BuildClassicStyle(j);  break;
-                    default:                canvas = BuildCustomStyle(j);   break;
+                    canvas = _padStyle switch
+                    {
+                        "极简风" => BuildMinimalStyle(j),
+                        "经典风" => BuildClassicStyle(j),
+                        _        => BuildGamepadStyle(j),
+                    };
+                }
+                else
+                {
+                    canvas = BuildHybridJoyStyle(j);
                 }
                 joystickPanel.Children.Add(canvas);
             }
@@ -604,11 +626,9 @@ namespace 串口助手
             return canvas;
         }
 
-        // ═══════════════════════════════════════════════
-        //  风格 D — 自定义（图片为底，零装饰）
-        // ═══════════════════════════════════════════════
+        // ═══ 混搭风格（底板和拇指独立选择，含自定义图片） ═══
 
-        private Canvas BuildCustomStyle(JoystickViewModel j)
+        private Canvas BuildHybridJoyStyle(JoystickViewModel j)
         {
             int pad = j.PadSize;
             double half = pad / 2.0, thumbR = 16, maxR = half - thumbR;
@@ -619,30 +639,72 @@ namespace 串口助手
             var borderBrush = (Brush)FindResource("CardBorderBrush");
             var mutedBrush  = (Brush)FindResource("TextMutedBrush");
 
-            var (padImg, thumbImg) = LoadJoyImages(_customJoyStyle);
+            // —— 底板 ——
+            string padName = BuiltInJoyStyles.Contains(_padStyle) ? _padStyle : _customPadStyle;
+            var (padImg, _) = LoadJoyImages(padName);
+            Ellipse ring = null;
 
-            // 底座：有图用图，没图回退 Gamepad 风格（安全默认）
-            Ellipse ring;
             if (padImg != null)
             {
                 ring = new Ellipse { Width = pad, Height = pad, Fill = padImg, Stroke = borderBrush, StrokeThickness = 2 };
                 canvas.Children.Add(ring);
             }
-            else
+            else if (_padStyle == "经典风")
             {
-                // 图片都没了（用户删了文件）→ 回退 Gamepad 码绘
-                return BuildGamepadStyle(j);
+                ring = new Ellipse { Width = pad, Height = pad, Fill = (Brush)FindResource("SecondaryHoverBgBrush"), Stroke = borderBrush, StrokeThickness = 2 };
+                canvas.Children.Add(ring);
+                var dashRing = new Ellipse { Width = pad * 0.5, Height = pad * 0.5, Stroke = borderBrush, StrokeThickness = 1.2, StrokeDashArray = new DoubleCollection { 4, 4 }, Opacity = 0.6 };
+                Canvas.SetLeft(dashRing, half - pad * 0.25); Canvas.SetTop(dashRing, half - pad * 0.25);
+                canvas.Children.Add(dashRing);
+            }
+            else if (_padStyle == "极简风")
+            {
+                var baseRect = new System.Windows.Shapes.Rectangle { Width = pad, Height = pad, RadiusX = 12, RadiusY = 12, Fill = (Brush)FindResource("SecondaryHoverBgBrush"), Stroke = borderBrush, StrokeThickness = 1.5 };
+                canvas.Children.Add(baseRect);
+                ring = null;
+                // 5×5 网格点
+                for (int gx = 0; gx < 5; gx++)
+                for (int gy = 0; gy < 5; gy++)
+                {
+                    double px = (pad * 0.1) + gx * (pad * 0.2);
+                    double py = (pad * 0.1) + gy * (pad * 0.2);
+                    var dot = new Ellipse { Width = 2, Height = 2, Fill = mutedBrush, Opacity = 0.5 };
+                    Canvas.SetLeft(dot, px); Canvas.SetTop(dot, py);
+                    canvas.Children.Add(dot);
+                }
+            }
+            else // 默认 / 手柄风
+            {
+                ring = new Ellipse { Width = pad, Height = pad, Fill = (Brush)FindResource("SecondaryHoverBgBrush"), Stroke = borderBrush, StrokeThickness = 2 };
+                canvas.Children.Add(ring);
+                // 十字参考线
+                var hLine = new System.Windows.Shapes.Line { X1 = 0, X2 = pad, Y1 = half, Y2 = half, Stroke = borderBrush, StrokeThickness = 0.5, Opacity = 0.3 };
+                var vLine = new System.Windows.Shapes.Line { X1 = half, X2 = half, Y1 = 0, Y2 = pad, Stroke = borderBrush, StrokeThickness = 0.5, Opacity = 0.3 };
+                canvas.Children.Add(hLine); canvas.Children.Add(vLine);
             }
 
-            // 拇指位置
+            // —— 拇指 ——
+            string thumbName = BuiltInJoyStyles.Contains(_thumbStyle) ? _thumbStyle : _customThumbStyle;
+            var (_, thumbImg) = LoadJoyImages(thumbName);
+            Brush thumbFill;
+            if (thumbImg != null)
+            {
+                thumbFill = thumbImg;
+            }
+            else if (_thumbStyle == "极简风")
+            {
+                thumbFill = new SolidColorBrush(isDarkTheme ? Color.FromRgb(0x60, 0x60, 0x70) : Color.FromRgb(0x80, 0x80, 0x90));
+            }
+            else
+            {
+                thumbFill = new RadialGradientBrush(
+                    Color.FromRgb(0x40, 0xA0, 0xFF),
+                    Color.FromRgb(0x0E, 0x63, 0x9C))
+                { GradientOrigin = new Point(0.35, 0.35) };
+            }
+
             double tx = half + j.X * maxR;
             double ty = half - j.Y * maxR;
-
-            // 拇指：有图用图，没图用 Gamepad 径向渐变
-            var thumbFill = thumbImg ?? (Brush)new RadialGradientBrush(
-                Color.FromRgb(0x40, 0xA0, 0xFF),
-                Color.FromRgb(0x0E, 0x63, 0x9C))
-            { GradientOrigin = new Point(0.35, 0.35) };
             var thumb = new Ellipse {
                 Width = thumbR * 2, Height = thumbR * 2,
                 Fill = thumbFill,
@@ -655,15 +717,11 @@ namespace 串口助手
             Canvas.SetLeft(thumb, tx - thumbR); Canvas.SetTop(thumb, ty - thumbR);
             canvas.Children.Add(thumb);
 
-            // 标签
-            var label = new TextBlock {
-                Text = "J" + j.Id, FontSize = 11, FontWeight = FontWeights.SemiBold,
-                Foreground = mutedBrush,
-            };
+            // —— 标签 + 数值 ——
+            var label = new TextBlock { Text = "J" + j.Id, FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = mutedBrush };
             Canvas.SetLeft(label, 8); Canvas.SetTop(label, 4);
             canvas.Children.Add(label);
 
-            // 数值
             var posTb = MakePosTextBlock(j, pad, twoLine: false);
             canvas.Children.Add(posTb);
 

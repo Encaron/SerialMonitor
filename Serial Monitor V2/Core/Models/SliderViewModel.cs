@@ -28,6 +28,12 @@ namespace 串口助手
         /// <summary>预设色块名称</summary>
         public string Color { get; set; } = "默认";
 
+        /// <summary>轨道风格（"默认" / "极简" / 自定义风格名）</summary>
+        public string TrackStyle { get; set; } = "默认";
+
+        /// <summary>拇指风格（"默认" / "极简" / 自定义风格名）</summary>
+        public string ThumbStyle { get; set; } = "默认";
+
         // ——— 工具 ———
 
         /// <summary>小数位数（从 Step 自动推断）</summary>
@@ -51,6 +57,7 @@ namespace 串口助手
             {
                 Name = Name, MinValue = MinValue, MaxValue = MaxValue,
                 Value = Value, Step = Step, SendIntervalMs = SendIntervalMs, Color = Color,
+                TrackStyle = TrackStyle, ThumbStyle = ThumbStyle,
             };
         }
 
@@ -61,6 +68,8 @@ namespace 串口助手
                 ["name"] = Name,
                 ["minValue"] = MinValue, ["maxValue"] = MaxValue, ["value"] = Value,
                 ["step"] = Step, ["sendIntervalMs"] = SendIntervalMs, ["color"] = Color,
+                ["trackStyle"] = TrackStyle,
+                ["thumbStyle"] = ThumbStyle,
             };
         }
 
@@ -75,6 +84,11 @@ namespace 串口助手
                 Step     = GetDouble(d, "step", 1),
                 SendIntervalMs = GetInt(d, "sendIntervalMs", 200),
                 Color    = GetStr(d, "color", "默认"),
+                // 迁移旧的 "style" 字段到 trackStyle（兼容旧 prefs.json）
+                TrackStyle = GetStr(d, "trackStyle",
+                              GetStr(d, "style", "默认")),
+                ThumbStyle = GetStr(d, "thumbStyle",
+                              GetStr(d, "style", "默认")),
             };
         }
 
