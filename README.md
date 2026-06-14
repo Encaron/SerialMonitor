@@ -66,7 +66,7 @@
 | OLED | `[display,x,y,text,size,#color]` | 虚拟 OLED 屏幕，支持彩色文字渲染 |
 
 ### 🎨 主题与动效
-- VS Code Dark+ 风格暗色主题 + 一键切换亮色
+- 暗色主题（VS Code Dark+ 风格）+ 亮色主题，一键切换
 - 21 色 DynamicResource 全量覆盖
 - 按键调色盘（40 色 Material Design 色板 + hex 自定义）
 - 弹性动画（按键脉冲 / 滑杆缩弹 / 图标抖动）
