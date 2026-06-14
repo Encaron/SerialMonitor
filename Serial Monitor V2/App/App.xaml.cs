@@ -7,32 +7,35 @@ namespace 串口助手
 {
     public partial class App : Application
     {
+        static App()
+        {
+            // 静态构造器在 Application 构造器之前执行——尽早注册异常处理器
+            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+            {
+                WriteCrashLogStatic(args.ExceptionObject as Exception);
+            };
+        }
+
+        public App()
+        {
+            // 在 Application 构造器链中尽早注册
+            DispatcherUnhandledException += (s, args) =>
+            {
+                WriteCrashLogStatic(args.Exception);
+                args.Handled = true;
+            };
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
-            // 未处理异常 → 写入崩溃日志
-            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
-            {
-                WriteCrashLog(args.ExceptionObject as Exception);
-            };
-
-            DispatcherUnhandledException += (s, args) =>
-            {
-                WriteCrashLog(args.Exception);
-                MessageBox.Show(
-                    $"程序遇到未处理的错误：\n\n{args.Exception.Message}\n\n" +
-                    $"详细日志已写入：\n{CrashLogPath}",
-                    "Serial Monitor — Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                args.Handled = true;
-            };
         }
 
         private static string CrashLogPath =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                          "SerialMonitor", "crash.log");
 
-        private static void WriteCrashLog(Exception ex)
+        private static void WriteCrashLogStatic(Exception ex)
         {
             try
             {
@@ -40,13 +43,31 @@ namespace 串口助手
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
-                string log = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex?.GetType().FullName}: {ex?.Message}\n{ex?.StackTrace}\n\n";
-                File.AppendAllText(CrashLogPath, log);
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex?.GetType().FullName}: {ex?.Message}");
+
+                // 递归输出所有 InnerException
+                int depth = 0;
+                var inner = ex;
+                while (inner != null)
+                {
+                    sb.AppendLine($"  --- Inner[{depth}] {inner.GetType().FullName}: {inner.Message}");
+                    sb.AppendLine(inner.StackTrace ?? "(no stack trace)");
+                    inner = inner.InnerException;
+                    depth++;
+                }
+                sb.AppendLine();
+                File.AppendAllText(CrashLogPath, sb.ToString());
             }
             catch
             {
                 // 写崩溃日志本身失败 → 静默，避免递归爆炸
             }
+        }
+
+        private static void WriteCrashLog(Exception ex)
+        {
+            WriteCrashLogStatic(ex);
         }
     }
 }

@@ -9,7 +9,7 @@
         Closing="MainWindow_Closing"
         PreviewKeyDown="Window_PreviewKeyDown"
         FontSize="12"
-        Icon="icon.ico"
+        Icon="Icons/icon.ico"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         WindowStartupLocation="CenterScreen">

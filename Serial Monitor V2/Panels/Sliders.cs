@@ -17,6 +17,8 @@ namespace 串口助手
         private SliderPanelViewModel _sliderVM;
         private List<SliderViewModel> _selectedSliders = new List<SliderViewModel>();
         private Dictionary<string, DateTime> _sliderLastSent = new Dictionary<string, DateTime>();
+        // 缓存模板部件：避免 ValueChanged 每次 FindName+ApplyTemplate 造成拖拽卡顿
+        private readonly Dictionary<Slider, (Border trackFill, Ellipse thumbDot, TextBlock valueTb)> _sliderPartsCache = new();
 
         // ——— 初始化 ———
         private void InitSliderPanel()
@@ -230,16 +232,17 @@ namespace 串口助手
                         var thumb = sl.Template.FindName("Thumb", sl) as FrameworkElement;
                         if (thumb != null) SpringPress(thumb);
                     };
-                    // 拖拽过程中持续更新数值显示 + 节流发送
+                    // 拖拽过程中持续更新数值显示 + 节流发送（使用缓存引用避免每次 FindName）
                     slider.ValueChanged += (s, e) => {
                         if (_sliderVM.IsEditMode) return;
-                        SwitchSidePanelToSliders();
                         var sl = s as Slider; var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
                         double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
                         rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
                         vm.Value = rounded;
-                        UpdateSliderValueDisplay(sl, vm);
-                        UpdateSliderProgressBar(sl, vm);
+                        if (_sliderPartsCache.TryGetValue(sl, out var parts)) {
+                            if (parts.valueTb != null) parts.valueTb.Text = vm.DisplayValue;
+                            UpdateSliderProgressBarCached(sl, vm, parts.trackFill, parts.thumbDot);
+                        }
                         var now = DateTime.Now;
                         if (!_sliderLastSent.TryGetValue(vm.Name, out var last)
                             || (now - last).TotalMilliseconds >= vm.SendIntervalMs)
@@ -258,8 +261,10 @@ namespace 串口助手
                         double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
                         rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
                         sl.Value = rounded; vm.Value = rounded;
-                        UpdateSliderValueDisplay(sl, vm);
-                        UpdateSliderProgressBar(sl, vm);
+                        if (_sliderPartsCache.TryGetValue(sl, out var parts)) {
+                            if (parts.valueTb != null) parts.valueTb.Text = vm.DisplayValue;
+                            UpdateSliderProgressBarCached(sl, vm, parts.trackFill, parts.thumbDot);
+                        }
                         SendSliderValue(vm);
                     };
                     Grid.SetRow(slider, 1); Grid.SetColumn(slider, 0);
@@ -274,11 +279,23 @@ namespace 串口助手
                     Grid.SetRow(valTb, 1); Grid.SetColumn(valTb, 1);
                     grid.Children.Add(valTb);
 
-                    // 等布局完成后刷新轨道彩色填充
+                    // 等布局完成后缓存模板部件 + 刷新轨道彩色填充
                     slider.Loaded += (s2, e2) => {
                         var sl2 = s2 as Slider;
                         var vm2 = sl2?.Tag as SliderViewModel;
-                        if (vm2 != null) UpdateSliderProgressBar(sl2, vm2);
+                        if (vm2 == null) return;
+                        var tFill = sl2.Template?.FindName("trackFill", sl2) as Border;
+                        var thumb2 = sl2.Template?.FindName("Thumb", sl2) as Thumb;
+                        Ellipse tDot = null;
+                        if (thumb2 != null) { thumb2.ApplyTemplate(); tDot = thumb2.Template?.FindName("thumbDot", thumb2) as Ellipse; }
+                        var grid2 = sl2.Parent as Grid;
+                        TextBlock vTb = null;
+                        if (grid2 != null)
+                            foreach (var child in grid2.Children)
+                                if (child is TextBlock tb && Grid.GetRow(tb) == 1 && Grid.GetColumn(tb) == 1)
+                                    { vTb = tb; break; }
+                        _sliderPartsCache[sl2] = (tFill, tDot, vTb);
+                        UpdateSliderProgressBarCached(sl2, vm2, tFill, tDot);
                     };
 
                     card.Child = grid;
@@ -297,17 +314,9 @@ namespace 串口助手
             ShowSliderFeedback(svm);
         }
 
-        private void UpdateSliderValueDisplay(Slider slider, SliderViewModel svm)
+        /// <summary>使用缓存引用更新进度条和滑钮颜色，避免每次拖拽 FindName/ApplyTemplate</summary>
+        private void UpdateSliderProgressBarCached(Slider slider, SliderViewModel svm, Border trackFill, Ellipse thumbDot)
         {
-            var grid = slider.Parent as Grid; if (grid == null) return;
-            foreach (var child in grid.Children)
-                if (child is TextBlock tb && Grid.GetRow(tb) == 1 && Grid.GetColumn(tb) == 1)
-                    { tb.Text = svm.DisplayValue; break; }
-        }
-
-        private void UpdateSliderProgressBar(Slider slider, SliderViewModel svm)
-        {
-            var fill = slider.Template?.FindName("trackFill", slider) as Border;
             string hex = SliderPanelViewModel.GetColorHex(svm.Color, isDarkTheme);
             Color baseColor;
             if (hex != null)
@@ -315,26 +324,19 @@ namespace 串口助手
             else
                 baseColor = ((SolidColorBrush)FindResource("PrimaryBrush")).Color;
 
-            if (fill != null)
+            if (trackFill != null)
             {
                 double pct = (svm.Value - svm.MinValue) / (svm.MaxValue - svm.MinValue);
-                fill.Width = Math.Max(0, slider.ActualWidth * pct);
-                fill.Background = new SolidColorBrush(baseColor);
+                trackFill.Width = Math.Max(0, slider.ActualWidth * pct);
+                trackFill.Background = new SolidColorBrush(baseColor);
             }
 
-            // 滑钮比轨道深 40%，色差感（thumbDot 在 Thumb 的子模板里，需两层查找）
-            var thumb = slider.Template?.FindName("Thumb", slider) as Thumb;
-            if (thumb != null)
+            if (thumbDot != null)
             {
-                thumb.ApplyTemplate();
-                var thumbDot = thumb.Template?.FindName("thumbDot", thumb) as Ellipse;
-                if (thumbDot != null)
-                {
-                    byte r = (byte)(baseColor.R * 0.60);
-                    byte g = (byte)(baseColor.G * 0.60);
-                    byte b = (byte)(baseColor.B * 0.60);
-                    thumbDot.Fill = new SolidColorBrush(Color.FromRgb(r, g, b));
-                }
+                byte r = (byte)(baseColor.R * 0.60);
+                byte g = (byte)(baseColor.G * 0.60);
+                byte b = (byte)(baseColor.B * 0.60);
+                thumbDot.Fill = new SolidColorBrush(Color.FromRgb(r, g, b));
             }
         }
 

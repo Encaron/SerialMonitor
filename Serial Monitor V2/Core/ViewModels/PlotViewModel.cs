@@ -87,14 +87,16 @@ namespace 串口助手
             if (!YAxisAutoRange) return;
 
             double min = double.MaxValue, max = double.MinValue;
-            // 扫描所有 Series（包括测试曲线等未注册到 _series 的）
+            // 只扫描可见窗口（最后 MaxDataPoints 个点），避免每帧遍历全部 5000 点
             foreach (var s in Model.Series)
             {
-                if (!(s is LineSeries ls)) continue;
-                foreach (var pt in ls.Points)
+                if (!(s is LineSeries ls) || ls.Points.Count == 0) continue;
+                int startIdx = Math.Max(0, ls.Points.Count - MaxDataPoints);
+                for (int i = startIdx; i < ls.Points.Count; i++)
                 {
-                    if (pt.Y < min) min = pt.Y;
-                    if (pt.Y > max) max = pt.Y;
+                    double y = ls.Points[i].Y;
+                    if (y < min) min = y;
+                    if (y > max) max = y;
                 }
             }
             if (min < double.MaxValue)
@@ -107,7 +109,7 @@ namespace 串口助手
             {
                 _yAxis.Zoom(YMin, YMax);
             }
-            Model.InvalidatePlot(true);
+            // InvalidatePlot 由调用方统一执行
         }
 
         /// <summary>
@@ -260,7 +262,7 @@ namespace 串口助手
                 }
                 double margin = windowRange * 0.02;
                 _xAxis.Zoom(windowStart - margin, windowEnd + margin);
-                Model.InvalidatePlot(true);
+                // InvalidatePlot 由调用方统一执行
             }
         }
 
