@@ -1469,6 +1469,8 @@
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsShortcuts_Click"/>
                                 <Button Content="📖 使用示例" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsExamples_Click"/>
+                                <Button Content="🎨 素材自定义" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="36" Margin="0,0,0,4" Click="BtnSettingsAssets_Click"/>
                                 <Button Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAbout_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
@@ -1867,6 +1869,88 @@
                                 <Run Text=" 包裹每条消息，参数用逗号分隔。含逗号的参数用双引号包裹。"/>
                             </TextBlock>
                             <StackPanel x:Name="examplesListPanel"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <!-- 素材自定义 -->
+                    <ScrollViewer x:Name="settingsAssetsPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="16,12">
+                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
+                                    Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
+                            <TextBlock Text="素材自定义" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"
+                                       TextWrapping="Wrap"
+                                       Text="滑杆和摇杆支持自定义图片素材。将 PNG 放入素材文件夹，软件在下拉菜单中自动识别新风格。"/>
+                            <!-- 路径 -->
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,12,0,4"
+                                       Text="📂 素材文件夹"/>
+                            <Grid Margin="0,0,0,8">
+                                <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,8">
+                                    <StackPanel>
+                                        <TextBlock x:Name="tbAssetsPath" FontSize="11" FontFamily="Consolas"
+                                                   Foreground="{DynamicResource PrimaryBrush}" TextWrapping="Wrap"
+                                                   ToolTip="点击复制路径"/>
+                                        <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
+                                                   Text="👆 点击上方蓝色路径即可复制，粘贴到文件管理器打开此文件夹"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                       Text="在此文件夹下创建 joystick/ 和 sliders/ 子目录，按下方命名规则放入 PNG 即可。"/>
+
+                            <!-- 摇杆 -->
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,16,0,4"
+                                       Text="🕹 摇杆 — 底板 &amp; 拇指"/>
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,6"
+                                       Text="📍 操作：摇杆标签页 → 找到「⟲ 回中」按钮 → 旁边有「底板 ▾」和「拇指 ▾」两个下拉按钮 → 点开即见你的自定义风格。"/>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
+                                    <StackPanel>
+                                        <TextBlock Text="pad_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="底板   140×140 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
+                                    <StackPanel>
+                                        <TextBlock Text="thumb_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="拇指    32×32 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"
+                                       Text="内置风格（手柄风 / 极简风 / 经典风）始终可用。同名 PNG 可覆盖内置的代码绘制。"/>
+
+                            <!-- 滑杆 -->
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,12,0,4"
+                                       Text="🎚 滑杆 — 轨道 &amp; 滑钮"/>
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,6"
+                                       Text="📍 操作：滑杆标签页 → 点击 [编辑] → 右侧面板滚动到底部 → 点「轨道 ▾」或「拇指 ▾」下拉按钮选择风格。轨道和滑钮可以独立混搭。"/>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
+                                    <StackPanel>
+                                        <TextBlock Text="track_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="轨道横条   ≥200×4~12 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
+                                    <StackPanel>
+                                        <TextBlock Text="thumb_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="拖拽滑钮   16~48 px 方形" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Text="内置风格（默认 / 极简）始终可用。删掉对应 PNG 文件后重启软件，菜单中自动消失。"/>
                         </StackPanel>
                     </ScrollViewer>
                     <!-- 关于 -->

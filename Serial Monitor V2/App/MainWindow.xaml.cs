@@ -175,6 +175,12 @@ namespace 串口助手
                 + "  crash.log     崩溃日志\r\n"
                 + "  quick_sends.cfg  快捷发送";
 
+            // 素材自定义页：显示运行时素材路径
+            var assetsDir = System.IO.Path.Combine(AppContext.BaseDirectory, "Icons");
+            tbAssetsPath.Text = assetsDir;
+            tbAssetsPath.Cursor = System.Windows.Input.Cursors.Hand;
+            tbAssetsPath.MouseLeftButtonDown += (s, e) => SafeSetClipboard(tbAssetsPath.Text);
+
             PopulateShortcutPage();
             PopulateExamplesPage();
 
@@ -1367,6 +1373,9 @@ namespace 串口助手
         private void BtnSettingsAbout_Click(object sender, RoutedEventArgs e)
             => SwitchSettingsPage("about");
 
+        private void BtnSettingsAssets_Click(object sender, RoutedEventArgs e)
+            => SwitchSettingsPage("assets");
+
         private void BtnSettingsBack_Click(object sender, RoutedEventArgs e)
             => SwitchSettingsPage(null);
 
@@ -1902,6 +1911,7 @@ namespace 串口助手
             settingsSerialPage.Visibility     = page == "serial"    ? Visibility.Visible : Visibility.Collapsed;
             settingsShortcutsPage.Visibility  = page == "shortcuts"  ? Visibility.Visible : Visibility.Collapsed;
             settingsExamplesPage.Visibility   = page == "examples"   ? Visibility.Visible : Visibility.Collapsed;
+            settingsAssetsPage.Visibility     = page == "assets"     ? Visibility.Visible : Visibility.Collapsed;
             settingsAboutPage.Visibility      = page == "about"      ? Visibility.Visible : Visibility.Collapsed;
             // 有子页 → 主区显示设置面板（_previousContentTab 不动，保持之前内容标签）
             RefreshContentVisibility();
