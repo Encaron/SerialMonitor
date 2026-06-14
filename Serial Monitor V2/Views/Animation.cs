@@ -54,10 +54,39 @@ namespace 串口助手
             var originalThickness = btn.BorderThickness;
             var originalFg = btn.Foreground;
 
-            // 非常明显的闪烁：亮蓝色底 + 白色字 + 加厚白边框
-            btn.Background = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
-            btn.Foreground = Brushes.White;
-            btn.BorderBrush = new SolidColorBrush(Color.FromRgb(0x66, 0xBB, 0xFF));
+            // 用按键自身颜色做闪烁——自定义色按键闪自己的颜色，默认按键闪蓝色
+            Color flashColor;
+            if (originalBg is SolidColorBrush bgBrush && bgBrush.Color != Colors.Transparent)
+            {
+                flashColor = bgBrush.Color;
+            }
+            else
+            {
+                flashColor = Color.FromRgb(0x00, 0x78, 0xD4); // 默认蓝
+            }
+            // 亮度 > 140 的浅色背景 → 深色闪烁（加深 40%），否则亮色闪烁（加亮）
+            double lum = 0.299 * flashColor.R + 0.587 * flashColor.G + 0.114 * flashColor.B;
+            Color brightFlash;
+            if (lum > 140)
+            {
+                brightFlash = Color.FromRgb(
+                    (byte)Math.Max(0, flashColor.R - 60),
+                    (byte)Math.Max(0, flashColor.G - 60),
+                    (byte)Math.Max(0, flashColor.B - 60));
+            }
+            else
+            {
+                brightFlash = Color.FromRgb(
+                    (byte)Math.Min(255, flashColor.R + 40),
+                    (byte)Math.Min(255, flashColor.G + 40),
+                    (byte)Math.Min(255, flashColor.B + 40));
+            }
+            btn.Background = new SolidColorBrush(brightFlash);
+            btn.Foreground = lum > 140 ? Brushes.Black : Brushes.White;
+            btn.BorderBrush = new SolidColorBrush(Color.FromRgb(
+                (byte)Math.Min(255, brightFlash.R + 60),
+                (byte)Math.Min(255, brightFlash.G + 60),
+                (byte)Math.Min(255, brightFlash.B + 60)));
             btn.BorderThickness = new Thickness(3);
 
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };

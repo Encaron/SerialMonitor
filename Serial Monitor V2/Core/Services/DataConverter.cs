@@ -94,12 +94,10 @@ namespace 串口助手
         /// </summary>
         public static string BytesToHex(byte[] bytes)
         {
-            string hex = "";
+            var sb = new System.Text.StringBuilder(bytes.Length * 3);
             foreach (byte b in bytes)
-            {
-                hex += b.ToString("X2") + " ";
-            }
-            return hex;
+                sb.Append(b.ToString("X2")).Append(' ');
+            return sb.ToString();
         }
 
         /// <summary>

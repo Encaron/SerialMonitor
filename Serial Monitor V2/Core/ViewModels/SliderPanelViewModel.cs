@@ -67,7 +67,7 @@ namespace 串口助手
                 case "黄色": return isDark ? "#F9F1A5" : "#E0C300";
                 case "白色": return isDark ? "#CCCCCC" : "#666666";
                 case "灰色": return isDark ? "#555555" : "#999999";
-                default: return null;
+                default: return colorName != null && colorName.StartsWith("#") ? colorName : null;
             }
         }
     }

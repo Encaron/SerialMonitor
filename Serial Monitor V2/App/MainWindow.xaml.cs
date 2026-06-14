@@ -139,6 +139,8 @@ namespace 串口助手
             ["ButtonDisabledBgBrush"]   = (Color.FromRgb(0xE8,0xE8,0xE8), Color.FromRgb(0x2D,0x2D,0x2D)),
             ["ReceiveAreaBgBrush"]      = (Color.FromRgb(0xFA,0xFA,0xFA), Color.FromRgb(0x1A,0x1A,0x1C)),
             ["StatusDotIdleBrush"]      = (Color.FromRgb(0xCC,0xCC,0xCC), Color.FromRgb(0x5A,0x5A,0x5A)),
+            ["HudBackgroundBrush"]      = (Color.FromArgb(0xF0,0xFF,0xFF,0xFF), Color.FromArgb(0x99,0x00,0x00,0x00)),
+            ["HudBorderBrush"]          = (Color.FromArgb(0x33,0x00,0x00,0x00), Color.FromArgb(0x33,0xFF,0xFF,0xFF)),
         };
 
         public MainWindow()
@@ -338,6 +340,10 @@ namespace 串口助手
                         else if (msg.Type == "display-clear")
                         {
                             HandleDisplayClear();
+                        }
+                        else
+                        {
+                            LogSystem($"未知协议类型: [{msg.Type}]");
                         }
                     }
                 }
@@ -2191,20 +2197,20 @@ namespace 串口助手
                 row.Children.Add(new System.Windows.Shapes.Ellipse
                 {
                     Width = 8, Height = 8,
-                    Fill = new SolidColorBrush(Color.FromRgb(0x0E, 0x63, 0x9C)),
+                    Fill = (Brush)FindResource("PrimaryBrush"),
                     Margin = new Thickness(0, 0, 6, 0),
                     VerticalAlignment = VerticalAlignment.Center,
                 });
                 row.Children.Add(new TextBlock
                 {
                     Text = kv.Key + ": ",
-                    Foreground = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB)),
+                    Foreground = (Brush)FindResource("TextMutedBrush"),
                     FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
                 });
                 row.Children.Add(new TextBlock
                 {
                     Text = kv.Value.ToString("F4"),
-                    Foreground = new SolidColorBrush(Colors.White),
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     FontSize = 12, FontWeight = FontWeights.SemiBold,
                     VerticalAlignment = VerticalAlignment.Center,
                 });

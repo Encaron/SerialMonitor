@@ -57,17 +57,24 @@ namespace 串口助手
         // ——— 颜色面板 ———
         private void InitColorPanels()
         {
+            keysColorPanel.Children.Clear();
+            keysColorPanelMulti.Children.Clear();
             string[] colors = { "默认", "红色", "绿色", "蓝色", "黄色", "白色", "灰色" };
             foreach (var colorName in colors)
             {
                 keysColorPanel.Children.Add(CreateColorChip(colorName, c => {
                     if (_selectedKeys.Count == 1) { _selectedKeys[0].Color = c; RefreshKeysUI(); RefreshKeysSidePanel(); }
+                    UpdateColorChipSelection(keysColorPanel, c);
                 }));
                 keysColorPanelMulti.Children.Add(CreateColorChip(colorName, c => {
                     foreach (var k in _selectedKeys) k.Color = c;
                     RefreshKeysUI(); RefreshKeysSidePanel();
+                    UpdateColorChipSelection(keysColorPanelMulti, c);
                 }));
             }
+            // 初始选中态
+            if (_selectedKeys.Count == 1) UpdateColorChipSelection(keysColorPanel, _selectedKeys[0].Color);
+            else if (_selectedKeys.Count > 1) UpdateColorChipSelection(keysColorPanelMulti, _selectedKeys[0].Color);
         }
 
         private bool _moduleColorPanelInited;
@@ -81,6 +88,7 @@ namespace 串口助手
                     int gid = _selectedModuleGroupId.Value;
                     foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid)) k.Color = cn;
                     RefreshKeysUI();
+                    UpdateColorChipSelection(moduleColorPanel, cn);
                 }));
         }
 
@@ -88,8 +96,17 @@ namespace 串口助手
         {
             var isDark = isDarkTheme;
             string hex = KeyPanelViewModel.GetColorHex(colorName, isDark);
-            Brush fillBrush = hex == null ? (Brush)FindResource("CardBgBrush")
-                : new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+            Brush fillBrush;
+            if (hex != null)
+            {
+                var color = (Color)ColorConverter.ConvertFromString(hex);
+                // 自定义 hex 颜色 → 小色块变两行：上为颜色、下为 hex 缩写
+                fillBrush = new SolidColorBrush(color);
+            }
+            else
+            {
+                fillBrush = (Brush)FindResource("CardBgBrush");
+            }
             var border = new Border {
                 Width = 24, Height = 24, CornerRadius = new CornerRadius(4),
                 Background = fillBrush, BorderBrush = (Brush)FindResource("CardBorderBrush"),
@@ -98,6 +115,193 @@ namespace 串口助手
             };
             border.PreviewMouseLeftButtonDown += (s, e) => { onClick((string)((Border)s).Tag); e.Handled = true; };
             return border;
+        }
+
+        /// <summary>更新色块选中态：当前颜色对应的色块加蓝色边框</summary>
+        private void UpdateColorChipSelection(WrapPanel panel, string currentColor)
+        {
+            foreach (Border chip in panel.Children)
+            {
+                bool isSelected = chip.Tag != null && (string)chip.Tag == currentColor;
+                chip.BorderBrush = isSelected ? (Brush)FindResource("PrimaryBrush")
+                                              : (Brush)FindResource("CardBorderBrush");
+                chip.BorderThickness = new Thickness(isSelected ? 2 : 1);
+            }
+        }
+
+        /// <summary>弹出 40 色拾色器 Popup，确认后回调 onColorPicked(hex)</summary>
+        private void ShowColorPickerPopup(FrameworkElement placementTarget, Action<string> onColorPicked)
+        {
+            string[] palette = {
+                "#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#2196F3","#03A9F4","#00BCD4",
+                "#009688","#4CAF50","#8BC34A","#CDDC39","#FFEB3B","#FFC107","#FF9800","#FF5722",
+                "#795548","#9E9E9E","#607D8B","#555555","#FFFFFF","#FF4081","#7C4DFF","#536DFE",
+                "#448AFF","#40C4FF","#18FFFF","#64FFDA","#69F0AE","#B2FF59","#EEFF41","#FFD740",
+                "#FFAB40","#FF6E40","#FF8A80","#EA80FC","#B388FF","#8C9EFF","#80D8FF","#A7FFEB",
+            };
+
+            string currentHex = "#2196F3"; // 默认蓝
+            var border = new Border {
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12), MaxWidth = 244,
+            };
+            var stack = new StackPanel();
+            var title = new TextBlock {
+                Text = "自定义颜色", FontSize = 13, FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"), Margin = new Thickness(0, 0, 0, 8),
+            };
+            stack.Children.Add(title);
+
+            // 40 色块 8×5
+            var colorGrid = new System.Windows.Controls.Primitives.UniformGrid { Columns = 8, Margin = new Thickness(0, 0, 0, 8) };
+            TextBox hexPreview = null;
+            Border previewSwatch = null;
+            Border selectedPopupSwatch = null;
+            var popupSwatches = new System.Collections.Generic.List<Border>();
+            foreach (var hex in palette)
+            {
+                var color = (Color)ColorConverter.ConvertFromString(hex);
+                var swatch = new Border {
+                    Width = 24, Height = 24, CornerRadius = new CornerRadius(3),
+                    Background = new SolidColorBrush(color),
+                    BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                    BorderThickness = new Thickness(1), Margin = new Thickness(1),
+                    Cursor = Cursors.Hand, Tag = hex,
+                };
+                swatch.PreviewMouseLeftButtonDown += (s, e) => {
+                    currentHex = hex;
+                    if (hexPreview != null) hexPreview.Text = hex;
+                    if (previewSwatch != null) previewSwatch.Background = new SolidColorBrush(color);
+                    // 更新选中态
+                    if (selectedPopupSwatch != null) {
+                        selectedPopupSwatch.BorderBrush = (Brush)FindResource("CardBorderBrush");
+                        selectedPopupSwatch.BorderThickness = new Thickness(1);
+                    }
+                    swatch.BorderBrush = (Brush)FindResource("PrimaryBrush");
+                    swatch.BorderThickness = new Thickness(2);
+                    selectedPopupSwatch = swatch;
+                    e.Handled = true;
+                };
+                popupSwatches.Add(swatch);
+                colorGrid.Children.Add(swatch);
+            }
+            // 初始选中态：匹配 currentHex ("#2196F3")
+            foreach (var sw in popupSwatches) {
+                if ((string)sw.Tag == currentHex) {
+                    sw.BorderBrush = (Brush)FindResource("PrimaryBrush");
+                    sw.BorderThickness = new Thickness(2);
+                    selectedPopupSwatch = sw;
+                    break;
+                }
+            }
+            stack.Children.Add(colorGrid);
+
+            // Hex 输入行
+            var hexRow = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+            hexRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            hexRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            previewSwatch = new Border {
+                Width = 20, Height = 20, CornerRadius = new CornerRadius(3),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(currentHex)),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            Grid.SetColumn(previewSwatch, 0);
+            hexRow.Children.Add(previewSwatch);
+            hexPreview = new TextBox {
+                Text = currentHex, FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 12, Height = 24, Padding = new Thickness(6, 2, 6, 2),
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                VerticalContentAlignment = VerticalAlignment.Center,
+            };
+            Grid.SetColumn(hexPreview, 1);
+            hexRow.Children.Add(hexPreview);
+            hexPreview.TextChanged += (_, __) => {
+                currentHex = hexPreview.Text;
+                try {
+                    var c = (Color)ColorConverter.ConvertFromString(currentHex);
+                    previewSwatch.Background = new SolidColorBrush(c);
+                } catch { }
+                // 同步色块选中态
+                if (selectedPopupSwatch != null) {
+                    selectedPopupSwatch.BorderBrush = (Brush)FindResource("CardBorderBrush");
+                    selectedPopupSwatch.BorderThickness = new Thickness(1);
+                    selectedPopupSwatch = null;
+                }
+                foreach (var sw in popupSwatches) {
+                    if ((string)sw.Tag == currentHex) {
+                        sw.BorderBrush = (Brush)FindResource("PrimaryBrush");
+                        sw.BorderThickness = new Thickness(2);
+                        selectedPopupSwatch = sw;
+                        break;
+                    }
+                }
+            };
+            stack.Children.Add(hexRow);
+
+            // 确认/取消按钮
+            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var cancelBtn = new Button {
+                Content = "取消", Style = (Style)FindResource("SecondaryButtonStyle"),
+                Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0),
+            };
+            var confirmBtn = new Button {
+                Content = "确认", Style = (Style)FindResource("PrimaryButtonStyle"),
+                Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(8, 0, 0, 0),
+            };
+            btnRow.Children.Add(cancelBtn);
+            btnRow.Children.Add(confirmBtn);
+            stack.Children.Add(btnRow);
+
+            border.Child = stack;
+            var popup = new System.Windows.Controls.Primitives.Popup {
+                Child = border, AllowsTransparency = true,
+                PlacementTarget = placementTarget, Placement = System.Windows.Controls.Primitives.PlacementMode.Right,
+                StaysOpen = false, Width = 260,
+            };
+
+            cancelBtn.Click += (_, __) => popup.IsOpen = false;
+            confirmBtn.Click += (_, __) => { popup.IsOpen = false; onColorPicked(currentHex); };
+            popup.IsOpen = true;
+        }
+
+        // ——— "自定义颜色" 按钮 ———
+        private void btnKeysCustomColor_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn == null) return;
+
+            // 根据按钮确定作用范围
+            Action<string> apply = null;
+            WrapPanel chipPanel = null;
+            if (btn == btnKeysCustomColor && _selectedKeys.Count == 1)
+            {
+                var key = _selectedKeys[0];
+                chipPanel = keysColorPanel;
+                apply = hex => { key.Color = hex; RefreshKeysUI(); RefreshKeysSidePanel(); UpdateColorChipSelection(chipPanel, hex); };
+            }
+            else if (btn == btnKeysMultiCustomColor && _selectedKeys.Count > 1)
+            {
+                var keys = _selectedKeys.ToList();
+                chipPanel = keysColorPanelMulti;
+                apply = hex => { foreach (var k in keys) k.Color = hex; RefreshKeysUI(); RefreshKeysSidePanel(); UpdateColorChipSelection(chipPanel, hex); };
+            }
+            else if (btn == btnModuleCustomColor && _selectedModuleGroupId.HasValue)
+            {
+                int gid = _selectedModuleGroupId.Value;
+                var keys = _keyVM.Keys.Where(k => k.GroupId == gid).ToList();
+                chipPanel = moduleColorPanel;
+                apply = hex => { foreach (var k in keys) k.Color = hex; RefreshKeysUI(); UpdateColorChipSelection(chipPanel, hex); };
+            }
+            else return;
+
+            if (apply != null)
+                ShowColorPickerPopup(btn, apply);
         }
 
         // ——— 侧面板切换 ———
@@ -308,12 +512,14 @@ namespace 串口助手
             btn.BorderThickness = new Thickness(1);
             btn.Cursor = Cursors.Hand;
 
-            // 自锁按下状态 或 STM32 down 反馈 → 蓝色高亮
+            // 自锁按下状态 或 STM32 down 反馈
             bool isActiveDown = (keyVM.IsSelfLock && keyVM.IsPressed) || (!keyVM.IsSelfLock && keyVM.IsDown);
             if (isActiveDown && !keyVM.IsShiftToggle) {
-                var accent = isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                Color accent = hex != null ? ((SolidColorBrush)bgBrush).Color
+                    : isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
                 btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
-                btn.Background = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x3A, 0x5C) : Color.FromRgb(0xDE, 0xEC, 0xFC));
+                if (hex == null)
+                    btn.Background = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x3A, 0x5C) : Color.FromRgb(0xDE, 0xEC, 0xFC));
             }
 
             // 自锁标记：按钮文字加下划线
@@ -324,14 +530,16 @@ namespace 串口助手
                 btn.FontWeight = FontWeights.Bold;
                 btn.Background = (Brush)FindResource("SecondaryHoverBgBrush");
                 if (_keyVM.ShiftActive) {
-                    var accent = isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                    Color accent = hex != null ? ((SolidColorBrush)bgBrush).Color
+                        : isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
                     btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
                 }
             }
 
             if (isEditMode) {
                 if (_selectedKeys.Contains(keyVM)) {
-                    var accent = isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                    Color accent = hex != null ? ((SolidColorBrush)bgBrush).Color
+                        : isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
                     btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
                     // 自定义颜色键保留原背景（边框已足够标记选中态）
                     if (hex == null)
@@ -564,6 +772,7 @@ namespace 串口助手
             tbKeyWidth.IsEnabled = !isLayoutKey;
             tbKeyHeight.Text = key.Height.ToString();
             tbKeyHeight.IsEnabled = !isLayoutKey;
+            UpdateColorChipSelection(keysColorPanel, key.Color);
         }
 
         // ——— 单选属性编辑 ———

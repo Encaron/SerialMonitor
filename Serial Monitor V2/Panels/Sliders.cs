@@ -84,6 +84,7 @@ namespace 串口助手
             foreach (var colorName in colors)
                 slidersColorPanel.Children.Add(CreateSlidersColorChip(colorName, c => {
                     if (_selectedSliders.Count == 1) { _selectedSliders[0].Color = c; RefreshSlidersUI(); RefreshSlidersSidePanel(); }
+                    UpdateSlidersColorChipSelection(c);
                 }));
         }
 
@@ -101,6 +102,31 @@ namespace 串口助手
             };
             border.MouseLeftButtonDown += (s, e) => onClick((string)((Border)s).Tag);
             return border;
+        }
+
+        /// <summary>更新滑杆色块选中态</summary>
+        private void UpdateSlidersColorChipSelection(string currentColor)
+        {
+            foreach (Border chip in slidersColorPanel.Children)
+            {
+                bool isSelected = chip.Tag != null && (string)chip.Tag == currentColor;
+                chip.BorderBrush = isSelected ? (Brush)FindResource("PrimaryBrush")
+                                              : (Brush)FindResource("CardBorderBrush");
+                chip.BorderThickness = new Thickness(isSelected ? 2 : 1);
+            }
+        }
+
+        // ——— "自定义颜色" 按钮 ———
+        private void btnSlidersCustomColor_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedSliders.Count != 1) return;
+            var slider = _selectedSliders[0];
+            ShowColorPickerPopup(btnSlidersCustomColor, hex => {
+                slider.Color = hex;
+                RefreshSlidersUI();
+                RefreshSlidersSidePanel();
+                UpdateSlidersColorChipSelection(hex);
+            });
         }
 
         // ——— 编辑模式切换 ———
@@ -671,6 +697,7 @@ namespace 串口助手
             tbSliderMax.Text = svm.MaxValue.ToString();
             tbSliderStep.Text = svm.Step.ToString();
             tbSliderInterval.Text = svm.SendIntervalMs.ToString();
+            UpdateSlidersColorChipSelection(svm.Color);
         }
 
         // ——— 单选属性编辑 ———
