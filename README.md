@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" width="96" alt="Serial Monitor"></p>
+
 # Serial Monitor V2
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
