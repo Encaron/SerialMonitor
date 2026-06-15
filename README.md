@@ -127,6 +127,19 @@ dotnet publish -c Release
 dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 ```
 
+## Roadmap
+
+未来的改进方向。有想法？欢迎 [提交 Issue](https://github.com/Encaron/SerialMonitor/issues/new)。
+
+| 优先级 | 计划 | 状态 |
+|:--:|------|:--:|
+| 🔴 | **HexToBytes 非法字符警告**——发送含无效 HEX 字符时提醒用户 | 计划中 |
+| 🔴 | **版本号自动注入**——csproj `<Version>` 自动同步到关于页 | 计划中 |
+| 🟡 | **波形游标测量**——暂停后长按显示数据点精确值 | 计划中 |
+| 🟡 | **OLED 绘图指令**——支持画点/画线/画圆/色块填充，STM32 端可封装 UI 函数库 | 计划中 |
+| 🟢 | 面板路由重构——MainWindow 减重 | 远期 |
+| ⬜ | 多串口 | 暂无计划 |
+
 ## FAQ
 
 **Q: 软件启动提示缺少 .NET 运行时？**
