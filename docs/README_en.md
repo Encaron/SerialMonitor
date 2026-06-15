@@ -127,6 +127,61 @@ Output: `bin/Release/net8.0-windows/win-x64/publish/Serial Monitor.exe`
 dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 ```
 
+## Roadmap
+
+> 📋 Full details: [`Docs/Serial V2 修缮/开发计划2.md`](../Docs/Serial%20V2%20修缮/开发计划2.md) (Chinese). Ideas? [Open an Issue](https://github.com/Encaron/SerialMonitor/issues/new).
+
+### 📦 Release Plan
+
+| Version | Content | Notes |
+|------|------|------|
+| **v2.2.0** | 🔴 All 5 quick fixes | Stutter fix, HEX warning, waveform freeze, version auto-inject, sidebar enrichment |
+| **v2.3.0** | 🟡 OLED Drawing + Tuning Workbench | Draw primitives + drag sliders while viewing plots |
+| **v2.4.0** | 🟡 FFT Spectrum | New tab: frequency-domain analysis |
+| **v2.5.0** | 🟡 PC Drawing → STM32 Screen | PC-side canvas → `[draw,...]` → physical display |
+| **v2.6.0** | 🟢 Internal polish | i18n prep + routing refactor + theme optimization |
+
+### 🔴 Quick Fixes (v2.2.0)
+
+| # | Plan | Difficulty |
+|:--:|------|:--:|
+| 1 | **Smooth slider drag during plotting** — Skip rendering when not visible + background-priority rendering when co-visible | Small |
+| 2 | **HEX invalid character warning** — Show `⚠ invalid: G` next to send button | Tiny |
+| 3 | **Waveform freeze on disconnect** — Keep plot on screen with "Disconnected · Frozen" watermark | Small |
+| 4 | **Version auto-injection** — csproj `<Version>` syncs to About page | Tiny |
+| 5 | **Slider/Joystick sidebar enrichment** — Quick-preset buttons + live detail + joystick feedback consistency | Small |
+
+### 🟡 Feature Expansion
+
+| # | Plan | Difficulty |
+|:--:|------|:--:|
+| 6 | **OLED Drawing Primitives** — `[draw,...]` protocol: point/line/circle/rect/fill | Medium |
+| 7 | **✏ PC Drawing → STM32 Screen** — PC toolbar → `[draw,...]` → STM32 LCD + Export C array | Medium |
+| 8 | **📊 Tuning Workbench** — Plot bottom drawer, drag sliders while watching waveforms | Medium |
+| 10 | **📶 FFT Spectrum** — STM32 CMSIS-DSP → `[fft,...]` → OxyPlot spectrogram | Medium |
+
+### 🟢 Polish
+
+| # | Plan | Difficulty |
+|:--:|------|:--:|
+| 11 | **i18n preparation** — Separate display text from storage keys | Medium |
+| 15 | **Panel routing refactor** — Move handlers into ViewModels, keep switch dispatcher | Medium |
+| 16 | **Theme switch optimization** — Recolor in-place instead of rebuilding | Small |
+
+### 🔵 Future
+
+| # | Idea |
+|:--:|------|
+| 17 | NFC tag page — `[nfc,...]` for access control/electronic tag debugging |
+| 18 | Macro recorder — record and replay PC-side operations |
+
+### ⬜ Explicitly Out of Scope
+
+- Multi-serial-port (open two exe windows instead)
+- macOS 1:1 clone (diminishing returns with WPF)
+- CI/CD (`dotnet publish` is enough)
+- DI container (unnecessary for a personal project)
+
 ## FAQ
 
 **Q: App complains about missing .NET runtime?**
