@@ -7,6 +7,7 @@
 
 <h3 align="center">
 基于 WPF + AvalonEdit + OxyPlot 的串口调试工具。
+<br>STM32 端配套 C 库，扔进工程即用。
 </h3>
 
 <p align="center">
@@ -105,6 +106,37 @@ Serial_Printf(&huart1, "[plot,ax,%f][plot,ay,%f][plot,az,%f]\r\n", ax, ay, az);
 Serial_Printf(&huart1, "[key,btn1,down][display,0,0,\"Hello\",18]\r\n");
 ```
 
+## 🔧 STM32 端 C 库（开箱即用）
+
+不想自己写串口代码？[`Serial_C_Language/`](Serial_C_Language/) 提供了完整的 STM32 HAL 串口库——两个文件，扔进 CubeMX 工程即可。
+
+**三步上手：**
+
+```c
+// ① 启动接收（方括号协议，专为 Serial Monitor V2 设计）
+UART_InitReceive(SERIAL_DEVICE_1, SERIAL_PROTOCOL, SERIAL_SQUARE_BRACKET);
+
+// ② MCU 主动上报 → PC 端自动建卡
+Serial_Printf(&huart1, "[sensor,temp,芯片温度,%.1f]\r\n", 42.5);
+Serial_Printf(&huart1, "[sensor,status,主板,online]\r\n");
+
+// ③ PC 端开关卡 → STM32 控制硬件
+if (strcmp(type, "ctrl") == 0) {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5,
+        strcmp(action, "on") == 0 ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+```
+
+**配套内容：**
+
+| 文件 | 说明 |
+|------|------|
+| [`Serial.c`](Serial_C_Language/Serial.c) + [`Serial.h`](Serial_C_Language/Serial.h) | 发送(6个) + 接收(4协议) + 中断回调，零依赖零 malloc |
+| [`README.md`](Serial_C_Language/README.md) | 完整文档：快速入门、API 速查、接收处理示例、路由分发架构 |
+| [`example/`](Serial_C_Language/example/) | 最小可编译 STM32CubeIDE 工程：波形发生器(9种) + 按键 + OLED 虚拟屏 + PWM 滑杆 |
+
+> ⚠️ CubeMX 工程需勾选 USART 中断（NVIC → `USARTx global interrupt` ✅）。不需要重写代码。
+
 ## Development
 
 ### 环境要求
@@ -140,6 +172,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | **v2.4.0** | 🟡 FFT 频谱 | 全新标签页：频域分析，查谐波/混叠/电源噪声 |
 | **v2.5.0** | 🟡 PC 画板 → STM32 物理屏 | PC 端绘制，串口发送，STM32 屏显示 |
 | **v2.6.0** | 🟢 内部优化 | i18n 预埋 + 路由抽出 + 主题优化，为英文版铺路 |
+| **v2.7.0** | 🟡 传感面板 | 模块化卡片式 UI：5 类传感卡片 + 迷你波形 + 开关控制 |
 
 ### 🔴 快速改进（v2.2.0）
 
@@ -159,6 +192,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | 7 | **✏ PC 画板 → STM32 物理屏**——PC 端绘制 + 工具栏 → `[draw,...]` → STM32 屏显示 + 导出 C 数组 | 中 |
 | 8 | **📊 调参工作台**——Plot 底部抽屉，拖滑杆同时看波形，模拟"手拧电位器 + 眼看示波器" | 中 |
 | 10 | **📶 音频频谱页**——STM32 CMSIS-DSP FFT → `[fft,...]` → OxyPlot 频谱瀑布图 | 中 |
+| 19 | **📡 传感面板**——模块化卡片式 UI：温度/湿度/气压/状态/开关卡片 + 迷你波形 + `[sensor,...]` `[ctrl,...]` 协议 | 中 |
 
 ### 🟢 打磨优化（UI 精致化 / 架构改进）
 
