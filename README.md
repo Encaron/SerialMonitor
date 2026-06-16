@@ -135,7 +135,7 @@ if (strcmp(type, "ctrl") == 0) {
 | [`README.md`](Serial_C_Language/README.md) | 完整文档：快速入门、API 速查、接收处理示例、路由分发架构 |
 | [`example/`](Serial_C_Language/example/) | 最小可编译 STM32CubeIDE 工程：波形发生器(9种) + 按键 + OLED 虚拟屏 + PWM 滑杆 |
 
-> ⚠️ CubeMX 工程需勾选 USART 中断（NVIC → `USARTx global interrupt` ✅）。不需要重写代码。
+> ⚠️ **本工程基于 STM32H743。** 若使用其他系列（F1/F4/G0/L4 等），需在 CubeMX 中更换芯片 → 重新生成 → 保留 `HardWare/` 目录即可。串口库本身与芯片无关，HAL 通用。可交给 AI 辅助迁移。
 
 ## Development
 

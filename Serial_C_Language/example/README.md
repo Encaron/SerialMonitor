@@ -28,8 +28,14 @@ example/
 
 ## 硬件要求
 
-- STM32H743 (Nucleo / 自制板均可)
+- STM32H743（Nucleo / 自制板均可）
 - USART1 连 PC（PA9=TX, PA10=RX）
 - PC13 接 LED（滑杆 PWM 调光用）
 
-> 不是 H743 也能用——改 CubeMX 选你的芯片，重新生成后保留 `HardWare/` 目录即可。
+> ⚠️ **本工程基于 STM32H743。** 不是 H743 也能用，但需要改：
+> 1. CubeMX 中更换为你的芯片 → 重新生成代码
+> 2. 保留 `HardWare/` 和 `Serial_C_Language/` 目录不动
+> 3. `Serial.c` / `Serial.h` 本身只依赖 HAL 库，芯片无关——HAL 是统一的
+> 4. 不会操作可交给 AI："帮我把这个 H743 工程迁移到 STM32F407"
+> 
+> 换芯片后 HAL 驱动文件不同，Drivers 目录会自动更新，无需手动选。
