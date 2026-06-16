@@ -216,6 +216,17 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 - CI/CD（双击 exe 就够了）
 - DI 容器（个人项目不需要）
 
+## Repo Structure
+
+| 目录 | 用途 |
+|------|------|
+| [`Serial Monitor V2/`](Serial%20Monitor%20V2/) | 🚀 主程序——WPF .NET 8，当前活跃开发目录 |
+| [`Serial_C_Language/`](Serial_C_Language/) | 🔧 STM32 HAL 配套 C 库（详见[上方文档](#-stm32-端-c-库开箱即用)） |
+| [`SerialMonitor.Tests/`](SerialMonitor.Tests/) | 🧪 单元测试（72 条） |
+| [`Installer/`](Installer/) | 📦 Inno Setup 安装包脚本 |
+| [`串口助手/`](%E4%B8%B2%E5%8F%A3%E5%8A%A9%E6%89%8B/) | 📦 江科大 WinForms 原版——历史存档，只读 |
+| [`串口助手-WPF-v1/`](%E4%B8%B2%E5%8F%A3%E5%8A%A9%E6%89%8B-WPF-v1/) | 📦 v1.0.0 WPF 初版——历史存档，只读 |
+
 ## FAQ
 
 **Q: 软件启动提示缺少 .NET 运行时？**

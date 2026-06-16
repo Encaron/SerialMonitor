@@ -140,6 +140,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | **v2.4.0** | 🟡 FFT Spectrum | New tab: frequency-domain analysis |
 | **v2.5.0** | 🟡 PC Drawing → STM32 Screen | PC-side canvas → `[draw,...]` → physical display |
 | **v2.6.0** | 🟢 Internal polish | i18n prep + routing refactor + theme optimization |
+| **v2.7.0** | 🟡 Sensor Panel | Modular card-based UI: 5 sensor card types + mini plots + switch control |
 
 ### 🔴 Quick Fixes (v2.2.0)
 
@@ -159,6 +160,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | 7 | **✏ PC Drawing → STM32 Screen** — PC toolbar → `[draw,...]` → STM32 LCD + Export C array | Medium |
 | 8 | **📊 Tuning Workbench** — Plot bottom drawer, drag sliders while watching waveforms | Medium |
 | 10 | **📶 FFT Spectrum** — STM32 CMSIS-DSP → `[fft,...]` → OxyPlot spectrogram | Medium |
+| 19 | **📡 Sensor Panel** — Modular card UI: temp/humidity/pressure/status/switch cards + mini plots + `[sensor,...]` `[ctrl,...]` protocol | Medium |
 
 ### 🟢 Polish
 
