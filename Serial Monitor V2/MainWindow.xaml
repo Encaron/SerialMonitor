@@ -639,7 +639,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="76"
                             Click="btnOpen_Click" ToolTip="打开/关闭串口（Ctrl+Enter）" />
                 </StackPanel>
-                <TextBlock Text="v2.1.0" FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
+                <TextBlock x:Name="tbStatusVersion" FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
                            VerticalAlignment="Center" HorizontalAlignment="Right" />
             </Grid>
         </Border>
@@ -1238,13 +1238,40 @@
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <!-- 正常模式：最近操作反馈 -->
                                 <StackPanel x:Name="rightSlidersFeedback" Visibility="Visible">
-                                    <TextBlock Text="滑杆反馈" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="滑杆反馈" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                    <!-- 快速预设 -->
+                                    <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="8,6" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="快速预设" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6"/>
+                                            <WrapPanel>
+                                                <Button Content="全部归零" Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Height="24" FontSize="10" Padding="6,0" Margin="0,0,4,0"
+                                                        Click="btnSlidersPresetZero_Click"/>
+                                                <Button Content="全部置中" Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Height="24" FontSize="10" Padding="6,0" Margin="0,0,4,0"
+                                                        Click="btnSlidersPresetMid_Click"/>
+                                                <Button Content="全部最大" Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Height="24" FontSize="10" Padding="6,0"
+                                                        Click="btnSlidersPresetMax_Click"/>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
                                             <TextBlock Text="最近操作：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderFeedbackName" FontSize="12" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource PrimaryBrush}" Text="—"
                                                        TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                            <TextBlock Text="当前值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock x:Name="tbSliderCurrentValue" FontSize="12"
+                                                       FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="—" Margin="0,0,0,2"/>
+                                            <TextBlock Text="范围：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock x:Name="tbSliderDetailRange" FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="—" Margin="0,0,0,2"/>
+                                            <TextBlock Text="步长：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock x:Name="tbSliderDetailStep" FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Text="—" Margin="0,0,0,4"/>
                                             <TextBlock Text="发送内容：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderFeedbackValue" FontSize="10"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
@@ -1360,27 +1387,13 @@
                                 <Button x:Name="btnJoystickCenterSide" Content="⟲ 全部回中" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnJoystickCenter_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <TextBlock Text="实时数值" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="摇杆反馈" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
-                                <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8">
-                                    <StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                            <TextBlock Text="J1 " FontSize="11" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="tbJoy1Value" FontSize="12"
-                                                       FontFamily="Sarasa Mono SC, Consolas, Courier New"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       Text="X: 0.00  Y: 0.00" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="J2 " FontSize="11" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="tbJoy2Value" FontSize="12"
-                                                       FontFamily="Sarasa Mono SC, Consolas, Courier New"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       Text="X: 0.00  Y: 0.00" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </StackPanel>
+                                <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
+                                    <TextBlock x:Name="tbJoy1Feedback" FontSize="11"
+                                               FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Text="—" TextWrapping="Wrap" LineHeight="18"/>
                                 </Border>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
@@ -1559,6 +1572,8 @@
                             <TextBlock Text="Enter 发送  ·  Shift+Enter 换行  ·  Ctrl+L 清空接收  ·  Ctrl+P 暂停  ·  Ctrl+Enter 开关串口"
                                        FontSize="10" Foreground="{DynamicResource TextSubtleBrush}" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock x:Name="tbHexWarning" Foreground="#E8A838" FontSize="11"
+                                           VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"/>
                                 <Button Content="清空发送区" Style="{DynamicResource SecondaryButtonStyle}"
                                         Margin="0,0,8,0" Click="btnClearSend_Click" ToolTip="清空发送区"/>
                                 <Button Content="▾" x:Name="btnSendHistory" Width="26" Height="32" FontSize="10"
@@ -1604,6 +1619,14 @@
                                    Text="等待串口数据…" FontSize="14"
                                    Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <!-- 串口断开波形冻结水印 -->
+                        <Border x:Name="plotFrozenOverlay" Panel.ZIndex="2"
+                                Background="#40FFFFFF" CornerRadius="4" Padding="16,8"
+                                HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                Margin="0,0,16,16" Visibility="Collapsed" IsHitTestVisible="False">
+                            <TextBlock Text="串口已断开 · 数据冻结" FontSize="13"
+                                       Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"/>
+                        </Border>
                     </Grid>
                 </Grid>
 
@@ -1962,7 +1985,7 @@
                             <TextBlock Text="Serial Monitor" FontSize="18" FontWeight="Bold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                             <TextBlock x:Name="tbAboutVersion" FontSize="13"
-                                       Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,20" Text="v2.1.0"/>
+                                       Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,20"/>
                             <!-- 制作 -->
                             <TextBlock Text="制作" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
@@ -2050,8 +2073,8 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <TextBlock x:Name="tbPortInfo" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                VerticalAlignment="Center" Visibility="Collapsed"/>
-                    <TextBlock FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
-                               VerticalAlignment="Center" Margin="12,0,0,0" Text="v2.1.0"/>
+                    <TextBlock x:Name="tbSettingsVersion" FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
+                               VerticalAlignment="Center" Margin="12,0,0,0"/>
                 </StackPanel>
             </Grid>
         </Border>

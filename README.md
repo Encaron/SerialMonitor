@@ -19,7 +19,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.2.0-green.svg)
 
 ## Preview
 
@@ -167,7 +167,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 
 | 版本 | 内容 | 说明 |
 |------|------|------|
-| **v2.2.0** | 🔴 全部 5 条快速改进 | Bug 修复 + 体验提升：拖拽不卡、HEX 提醒、波形冻结、版本号、侧栏充实 |
+| ✅ **v2.2.0** | 🔴 全部 5 条快速改进 | Bug 修复 + 体验提升：拖拽不卡、HEX 提醒、波形冻结、版本号、侧栏充实 |
 | **v2.3.0** | 🟡 OLED 绘图 + 调参工作台 | 首批新功能：绘图指令 + 同屏拖滑杆看波形 |
 | **v2.4.0** | 🟡 FFT 频谱 | 全新标签页：频域分析，查谐波/混叠/电源噪声 |
 | **v2.5.0** | 🟡 PC 画板 → STM32 物理屏 | PC 端绘制，串口发送，STM32 屏显示 |

@@ -166,7 +166,7 @@ namespace 串口助手
             RefreshIconBarVisibility();
 
             // 关于页：版本号 + 运行时 + GitHub + 数据路径 + Issue 反馈
-            tbAboutVersion.Text = "v2.1.0 (build aa0309a)";
+            SetVersionDisplay();
             tbAboutRuntime.Text = $"{RuntimeInformation.FrameworkDescription} · {RuntimeInformation.ProcessArchitecture}";
             tbAboutGitHub.Text = "https://github.com/Encaron/SerialMonitor";
             tbAboutIssues.Text = "https://github.com/Encaron/SerialMonitor/issues";
@@ -284,6 +284,63 @@ namespace 串口助手
             btnThemeSwitch.Background = isDarkTheme
                 ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
                 : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
+
+            // 启动后异步检查 GitHub 更新（不阻塞窗口加载）
+            Loaded += async (_, _) => await CheckForUpdateAsync();
+        }
+
+        /// <summary>
+        /// 从 Assembly 读取版本号，更新所有显示位置（不再手写版本号）。
+        /// csproj &lt;Version&gt; 是唯一真相源。
+        /// </summary>
+        private void SetVersionDisplay()
+        {
+            var ver = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
+            string v = ver != null ? $"v{ver.Major}.{ver.Minor}.{ver.Build}" : "v?.?.?";
+            tbAboutVersion.Text = v;
+            tbStatusVersion.Text = v;
+            tbSettingsVersion.Text = v;
+        }
+
+        /// <summary>
+        /// 启动时检查 GitHub Release 是否有新版本。异步、不阻塞、失败静默。
+        /// </summary>
+        private async System.Threading.Tasks.Task CheckForUpdateAsync()
+        {
+            try
+            {
+                using var client = new System.Net.Http.HttpClient();
+                client.DefaultRequestHeaders.UserAgent.TryParseAdd("SerialMonitor");
+                client.Timeout = TimeSpan.FromSeconds(5);
+
+                var response = await client.GetStringAsync(
+                    "https://api.github.com/repos/Encaron/SerialMonitor/releases/latest");
+
+                // 从 JSON 中提取 tag_name（不用 Newtonsoft，手写简易解析）
+                var match = System.Text.RegularExpressions.Regex.Match(response, "\"tag_name\"\\s*:\\s*\"v?(\\d+\\.\\d+\\.\\d+)\"");
+                if (!match.Success) return;
+
+                var remote = new Version(match.Groups[1].Value);
+                var local = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
+                if (local == null || remote <= local) return;
+
+                // 弹窗提示新版本
+                Dispatcher.Invoke(() =>
+                {
+                    var result = MessageBox.Show(
+                        $"当前版本：v{local.Major}.{local.Minor}.{local.Build}\n最新版本：v{remote}\n\n是否查看更新内容？",
+                        "发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                            "https://github.com/Encaron/SerialMonitor/releases/latest") { UseShellExecute = true });
+                    }
+                });
+            }
+            catch
+            {
+                // 网络不通/GitHub 挂了/限速 → 静默跳过
+            }
         }
 
         // ==================================================================
@@ -413,6 +470,8 @@ namespace 串口助手
 
                 // 日志
                 LogSystem($"---- 已打开串行端口 {_session.PortName} ----");
+                // 清除冻结水印
+                plotFrozenOverlay.Visibility = Visibility.Collapsed;
             }
             else
             {
@@ -436,6 +495,8 @@ namespace 串口助手
 
                 AnimateBrushColor(statusDotBrush, StatusDotIdle);
                 tbStatusText.Text = "就绪";
+                // 波形冻结水印（串口已关，数据自然停止）
+                plotFrozenOverlay.Visibility = Visibility.Visible;
                 if (fontMissing)
                 {
                     tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
@@ -942,7 +1003,31 @@ namespace 串口助手
                 : Visibility.Collapsed;
 
             if (sendMode == "HEX模式")
+            {
                 AutoFormatHexInput();
+                UpdateHexWarning();
+            }
+            else
+            {
+                tbHexWarning.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// HEX 模式实时校验：发送按钮旁黄色警告非法字符
+        /// </summary>
+        private void UpdateHexWarning()
+        {
+            string invalid = DataConverter.ValidateHexString(tbSend.Text);
+            if (!string.IsNullOrEmpty(invalid))
+            {
+                tbHexWarning.Text = $"⚠ 无效 HEX 字符: {invalid}";
+                tbHexWarning.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                tbHexWarning.Visibility = Visibility.Collapsed;
+            }
         }
 
         /// <summary>
@@ -1010,12 +1095,16 @@ namespace 串口助手
                 sendMode = "HEX模式";
                 // 切换到 HEX 时自动格式化现有内容
                 if (IsLoaded)
+                {
                     AutoFormatHexInput();
+                    UpdateHexWarning();
+                }
             }
             else if (mode == "文本模式")
             {
                 cbSendCoding.IsEnabled = true;
                 sendMode = "文本模式";
+                tbHexWarning.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -1350,6 +1439,7 @@ namespace 串口助手
             else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; InitSliderPanel(); }
             else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; InitOLEDPanel(); }
             else if (sender == tabJoystick){ _currentTab = "Joystick"; _previousContentTab = "Joystick"; InitJoystickPanel(); }
+            if (_plotVM != null) _plotVM.IsActive = (_currentTab == "Plot");
             RefreshContentVisibility();
         }
         private void TabSettings_Checked(object sender, RoutedEventArgs e)

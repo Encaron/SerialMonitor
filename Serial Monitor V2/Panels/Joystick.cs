@@ -286,7 +286,7 @@ namespace 串口助手
                 }
                 joystickPanel.Children.Add(canvas);
             }
-            RefreshJoystickSideValues();
+            // 初始化侧栏为空（等待首次发送后更新）
         }
 
         // ═══════════════════════════════════════════════
@@ -804,13 +804,28 @@ namespace 串口助手
             thumb.MouseLeftButtonUp += JoystickThumb_MouseUp;
         }
 
-        private void RefreshJoystickSideValues()
+        /// <summary>
+        /// 侧栏摇杆反馈——由 SendJoystickValue 传入已构造的协议消息，分行显示便于阅读。
+        /// </summary>
+        private void RefreshJoystickSideFeedback(string msg)
         {
-            if (_joyVM == null) return;
-            var j1 = _joyVM.GetJoystick(1);
-            var j2 = _joyVM.GetJoystick(2);
-            if (j1 != null) tbJoy1Value.Text = string.Format("X: {0:+0.00;-0.00; 0.00}  Y: {1:+0.00;-0.00; 0.00}", j1.X, j1.Y);
-            if (j2 != null) tbJoy2Value.Text = string.Format("X: {0:+0.00;-0.00; 0.00}  Y: {1:+0.00;-0.00; 0.00}", j2.X, j2.Y);
+            // 协议 [joystick,1,x1,y1,x2,y2] →
+            //   [joystick,1,
+            //    0.350,-0.420,   ← J1
+            //    0.000, 0.000]   ← J2
+            var match = System.Text.RegularExpressions.Regex.Match(msg,
+                @"\[joystick,1,([^,]+),([^,]+),([^,]+),([^\]]+)\]");
+            if (match.Success)
+            {
+                tbJoy1Feedback.Text = string.Format(
+                    "[joystick,1,\n {0}, {1},\n {2},  {3}]",
+                    match.Groups[1].Value, match.Groups[2].Value,
+                    match.Groups[3].Value, match.Groups[4].Value);
+            }
+            else
+            {
+                tbJoy1Feedback.Text = msg;
+            }
         }
 
         // ——— 拖拽逻辑 ———
@@ -842,7 +857,6 @@ namespace 串口助手
 
             // 更新读数（不改 Inline 结构，只替换数值 Run）
             UpdatePosTextValues(elems.pos, j);
-            RefreshJoystickSideValues();
 
             // 节流发送
             var now = DateTime.Now;
@@ -874,6 +888,8 @@ namespace 串口助手
             else
                 msg = string.Format("[joystick,1,{0:F3},{1:F3},{2:F3},{3:F3}]", x2, y2, j.X, j.Y);
             SendRaw(msg, appendLineEnding: true);
+            // 侧栏协议反馈（直接传已构造的消息，不重复构造）
+            Dispatcher.InvokeAsync(() => RefreshJoystickSideFeedback(msg));
         }
 
         private void btnJoystickCenter_Click(object sender, RoutedEventArgs e)

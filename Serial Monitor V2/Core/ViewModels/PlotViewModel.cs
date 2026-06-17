@@ -17,6 +17,7 @@ namespace 串口助手
     {
         public PlotModel Model { get; private set; }
         public bool IsPaused { get; set; }
+        public bool IsActive { get; set; } = true;
         public bool ShowValueHud { get; set; } = true;
         public bool XAxisAutoRange { get; set; } = true;
         public bool YAxisAutoRange { get; set; } = true;
@@ -188,19 +189,22 @@ namespace 串口助手
                 }
             }
 
-            // 限流 30Hz 刷新
+            // 限流 30Hz 刷新（不可见时跳过渲染，数据照存——防切页拖拽卡顿）
             _dirty = true;
-            var now = DateTime.Now;
-            if ((now - _lastRefresh).TotalMilliseconds >= 33)
+            if (IsActive)
             {
-                _lastRefresh = now;
-                _dirty = false;
-                if (DisplayMode == PlotDisplayMode.Scroll)
-                    ApplyXAxisWindow();
-                else
-                    ApplySweepWindow();
-                RecalcYAxis();
-                Model.InvalidatePlot(true);
+                var now = DateTime.Now;
+                if ((now - _lastRefresh).TotalMilliseconds >= 33)
+                {
+                    _lastRefresh = now;
+                    _dirty = false;
+                    if (DisplayMode == PlotDisplayMode.Scroll)
+                        ApplyXAxisWindow();
+                    else
+                        ApplySweepWindow();
+                    RecalcYAxis();
+                    Model.InvalidatePlot(true);
+                }
             }
         }
 

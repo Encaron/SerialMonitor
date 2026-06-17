@@ -21,6 +21,8 @@ namespace 串口助手
         private Dictionary<string, DateTime> _sliderLastSent = new Dictionary<string, DateTime>();
         // 缓存模板部件：避免 ValueChanged 每次 FindName+ApplyTemplate 造成拖拽卡顿
         private readonly Dictionary<Slider, (Border trackFill, Ellipse thumbDot, TextBlock valueTb)> _sliderPartsCache = new();
+        // 侧栏活跃滑杆：上次用户拖拽的滑杆，初始 null → fallback 第一个
+        private string _lastActiveSlider = null;
 
         // ——— 风格系统 ———
 
@@ -163,6 +165,57 @@ namespace 串口助手
             if (_selectedSliders.Count == 0) return;
             foreach (var s in _selectedSliders.ToList()) _sliderVM.RemoveSlider(s);
             _selectedSliders.Clear(); RefreshSlidersUI(); RefreshSlidersSidePanel();        }
+
+        // ——— 快速预设按钮 ———
+        private void btnSlidersPresetZero_Click(object sender, RoutedEventArgs e) {
+            SetAllSlidersTo(vm => vm.MinValue);
+        }
+        private void btnSlidersPresetMid_Click(object sender, RoutedEventArgs e) {
+            SetAllSlidersTo(vm => (vm.MinValue + vm.MaxValue) / 2.0);
+        }
+        private void btnSlidersPresetMax_Click(object sender, RoutedEventArgs e) {
+            SetAllSlidersTo(vm => vm.MaxValue);
+        }
+        /// <summary>
+        /// 全部滑杆设为指定值，更新 UI 控件并发送（串口打开时）。
+        /// </summary>
+        private void SetAllSlidersTo(Func<SliderViewModel, double> getValue)
+        {
+            if (_sliderVM == null || _sliderVM.Sliders.Count == 0) return;
+            if (_sliderVM.IsEditMode) return;
+
+            foreach (var vm in _sliderVM.Sliders)
+            {
+                double val = getValue(vm);
+                val = Math.Round(val / vm.Step) * vm.Step;
+                val = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, val));
+                vm.Value = val;
+                // 同步 UI 控件（不改结构，只改 Slider.Value）
+                foreach (Border card in slidersPanel.Children)
+                {
+                    if (card.Tag is SliderViewModel tag && tag.Name == vm.Name && card.Child is Grid grid)
+                    {
+                        foreach (var child in grid.Children)
+                        {
+                            if (child is Slider sl && sl.Tag is SliderViewModel svm2 && svm2.Name == vm.Name)
+                                sl.Value = vm.Value;
+                            if (child is TextBlock tb && Grid.GetRow(tb) == 1 && Grid.GetColumn(tb) == 1)
+                                tb.Text = vm.DisplayValue;
+                        }
+                    }
+                }
+                // 串口打开时发送
+                if (_session != null && _session.IsOpen)
+                    SendSliderValue(vm);
+            }
+
+            // 显示第一个被预设的滑杆详情
+            if (_sliderVM.Sliders.Count > 0)
+            {
+                _lastActiveSlider = _sliderVM.Sliders[0].Name;
+                UpdateSliderSideDetail(_sliderVM.Sliders[0]);
+            }
+        }
 
         // ——— 二次确认 ———
         private Button _slidersConfirmButton;
@@ -551,6 +604,9 @@ namespace 串口助手
                             if (parts.valueTb != null) parts.valueTb.Text = vm.DisplayValue;
                             UpdateSliderProgressBarCached(sl, vm, parts.trackFill, parts.thumbDot);
                         }
+                        // 侧栏活跃滑杆详情（直接更新 TextBlock，不调 RefreshSlidersUI）
+                        _lastActiveSlider = vm.Name;
+                        UpdateSliderSideDetail(vm);
                         var now = DateTime.Now;
                         if (!_sliderLastSent.TryGetValue(vm.Name, out var last)
                             || (now - last).TotalMilliseconds >= vm.SendIntervalMs)
@@ -684,7 +740,14 @@ namespace 串口助手
             rightSlidersNoSelection.Visibility  = Visibility.Collapsed;
             rightSlidersSingleSelect.Visibility = Visibility.Collapsed;
 
-            if (!isEdit) { rightSlidersFeedback.Visibility = Visibility.Visible; return; }
+            if (!isEdit)
+            {
+                rightSlidersFeedback.Visibility = Visibility.Visible;
+                // 正常模式：显示活跃滑杆详情
+                var active = GetActiveSlider();
+                if (active != null) UpdateSliderSideDetail(active);
+                return;
+            }
             if (count == 0) { rightSlidersNoSelection.Visibility = Visibility.Visible; return; }
 
             // 单选
@@ -698,6 +761,34 @@ namespace 串口助手
             tbSliderStep.Text = svm.Step.ToString();
             tbSliderInterval.Text = svm.SendIntervalMs.ToString();
             UpdateSlidersColorChipSelection(svm.Color);
+        }
+
+        /// <summary>
+        /// 获取侧栏应显示的活跃滑杆：用户最后拖拽的 → fallback 第一个。
+        /// </summary>
+        private SliderViewModel GetActiveSlider()
+        {
+            if (_sliderVM == null || _sliderVM.Sliders.Count == 0) return null;
+            if (!string.IsNullOrEmpty(_lastActiveSlider))
+            {
+                var s = _sliderVM.Sliders.FirstOrDefault(x => x.Name == _lastActiveSlider);
+                if (s != null) return s;
+            }
+            return _sliderVM.Sliders[0];
+        }
+
+        /// <summary>
+        /// 拖拽滑杆时直接更新侧栏详情字段（不调 RefreshSlidersUI——会销毁正在拖的控件）。
+        /// </summary>
+        private void UpdateSliderSideDetail(SliderViewModel vm)
+        {
+            if (vm == null) return;
+            // 只在正常模式（非编辑）下更新
+            if (_sliderVM.IsEditMode) return;
+            tbSliderFeedbackName.Text = vm.Name;
+            tbSliderCurrentValue.Text = vm.DisplayValue;
+            tbSliderDetailRange.Text = $"{vm.MinValue} ~ {vm.MaxValue}";
+            tbSliderDetailStep.Text = vm.Step.ToString();
         }
 
         // ——— 单选属性编辑 ———
