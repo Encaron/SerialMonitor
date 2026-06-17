@@ -19,7 +19,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.2.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.3.0-green.svg)
 
 ## Preview
 
@@ -68,6 +68,19 @@
 - 数值 HUD 半透明叠加、标点 / 连线可切换
 - 信号分析：频率 / 幅值 / 占空比 / 波形类型识别
 - CSV 导出、Y 轴手动 / 自动范围
+- ⏱/📶 **时域/频域一键切换**——同一信号两种视角
+
+### 📊 调参工作台
+- Plot 底部可伸缩抽屉，拖滑杆同时实时看波形变化
+- 滑杆与 Sliders 页共享 VM，步长/颜色/范围双向即时生效
+- +/- 按钮精调 PID，步进值取自 `TickFrequency`
+
+### 📶 FFT 频谱
+- **PC 端自动 FFT**：`[plot,...]` 数据滑窗 → 实时频谱，STM32 零改动
+- STM32 端可选 CMSIS-DSP FFT → `[fft,name,点数,bin0,...]` 协议直发
+- 窗函数：汉宁 / 矩形 / 汉明 / 布莱克曼
+- 频域指标：基频 / 幅度 / THD / SNR / DC 偏置
+- 采样率输入 → X 轴 Bin → Hz，频率范围/分辨率全部 Hz 显示
 
 ### 🎮 控制面板（双向通信）
 | 面板 | 协议格式 | 说明 |
@@ -168,7 +181,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | 版本 | 内容 | 说明 |
 |------|------|------|
 | ✅ **v2.2.0** | 🔴 全部 5 条快速改进 | Bug 修复 + 体验提升：拖拽不卡、HEX 提醒、波形冻结、版本号、侧栏充实 |
-| **v2.3.0** | 🟡 调参工作台 + FFT 频谱 | 拖滑杆同时看波形 + 频域频谱分析 |
+| ✅ **v2.3.0** | 🟡 调参工作台 + FFT 频谱 | 拖滑杆同时看波形 + PC 端自动 FFT 频域分析 |
 | **v2.4.0** | 🟡 传感面板 | 模块化卡片式 UI：5 类传感卡片 + 迷你波形 + 开关控制 |
 | **v2.5.0** | 🟡 OLED 绘图 + PC 画板 | 绘图指令 + PC 端绘制 → STM32 物理屏 |
 | **v2.6.0** | 🟢 内部优化 | i18n 预埋 + 路由抽出 + 主题优化，为英文版铺路 |

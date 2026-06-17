@@ -18,7 +18,7 @@ A serial debugging tool based on WPF + AvalonEdit + OxyPlot.
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.3.0-green.svg)
 
 ## Preview
 
@@ -67,6 +67,19 @@ Supports **Windows 10+ (x64)** only.
 - Numeric HUD semi-transparent overlay, markers / lines toggle
 - Signal analysis: frequency / amplitude / duty cycle / waveform classification
 - CSV export, Y-axis manual / auto range
+- ⏱/📶 **Time/Frequency one-click toggle** — two views of the same signal
+
+### 📊 Tuning Workbench
+- Bottom pull-out drawer in Plot, drag sliders while watching live waveforms
+- Sliders share VM with Sliders panel, settings sync in both directions
+- +/- precision buttons for PID tuning, step from `TickFrequency`
+
+### 📶 FFT Spectrum
+- **PC-side auto FFT**: sliding window on `[plot,...]` data → live spectrum, zero MCU changes
+- Optional STM32 CMSIS-DSP → `[fft,name,N,bin0,...]` direct feed
+- Window functions: Hanning / Rectangular / Hamming / Blackman
+- Frequency metrics: fundamental / amplitude / THD / SNR / DC bias
+- Sample rate input → X axis Bin → Hz, full frequency labeling
 
 ### 🎮 Control Panels (bidirectional)
 | Panel | Protocol | Description |
@@ -136,7 +149,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | Version | Content | Notes |
 |------|------|------|
 | ✅ **v2.2.0** | 🔴 All 5 quick fixes | Stutter fix, HEX warning, waveform freeze, version auto-inject, sidebar enrichment |
-| **v2.3.0** | 🟡 Tuning Workbench + FFT Spectrum | Drag sliders while viewing plots + frequency-domain analysis |
+| ✅ **v2.3.0** | 🟡 Tuning Workbench + FFT Spectrum | Drag sliders while viewing plots + PC-side auto FFT |
 | **v2.4.0** | 🟡 Sensor Panel | Modular card-based UI: 5 sensor card types + mini plots + switch control |
 | **v2.5.0** | 🟡 OLED Drawing + PC Canvas | Draw primitives + PC-side drawing → STM32 physical display |
 | **v2.6.0** | 🟢 Internal polish | i18n prep + routing refactor + theme optimization |
