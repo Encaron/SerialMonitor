@@ -43,5 +43,6 @@
     <Resource Include="Icons\tabs\oled.png" />
     <Resource Include="Icons\tabs\settings.png" />
     <Resource Include="Icons\tabs\joystick.png" />
+    <Resource Include="Icons\tabs\sensors.png" />
   </ItemGroup>
 </Project>

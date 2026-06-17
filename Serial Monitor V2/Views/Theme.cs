@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -83,6 +84,8 @@ namespace 串口助手
                 RefreshJoystickUI();
             if (_displayVM != null)
                 RefreshOLEDUI();
+            if (_sensorVM != null && _sensorVM.Groups.SelectMany(g => g.Cards).Any())
+                RefreshAllRows();
 
             // 快捷键页键帽颜色随主题
             PopulateShortcutPage();

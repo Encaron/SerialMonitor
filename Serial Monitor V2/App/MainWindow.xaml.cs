@@ -114,7 +114,7 @@ namespace 串口助手
         private Dictionary<string, bool> _panelVisible = new Dictionary<string, bool>
         {
             ["Plot"] = true, ["Keys"] = true, ["Sliders"] = true,
-            ["OLED"] = true, ["Joystick"] = true,
+            ["OLED"] = true, ["Joystick"] = true, ["Sensors"] = true,
         };
 
         private static readonly Dictionary<string, (Color Light, Color Dark)> ThemeMap =
@@ -438,6 +438,71 @@ namespace 串口助手
                         else if (msg.Type == "display-clear")
                         {
                             HandleDisplayClear();
+                        }
+                        // #19 传感面板: [sensor,子类型,卡片名,值,辅助]
+                        else if (msg.Type == "sensor" && msg.Args.Count >= 3)
+                        {
+                            string subType = msg.Args[0];
+                            string name = msg.Args[1];
+                            string value = msg.Args.Count >= 3 ? msg.Args[2] : null;
+                            string aux = msg.Args.Count >= 4 ? msg.Args[3] : null;
+
+                            // 滑杆卡仅手动建——收到数据只更新不创建
+                            bool isNewCard = (_sensorVM.FindByName(name) == null);
+                            if (subType == "slider")
+                            {
+                                var existing = _sensorVM.FindByName(name);
+                                if (existing != null)
+                                {
+                                    existing.Update(value, aux);
+                                    if (_sensorVM.IsActive) UpdateCardUI(existing);
+                                }
+                                // slider 不存在 → 忽略（等手动建卡）
+                                continue;
+                            }
+
+                            var card = _sensorVM.OnSensorMessage(subType, name, value, aux);
+                            if (card != null)
+                            {
+                                if (_sensorVM.IsActive)
+                                {
+                                    if (isNewCard)
+                                        RefreshAllRows();       // 首次建卡 → 重建
+                                    else
+                                        UpdateCardUI(card);     // 已存在 → 增量更新
+                                }
+                                SaveSensorPrefs();
+                            }
+                        }
+                        // #19 传感面板: [ctrl,子类型,卡片名,动作]
+                        else if (msg.Type == "ctrl" && msg.Args.Count >= 3)
+                        {
+                            string subType = msg.Args[0];
+                            string name = msg.Args[1];
+                            string action = msg.Args[2];
+
+                            // 滑杆卡：双向协议——PC 发 [ctrl,slider,...]，MCU 回 [sensor,slider,...]
+                            // 收到 [ctrl,slider,...] 是 PC→MCU 的发送路径，不建卡不更新
+                            if (subType == "slider")
+                            {
+                                // TODO Phase B: 滑杆卡拖拽时走这里发串口
+                                continue;
+                            }
+
+                            // 开关卡：led/relay → control 类型
+                            bool isNewCard = (_sensorVM.FindByName(name) == null);
+                            var card = _sensorVM.OnCtrlMessage(subType, name, action);
+                            if (card != null)
+                            {
+                                if (_sensorVM.IsActive)
+                                {
+                                    if (isNewCard)
+                                        RefreshAllRows();
+                                    else
+                                        UpdateCardUI(card);
+                                }
+                                SaveSensorPrefs();
+                            }
                         }
                         else
                         {
@@ -1476,6 +1541,7 @@ namespace 串口助手
             else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; InitSliderPanel(); }
             else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; InitOLEDPanel(); }
             else if (sender == tabJoystick){ _currentTab = "Joystick"; _previousContentTab = "Joystick"; InitJoystickPanel(); }
+            else if (sender == tabSensors) { _currentTab = "Sensors"; _previousContentTab = "Sensors"; InitSensorPanel(); }
             if (_plotVM != null)
             {
                 bool wasActive = _plotVM.IsActive;
@@ -1483,6 +1549,22 @@ namespace 串口助手
                 // 切回 Plot 时立即刷新积压数据（非 Plot 期间数据照存但未渲染）
                 if (!wasActive && _plotVM.IsActive)
                     _plotVM.Flush();
+            }
+            // 传感面板 IsActive 管理：切走停迷你波形定时器，切回重启
+            if (_sensorVM != null)
+            {
+                _sensorVM.IsActive = (_currentTab == "Sensors");
+                if (_sensorVM.IsActive)
+                {
+                    if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled)
+                        _sensorRefreshTimer.Start();
+                    RefreshAllRows();
+                }
+                else
+                {
+                    if (_sensorRefreshTimer != null && _sensorRefreshTimer.IsEnabled)
+                        _sensorRefreshTimer.Stop();
+                }
             }
             RefreshContentVisibility();
         }
@@ -2097,6 +2179,7 @@ namespace 串口助手
             panelSliders.Visibility  = mainTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
             panelOLED.Visibility     = mainTab == "OLED"     ? Visibility.Visible : Visibility.Collapsed;
             panelJoystick.Visibility = mainTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
+            panelSensors.Visibility  = mainTab == "Sensors"  ? Visibility.Visible : Visibility.Collapsed;
             panelSettings.Visibility = showSettingsPanel     ? Visibility.Visible : Visibility.Collapsed;
             // 侧面板
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
@@ -2127,6 +2210,7 @@ namespace 串口助手
             rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
             rightSliders.Visibility  = _currentTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
             rightJoystick.Visibility = _currentTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
+            rightSensors.Visibility  = _currentTab == "Sensors" ? Visibility.Visible : Visibility.Collapsed;
             rightOLED.Visibility    = _currentTab == "OLED"     ? Visibility.Visible : Visibility.Collapsed;
             rightSettings.Visibility = _currentTab == "Settings" ? Visibility.Visible : Visibility.Collapsed;
             switch (_currentTab)
@@ -2137,6 +2221,7 @@ namespace 串口助手
                 case "Sliders":  tbSidePanelTitle.Text = "滑杆属性"; break;
                 case "Joystick": tbSidePanelTitle.Text = "摇杆设置"; break;
                 case "OLED":     tbSidePanelTitle.Text = "OLED 设置"; break;
+                case "Sensors":  tbSidePanelTitle.Text = "卡片管理"; break;
                 case "Settings": tbSidePanelTitle.Text = "设置"; break;
             }
             // 切换到按键/滑杆面板时刷新侧面板
@@ -2155,13 +2240,15 @@ namespace 串口助手
             tabSliders.Visibility  = _panelVisible["Sliders"]  ? Visibility.Visible : Visibility.Collapsed;
             tabOLED.Visibility     = _panelVisible["OLED"]     ? Visibility.Visible : Visibility.Collapsed;
             tabJoystick.Visibility = _panelVisible["Joystick"] ? Visibility.Visible : Visibility.Collapsed;
+            tabSensors.Visibility  = _panelVisible["Sensors"]  ? Visibility.Visible : Visibility.Collapsed;
             // 隐藏的图标如果正处于选中状态，回退到接收区
             string tab = _currentTab;
             if ((tab == "Plot" && !_panelVisible["Plot"])
                 || (tab == "Keys" && !_panelVisible["Keys"])
                 || (tab == "Sliders" && !_panelVisible["Sliders"])
                 || (tab == "OLED" && !_panelVisible["OLED"])
-                || (tab == "Joystick" && !_panelVisible["Joystick"]))
+                || (tab == "Joystick" && !_panelVisible["Joystick"])
+                || (tab == "Sensors" && !_panelVisible["Sensors"]))
                 tabReceive.IsChecked = true;
         }
 
@@ -2195,6 +2282,7 @@ namespace 串口助手
             AddPopupItem(panel, "🎚 滑杆面板", _panelVisible["Sliders"], tab: "Sliders");
             AddPopupItem(panel, "📱 OLED", _panelVisible["OLED"], tab: "OLED");
             AddPopupItem(panel, "🕹 摇杆面板", _panelVisible["Joystick"], tab: "Joystick");
+            AddPopupItem(panel, "📡 传感面板", _panelVisible["Sensors"], tab: "Sensors");
 
             var border = new Border {
                 Background = (Brush)FindResource("CardBgBrush"),

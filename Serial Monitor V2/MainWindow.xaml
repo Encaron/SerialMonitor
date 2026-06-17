@@ -778,6 +778,16 @@
                                 </Rectangle.OpacityMask>
                             </Rectangle>
                         </RadioButton>
+                        <RadioButton x:Name="tabSensors" GroupName="IconBar"
+                                     Style="{DynamicResource IconBarButtonStyle}"
+                                     ToolTip="传感面板" Checked="TabContent_Checked">
+                            <Rectangle Width="18" Height="18"
+                                       Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="Icons/tabs/sensors.png" />
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
+                        </RadioButton>
                     </StackPanel>
                 </DockPanel>
             </Border>
@@ -1595,6 +1605,21 @@
                                 </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
+                        <!-- 传感面板 -->
+                        <ScrollViewer x:Name="rightSensors" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
+                                      Padding="0,0,4,0">
+                            <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
+                                <TextBlock Text="卡片管理" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                                           TextWrapping="Wrap" LineHeight="16">
+                                    <Run Text="📡 正常模式：" FontWeight="SemiBold"/>
+                                    <Run Text="侧栏显示卡片概览和快速跳转。"/>
+                                    <LineBreak/>
+                                    <Run Text="✏ 编辑模式：" FontWeight="SemiBold"/>
+                                    <Run Text="侧栏变为行管理器——添加/删除/排序卡片和组。"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </ScrollViewer>
                         <!-- OLED 设置（Phase 4） -->
                         <ScrollViewer x:Name="rightOLED" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
@@ -2063,6 +2088,27 @@
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="joystickPanel" Margin="16,12,16,12" Orientation="Horizontal"
                                     HorizontalAlignment="Center"/>
+                    </ScrollViewer>
+                </Grid>
+                <!-- 传感面板 -->
+                <Grid x:Name="panelSensors" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <!-- 工具栏 -->
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource SecondaryHoverBgBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
+                        <Button x:Name="btnSensorEdit" Content="编辑"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Height="28" MinWidth="0" Padding="10,0"
+                                HorizontalAlignment="Left"
+                                Click="BtnSensorEdit_Click" />
+                    </Border>
+                    <!-- 可滚动的组区域 -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="sensorRowsPanel" Margin="12,10,12,10" />
                     </ScrollViewer>
                 </Grid>
                 <!-- 设置子页面 -->
