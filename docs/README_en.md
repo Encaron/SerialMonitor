@@ -135,12 +135,11 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 
 | Version | Content | Notes |
 |------|------|------|
-| **v2.2.0** | 🔴 All 5 quick fixes | Stutter fix, HEX warning, waveform freeze, version auto-inject, sidebar enrichment |
-| **v2.3.0** | 🟡 OLED Drawing + Tuning Workbench | Draw primitives + drag sliders while viewing plots |
-| **v2.4.0** | 🟡 FFT Spectrum | New tab: frequency-domain analysis |
-| **v2.5.0** | 🟡 PC Drawing → STM32 Screen | PC-side canvas → `[draw,...]` → physical display |
+| ✅ **v2.2.0** | 🔴 All 5 quick fixes | Stutter fix, HEX warning, waveform freeze, version auto-inject, sidebar enrichment |
+| **v2.3.0** | 🟡 Tuning Workbench + FFT Spectrum | Drag sliders while viewing plots + frequency-domain analysis |
+| **v2.4.0** | 🟡 Sensor Panel | Modular card-based UI: 5 sensor card types + mini plots + switch control |
+| **v2.5.0** | 🟡 OLED Drawing + PC Canvas | Draw primitives + PC-side drawing → STM32 physical display |
 | **v2.6.0** | 🟢 Internal polish | i18n prep + routing refactor + theme optimization |
-| **v2.7.0** | 🟡 Sensor Panel | Modular card-based UI: 5 sensor card types + mini plots + switch control |
 
 ### 🔴 Quick Fixes (v2.2.0)
 
