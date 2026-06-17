@@ -36,6 +36,8 @@ namespace 串口助手
         private PlotViewModel _plotVM;
         private OxyPlot.Wpf.PlotView plotView;
         private bool _plotViewCreated;
+        // #10 FFT：当前视角（false=时域，true=频域）
+        private bool _isFreqDomain;
 
         // ——— 颜色常量（与 XAML 资源保持一致）———
 
@@ -210,6 +212,20 @@ namespace 串口助手
             cbPlotMode.Items.Add("滚动 (Roll)");
             cbPlotMode.Items.Add("扫描 (Sweep)");
             cbPlotMode.SelectedIndex = 0;
+            // #10 FFT: 窗函数
+            cbFreqWindow.Items.Add("汉宁 (Hanning)");
+            cbFreqWindow.Items.Add("矩形 (Rectangular)");
+            cbFreqWindow.Items.Add("汉明 (Hamming)");
+            cbFreqWindow.Items.Add("布莱克曼 (Blackman)");
+            cbFreqWindow.SelectedIndex = 0;
+            // #10 FFT: FFT 点数选择
+            cbFreqSize.Items.Add("64");
+            cbFreqSize.Items.Add("128");
+            cbFreqSize.Items.Add("256");
+            cbFreqSize.Items.Add("512");
+            cbFreqSize.SelectedIndex = 1; // 默认 128
+            cbFreqSource.DropDownOpened += (s, e) => RefreshFreqSourceList();
+            chkFreqLines.IsChecked = true;
 
             // 动画画刷：单独创建非冻结实例，后续通过 ColorAnimation 驱动
             statusDotBrush = new SolidColorBrush(StatusDotIdle);
@@ -370,7 +386,10 @@ namespace 串口助手
                                 _plotVM.OnPlotMessage(msg.Args[0], val, DateTime.Now);
                                 if (plotEmptyHint.Visibility == Visibility.Visible)
                                     plotEmptyHint.Visibility = Visibility.Collapsed;
-                                UpdatePlotHud();
+                                if (!_isFreqDomain) UpdatePlotHud();
+                                // #10 FFT：频域下自动重算频谱
+                                if (_isFreqDomain)
+                                    _plotVM.RecomputeFft();
                                 // 初次收到 plot 数据时检测调参按钮（已在 Plot 页无需切标签）
                                 if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
                                     RefreshTuningDrawer();
@@ -399,6 +418,11 @@ namespace 串口助手
                             {
                                 HandleJoystickMessage(joyId, jx, jy);
                             }
+                        }
+                        // #10 FFT: [fft,点数,bin0,...] 或 [fft,name,点数,bin0,...]
+                        else if (msg.Type == "fft" && msg.Args.Count >= 2)
+                        {
+                            ParseFftMessage(msg.Args);
                         }
                         // Phase 4: [display,x,y,"text",size] or [display,x,y,"text",size,#RRGGBB]
                         else if (msg.Type == "display" && msg.Args.Count >= 4)
@@ -1447,7 +1471,7 @@ namespace 串口助手
         {
             _currentSettingsPage = null; // 离开设置子页面
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
-            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); RefreshTuningDrawer(); }
+            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); if (!_isFreqDomain) RefreshTuningDrawer(); }
             else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; InitKeyPanel(); }
             else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; InitSliderPanel(); }
             else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; InitOLEDPanel(); }
@@ -2078,13 +2102,27 @@ namespace 串口助手
             rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
             if (_currentTab == "Plot")
             {
-                rightPlot.Visibility       = _plotShowDetail ? Visibility.Collapsed : Visibility.Visible;
-                rightPlotDetail.Visibility = _plotShowDetail ? Visibility.Visible      : Visibility.Collapsed;
+                if (_isFreqDomain)
+                {
+                    rightPlot.Visibility           = Visibility.Collapsed;
+                    rightPlotDetail.Visibility     = Visibility.Collapsed;
+                    rightPlotFreq.Visibility       = _plotShowDetail ? Visibility.Collapsed : Visibility.Visible;
+                    rightPlotDetailFreq.Visibility = _plotShowDetail ? Visibility.Visible      : Visibility.Collapsed;
+                }
+                else
+                {
+                    rightPlot.Visibility           = _plotShowDetail ? Visibility.Collapsed : Visibility.Visible;
+                    rightPlotDetail.Visibility     = _plotShowDetail ? Visibility.Visible      : Visibility.Collapsed;
+                    rightPlotFreq.Visibility       = Visibility.Collapsed;
+                    rightPlotDetailFreq.Visibility = Visibility.Collapsed;
+                }
             }
             else
             {
-                rightPlot.Visibility       = Visibility.Collapsed;
-                rightPlotDetail.Visibility = Visibility.Collapsed;
+                rightPlot.Visibility           = Visibility.Collapsed;
+                rightPlotDetail.Visibility     = Visibility.Collapsed;
+                rightPlotFreq.Visibility       = Visibility.Collapsed;
+                rightPlotDetailFreq.Visibility = Visibility.Collapsed;
             }
             rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
             rightSliders.Visibility  = _currentTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
@@ -2272,6 +2310,62 @@ namespace 串口助手
             FixPlotTrackerColors(isDarkTheme);
         }
 
+        /// <summary>
+        /// #10 FFT 视角切换：时域 ↔ 频域
+        /// </summary>
+        private void btnPerspectiveToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _isFreqDomain = !_isFreqDomain;
+            if (plotView != null)
+            {
+                var oldModel = plotView.Model;
+                var newModel = _isFreqDomain ? _plotVM.FreqModel : _plotVM.TimeModel;
+                if (oldModel != newModel)
+                {
+                    plotView.Model = newModel;
+                    // 强制刷新避免 Model 切换后 X 轴残留
+                    newModel.InvalidatePlot(true);
+                }
+            }
+            // 更新按钮文案
+            btnPerspectiveToggle.Content = _isFreqDomain ? "📶 频域  →  时域 ⏱" : "⏱ 时域  →  频域 📶";
+            // 刷新侧面板（时域/频域内容切换）+ 数据源下拉框
+            RefreshContentVisibility();
+            if (_isFreqDomain)
+            {
+                RefreshFreqSourceList();
+                _plotVM.RecomputeFft();
+                UpdateFreqSideInfo();
+            }
+            // 频域下隐藏调参抽屉（调参是时域功能）
+            if (_isFreqDomain) ResetTuningDrawer();
+            // HUD 切换：时域→数值浮层，频域→数据源名
+            if (_isFreqDomain)
+            {
+                plotHud.Visibility = Visibility.Collapsed;
+                UpdateFreqHud();
+            }
+            else
+            {
+                freqHud.Visibility = Visibility.Collapsed;
+            }
+            // 更新空提示
+            if (plotEmptyHint.Visibility == Visibility.Visible)
+                plotEmptyHint.Text = _isFreqDomain ? "等待 FFT 数据…" : "等待串口数据…";
+        }
+
+        /// <summary>收起调参抽屉</summary>
+        private void ResetTuningDrawer()
+        {
+            if (panelTuningDrawer.Visibility == Visibility.Visible)
+            {
+                panelTuningDrawer.Visibility = Visibility.Collapsed;
+                splitterTuning.Visibility = Visibility.Collapsed;
+                barTuningToggle.Height = 28;
+                btnTuningToggle.Content = "▲ 调参工作台";
+            }
+        }
+
         private void btnPlotPause_Click(object sender, RoutedEventArgs e)
         {
             TogglePlotPauseWithDetail();
@@ -2279,24 +2373,276 @@ namespace 串口助手
 
         private void btnPlotClear_Click(object sender, RoutedEventArgs e)
         {
-            _plotVM.Clear();
+            if (_isFreqDomain)
+            {
+                _plotVM.ClearFreq();
+                plotEmptyHint.Text = "等待 FFT 数据…";
+            }
+            else
+            {
+                _plotVM.Clear();
+                plotEmptyHint.Text = "等待串口数据…";
+            }
             plotEmptyHint.Visibility = Visibility.Visible;
             plotHud.Visibility = Visibility.Collapsed;
+            freqHud.Visibility = Visibility.Collapsed;
+        }
+
+        // ── #10 FFT 频域控件事件 ──
+
+        private void cbFreqSource_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_plotVM == null || cbFreqSource.SelectedIndex < 0) return;
+            string display = cbFreqSource.SelectedItem as string;
+            if (string.IsNullOrEmpty(display) || display == "（不选）")
+            {
+                _plotVM.SetFftSource(null);
+                UpdateFreqSideInfo();
+                return;
+            }
+            // 解析前缀：📈 = plot通道, 📶 = 命名fft
+            string key;
+            if (display.StartsWith("📶 "))
+                key = "fft:" + display.Substring(3);
+            else if (display.StartsWith("📈 "))
+                key = "plot:" + display.Substring(3);
+            else
+                key = "plot:" + display; // 兼容旧格式无前缀
+            _plotVM.SetFftSource(key);
+            if (key.StartsWith("plot:"))
+                _plotVM.RecomputeFft();
+            UpdateFreqSideInfo();
+            if (_isFreqDomain) UpdateFreqHud();
+        }
+
+        private void tbFreqSampleRate_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (_plotVM == null) return;
+            if (double.TryParse(tbFreqSampleRate.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double sr) && sr > 0)
+                _plotVM.SetFftSampleRate(sr);
+            else
+                _plotVM.SetFftSampleRate(0);
+            _plotVM.RecomputeFft();
+            UpdateFreqSideInfo();
+            if (_isFreqDomain) UpdateFreqHud();
+        }
+
+        private void cbFreqSize_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_plotVM == null || cbFreqSize.SelectedItem == null) return;
+            if (int.TryParse(cbFreqSize.SelectedItem.ToString(), out int size))
+            {
+                _plotVM.SetFftWindowSize(size);
+                _plotVM.SetFftSampleRate(0); // 改点数清采样率（Hz/bin 变了）
+                tbFreqSampleRate.Text = "";
+                _plotVM.RecomputeFft();
+                UpdateFreqSideInfo();
+            }
+        }
+
+        private void btnFreqRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshFreqSourceList();
+            if (_plotVM != null && _plotVM.GetFftChannel() != null)
+                _plotVM.RecomputeFft();
+            UpdateFreqSideInfo();
+        }
+
+        private void cbFreqWindow_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_plotVM == null) return;
+            _plotVM.SetFftWindowType(cbFreqWindow.SelectedIndex);
+            _plotVM.RecomputeFft();
+            UpdateFreqSideInfo();
+        }
+
+        private void chkFreqMarkers_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_plotVM == null) return;
+            bool show = chkFreqMarkers.IsChecked == true;
+            _plotVM.SetFreqMarkers(show);
+        }
+
+        private void chkFreqLines_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_plotVM == null) return;
+            bool show = chkFreqLines.IsChecked == true;
+            _plotVM.SetFreqLines(show);
+        }
+
+        private void chkFreqValueHud_Changed(object sender, RoutedEventArgs e)
+        {
+            // 频域数值显示：目前暂无 HUD 浮层，预留
+        }
+
+        /// <summary>解析 [fft,...] 消息：兼容旧格式 [fft,点数,bin0,...] 和新格式 [fft,name,点数,bin0,...]</summary>
+        private void ParseFftMessage(List<string> args)
+        {
+            string fftName = null;
+            int countOffset; // args 中 bin 数据起始位置
+            int fftPoints;
+
+            // args[0] 不是数字 → 新格式 [fft,name,count,bin0,...]
+            if (!int.TryParse(args[0], out _) && args.Count >= 3)
+            {
+                fftName = args[0];
+                if (!int.TryParse(args[1], out fftPoints) || fftPoints <= 0) return;
+                countOffset = 2;
+            }
+            else
+            {
+                if (!int.TryParse(args[0], out fftPoints) || fftPoints <= 0) return;
+                countOffset = 1;
+            }
+
+            int count = Math.Min(fftPoints, args.Count - countOffset);
+            var bins = new double[count];
+            int valid = 0;
+            for (int i = 0; i < count; i++)
+            {
+                if (double.TryParse(args[countOffset + i], NumberStyles.Float, CultureInfo.InvariantCulture, out double m))
+                    bins[valid++] = m;
+            }
+            if (valid == count)
+            {
+                _plotVM.OnFftMessage(fftName, fftPoints, bins);
+                if (_isFreqDomain && plotEmptyHint.Visibility == Visibility.Visible)
+                    plotEmptyHint.Visibility = Visibility.Collapsed;
+                if (fftName != null)
+                {
+                    // 新增命名 FFT 源（不重建整表，防闪烁）
+                    string key = $"📶 {fftName}";
+                    if (!cbFreqSource.Items.Contains(key))
+                        cbFreqSource.Items.Add(key);
+                }
+                UpdateFreqSideInfo();
+                if (_isFreqDomain) UpdateFreqHud();
+            }
+        }
+
+        /// <summary>刷新频域数据源下拉框：列出 [plot,...] 通道 + [fft,...] 命名源</summary>
+        private void RefreshFreqSourceList()
+        {
+            if (_plotVM == null) return;
+            var current = cbFreqSource.SelectedItem as string;
+            cbFreqSource.Items.Clear();
+            cbFreqSource.Items.Add("（不选）");
+            // [plot,...] 通道 → PC 自动算 FFT
+            foreach (var n in _plotVM.GetChannelNames())
+                cbFreqSource.Items.Add($"📈 {n}");
+            // [fft,name,...] 命名源 → STM32 直连
+            foreach (var n in _plotVM.GetNamedFftKeys())
+                cbFreqSource.Items.Add($"📶 {n}");
+            // 恢复选中
+            if (current != null && cbFreqSource.Items.Contains(current))
+                cbFreqSource.SelectedItem = current;
+            else if (cbFreqSource.SelectedIndex < 0)
+                cbFreqSource.SelectedIndex = 0;
+        }
+
+        /// <summary>更新频域 HUD：显示当前数据源名</summary>
+        private void UpdateFreqHud()
+        {
+            var sel = cbFreqSource.SelectedItem as string;
+            if (!string.IsNullOrEmpty(sel) && sel != "（不选）")
+            {
+                freqHudLabel.Text = sel;
+                freqHud.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                freqHud.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>收到 [fft,...] 或 FFT 数据变化后更新侧面板只读字段 + 详情面板指标</summary>
+        private void UpdateFreqSideInfo()
+        {
+            if (_plotVM == null) return;
+            var bins = _plotVM.GetFreqBins();
+            int points = bins.Length;
+            // 频域指标
+            double dc = _plotVM.GetFreqDcBias();
+            var (fundBin, fundMag) = _plotVM.GetFreqFundamental();
+            double thd = _plotVM.GetFreqTHD();
+            double snr = _plotVM.GetFreqSNR();
+            double sr = _plotVM.GetFftSampleRate();
+            double resHz = _plotVM.GetFreqResolution();
+            double fundHz = _plotVM.GetFreqFundamentalHz();
+            // 填充详情面板
+            tbFreqDetailFund.Text    = fundHz > 0 ? $"{fundHz:F1} Hz" : (fundBin > 0 ? $"Bin {fundBin}" : "—");
+            tbFreqDetailFundMag.Text = fundBin > 0 ? $"{fundMag:F3}" : "—";
+            tbFreqDetailTHD.Text     = fundBin > 0 ? $"{thd * 100:F2}%" : "—";
+            tbFreqDetailDC.Text      = points > 0 ? $"{dc:F4}" : "—";
+            tbFreqDetailSNR.Text     = fundBin > 0 ? $"{snr:F1} dB" : "—";
+            tbFreqDetailPoints.Text  = points > 0 ? $"{points}" : "—";
+            tbFreqDetailRes.Text     = resHz > 0 ? $"{resHz:F2} Hz/bin" : "—";
+            tbFreqDetailBw.Text      = sr > 0 ? $"0 ~ {sr / 2:F0} Hz" : "—";
+            // 侧面板频率范围
+            tbFreqRange.Text = sr > 0 ? $"0 ~ {sr / 2:F0} Hz" : (points > 0 ? $"Bin 0 ~ {points - 1}" : "—");
+        }
+
+        private void btnFreqDetailCopyData_Click(object sender, RoutedEventArgs e)
+        {
+            string csv = _plotVM.ExportFreqCsv();
+            if (!string.IsNullOrEmpty(csv))
+                Clipboard.SetText(csv);
+        }
+
+        private void btnFreqDetailCopyStats_Click(object sender, RoutedEventArgs e)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"基频: {tbFreqDetailFund.Text}");
+            sb.AppendLine($"基频幅度: {tbFreqDetailFundMag.Text}");
+            sb.AppendLine($"THD: {tbFreqDetailTHD.Text}");
+            sb.AppendLine($"DC偏置: {tbFreqDetailDC.Text}");
+            sb.AppendLine($"信噪比SNR: {tbFreqDetailSNR.Text}");
+            Clipboard.SetText(sb.ToString());
+        }
+
+        private void btnFreqDetailCopyAll_Click(object sender, RoutedEventArgs e)
+        {
+            var sb = new System.Text.StringBuilder();
+            string csv = _plotVM.ExportFreqCsv();
+            if (!string.IsNullOrEmpty(csv))
+            {
+                sb.AppendLine("[频谱数据]");
+                sb.AppendLine(csv);
+                sb.AppendLine();
+            }
+            sb.AppendLine("[频域指标]");
+            sb.AppendLine($"基频: {tbFreqDetailFund.Text}");
+            sb.AppendLine($"基频幅度: {tbFreqDetailFundMag.Text}");
+            sb.AppendLine($"THD: {tbFreqDetailTHD.Text}");
+            sb.AppendLine($"DC偏置: {tbFreqDetailDC.Text}");
+            sb.AppendLine($"信噪比SNR: {tbFreqDetailSNR.Text}");
+            Clipboard.SetText(sb.ToString());
         }
 
         private void btnPlotCsv_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                string csv = _plotVM.ExportCsv();
+                string csv;
+                string prefix;
+                if (_isFreqDomain)
+                {
+                    csv = _plotVM.ExportFreqCsv();
+                    prefix = "fft";
+                }
+                else
+                {
+                    csv = _plotVM.ExportCsv();
+                    prefix = "plot";
+                }
                 if (string.IsNullOrEmpty(csv) || csv.IndexOf(',') < 0)
                 {
-                    LogSystem("---- 无波形数据可导出 ----");
+                    LogSystem($"---- 无{(_isFreqDomain ? "频谱" : "波形")}数据可导出 ----");
                     return;
                 }
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
-                    FileName = $"plot_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+                    FileName = $"{prefix}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
                     Filter = "CSV 文件 (*.csv)|*.csv|所有文件 (*.*)|*.*",
                 };
                 if (dlg.ShowDialog() == true)
@@ -2310,7 +2656,10 @@ namespace 串口助手
 
         private void btnPlotFit_Click(object sender, RoutedEventArgs e)
         {
-            _plotVM.ResetView();
+            if (_isFreqDomain)
+                _plotVM.ResetFreqView();
+            else
+                _plotVM.ResetView();
         }
 
         // ═══ #8 调参工作台（Plot 底部抽屉）═══

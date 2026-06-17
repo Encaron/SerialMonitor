@@ -252,6 +252,43 @@
             </Setter>
         </Style>
 
+        <!-- ===== 视角切换按钮（#10 FFT）：介于 Primary 和 Secondary 之间 ===== -->
+        <Style x:Key="PerspectiveToggleStyle" TargetType="Button">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="Transparent"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryHoverBrush}" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SecondaryHoverBgBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource PrimaryHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ===== ComboBox ===== -->
         <Style TargetType="ComboBox">
             <Setter Property="Height" Value="28" /><Setter Property="FontSize" Value="12" />
@@ -895,6 +932,98 @@
                                 </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
+                        <!-- 频域设置（#10 FFT） -->
+                        <ScrollViewer x:Name="rightPlotFreq" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
+                                      Padding="0,0,4,0">
+                            <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
+                                <!-- 数据源：从哪条 [plot,...] 曲线取数据做 FFT -->
+                                <Border BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                                <StackPanel>
+                                    <TextBlock Text="数据源" FontSize="15" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" x:Name="cbFreqSource" Height="28"
+                                              FontFamily="Microsoft YaHei" FontSize="12"
+                                              Foreground="{DynamicResource TextPrimaryBrush}"
+                                              Background="{DynamicResource CardBgBrush}"
+                                              BorderBrush="{DynamicResource InputBorderBrush}"
+                                              SelectionChanged="cbFreqSource_Changed"/>
+                                    <Button Grid.Column="1" Content="↻" Width="24" Height="24" MinWidth="0"
+                                            Margin="6,0,0,0" FontSize="12" Padding="2,0"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Click="btnFreqRefresh_Click" ToolTip="刷新数据源列表 + 重算频谱"/>
+                                    </Grid>
+                                </StackPanel>
+                                </Border>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- FFT 点数 -->
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="FFT 点数" Style="{DynamicResource FormLabelStyle}"/>
+                                    <ComboBox Grid.Column="1" x:Name="cbFreqSize" Height="28"
+                                              FontFamily="Microsoft YaHei" FontSize="12"
+                                              Foreground="{DynamicResource TextPrimaryBrush}"
+                                              Background="{DynamicResource CardBgBrush}"
+                                              BorderBrush="{DynamicResource InputBorderBrush}"
+                                              SelectionChanged="cbFreqSize_Changed"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- 采样率：bin→Hz 换算 -->
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="采样率" Style="{DynamicResource FormLabelStyle}"/>
+                                    <TextBox Grid.Column="1" x:Name="tbFreqSampleRate" Height="28"
+                                             FontFamily="Microsoft YaHei" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             Background="{DynamicResource CardBgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}"
+                                             BorderThickness="1" Padding="6,2"
+                                             TextChanged="tbFreqSampleRate_Changed"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- 窗函数（PC 端 FFT 可用，[fft,...] 协议接收时仅标注） -->
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="窗函数" Style="{DynamicResource FormLabelStyle}"/>
+                                    <ComboBox Grid.Column="1" x:Name="cbFreqWindow" Height="28"
+                                              FontFamily="Microsoft YaHei" FontSize="12"
+                                              Foreground="{DynamicResource TextPrimaryBrush}"
+                                              Background="{DynamicResource CardBgBrush}"
+                                              BorderBrush="{DynamicResource InputBorderBrush}"
+                                              SelectionChanged="cbFreqWindow_Changed"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- 只读：有效频率范围 -->
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="频率范围" Style="{DynamicResource FormLabelStyle}"/>
+                                    <TextBlock Grid.Column="1" x:Name="tbFreqRange" Text="—"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" FontSize="12"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- 显示选项 -->
+                                <CheckBox x:Name="chkFreqMarkers" Content="显示标点" HorizontalAlignment="Left"
+                                          Checked="chkFreqMarkers_Changed" Unchecked="chkFreqMarkers_Changed"/>
+                                <CheckBox x:Name="chkFreqLines" Content="显示连线" HorizontalAlignment="Left"
+                                          Checked="chkFreqLines_Changed" Unchecked="chkFreqLines_Changed"/>
+                                <CheckBox x:Name="chkFreqValueHud" Content="数值显示" HorizontalAlignment="Left"
+                                          Checked="chkFreqValueHud_Changed" Unchecked="chkFreqValueHud_Changed"/>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <Button Content="🗑 清除频谱" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" Margin="0,0,0,6" Click="btnPlotClear_Click"/>
+                                <Button Content="📥 导出 CSV" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" Click="btnPlotCsv_Click"/>
+                                <!-- 操作提示 -->
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" LineHeight="16">
+                                    <Run Text="🔬 数据源选 [plot,...] 通道 → PC 自动算 FFT" FontWeight="SemiBold"/>
+                                    <LineBreak/>
+                                    <Run Text="收到 [fft,...] 协议则覆盖自动频谱"/>
+                                    <LineBreak/>
+                                    <Run Text="🖱 滚轮缩放 · 右键拖拽平移"/>
+                                    <LineBreak/>
+                                    <Run Text="📊 暂停后点「详细」按钮查看频谱指标"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </ScrollViewer>
                         <!-- 曲线详情（暂停后点击曲线） -->
                         <Grid x:Name="rightPlotDetail" Visibility="Collapsed" Margin="0,0,6,0">
                             <Grid.RowDefinitions>
@@ -992,6 +1121,66 @@
                                     <Button Content="📋 全部复制" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyAll_Click"
                                             ToolTip="复制原始数据 + 分析统计，一份全带走"/>
+                                </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                        <!-- 频域详情（#10 FFT） -->
+                        <Grid x:Name="rightPlotDetailFreq" Visibility="Collapsed" Margin="0,0,6,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- 返回按钮 -->
+                            <Button x:Name="btnPlotDetailBackFreq" Grid.Row="0" Content="← 返回频谱设置"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Height="28" Margin="0,0,0,10" Click="btnPlotDetailBack_Click"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                                <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
+                                <!-- 频域指标 -->
+                                <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="📶 频域" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="基频" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbFreqDetailFund" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="基频幅度" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="tbFreqDetailFundMag" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="THD" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="tbFreqDetailTHD" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="DC 偏置" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="tbFreqDetailDC" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="信噪比 SNR" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="tbFreqDetailSNR" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- 数据区 -->
+                                <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="📦 数据" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="FFT 点数" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbFreqDetailPoints" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="频率分辨率" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="tbFreqDetailRes" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="有效带宽" Style="{DynamicResource FormLabelStyle}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="tbFreqDetailBw" Text="—" Style="{DynamicResource FormLabelStyle}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Margin="0,0,0,6">
+                                    <Button Content="📄 复制数据" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnFreqDetailCopyData_Click" Margin="0,0,0,4"
+                                            ToolTip="复制 FFT 频谱数据（CSV，可贴 Excel）"/>
+                                    <Button Content="📊 复制指标" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnFreqDetailCopyStats_Click" Margin="0,0,0,4"
+                                            ToolTip="复制频域分析指标"/>
+                                    <Button Content="📋 全部复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnFreqDetailCopyAll_Click"
+                                            ToolTip="复制频谱数据 + 分析指标，一份全带走"/>
                                 </StackPanel>
                                 </StackPanel>
                             </ScrollViewer>
@@ -1598,6 +1787,12 @@
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
                         <StackPanel Orientation="Horizontal">
+                            <!-- #10 FFT 视角切换 -->
+                            <Button x:Name="btnPerspectiveToggle" Content="⏱ 时域  →  频域 📶"
+                                    Style="{DynamicResource PerspectiveToggleStyle}" Height="28" Padding="12,0"
+                                    Click="btnPerspectiveToggle_Click" ToolTip="切换时域/频域视角"/>
+                            <Border Width="1" Height="20" Background="{DynamicResource SeparatorBrush}" Margin="8,0,6,0"
+                                    VerticalAlignment="Center"/>
                             <Button x:Name="btnPlotPause" Content="⏸ 暂停" Width="84"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" Click="btnPlotPause_Click"/>
                             <Button x:Name="btnPlotClear" Content="🗑 清除"
@@ -1620,6 +1815,16 @@
                                 BorderBrush="{DynamicResource HudBorderBrush}" BorderThickness="1"
                                 IsHitTestVisible="False" Visibility="Collapsed">
                             <StackPanel x:Name="plotHudPanel"/>
+                        </Border>
+                        <!-- #10 FFT 频域 HUD：仅显示数据源名 -->
+                        <Border x:Name="freqHud" Panel.ZIndex="1"
+                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Margin="0,8,12,0" Padding="8,6" CornerRadius="6"
+                                Background="{DynamicResource HudBackgroundBrush}"
+                                BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1"
+                                IsHitTestVisible="False" Visibility="Collapsed">
+                            <TextBlock x:Name="freqHudLabel" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryBrush}"/>
                         </Border>
                         <TextBlock x:Name="plotEmptyHint" Panel.ZIndex="0"
                                    Text="等待串口数据…" FontSize="14"

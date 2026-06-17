@@ -292,7 +292,14 @@ namespace 串口助手
             // 未暂停 → 提示
             if (!_plotVM.IsPaused)
             {
-                LogSystem("📊 详细：请先暂停波形（点击 ⏸ 暂停 或单击波形图）");
+                LogSystem("📊 详细：请先暂停（点击 ⏸ 暂停 或单击波形图）");
+                return;
+            }
+
+            // #10 FFT 频域模式：直接显示频域指标（不需要选曲线）
+            if (_isFreqDomain)
+            {
+                SwitchToFreqDetail();
                 return;
             }
 
@@ -317,6 +324,21 @@ namespace 串口助手
                 menu.Items.Add(item);
             }
             menu.IsOpen = true;
+        }
+
+        /// <summary>#10 FFT：直接切到频域详情面板</summary>
+        private void SwitchToFreqDetail()
+        {
+            _plotShowDetail = true;
+            _plotDetailCurveName = null;
+            RefreshFreqDetail();
+            RefreshContentVisibility();
+        }
+
+        /// <summary>#10 FFT：刷新频域详情面板（委托统一方法）</summary>
+        private void RefreshFreqDetail()
+        {
+            UpdateFreqSideInfo();
         }
 
         // ==================================================================
