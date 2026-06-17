@@ -1585,9 +1585,15 @@
                     </Grid>
                 </Grid>
 
-                <!-- 绘图（Phase 3） -->
+                <!-- 绘图（Phase 3）+ 调参工作台（#8） -->
                 <Grid x:Name="panelPlot" Visibility="Collapsed">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>  <!-- 0: 工具栏 -->
+                        <RowDefinition Height="*"/>      <!-- 1: 波形图 -->
+                        <RowDefinition Height="Auto"/>  <!-- 2: 调参切换条 -->
+                        <RowDefinition Height="Auto"/>  <!-- 3: GridSplitter -->
+                        <RowDefinition Height="Auto"/>  <!-- 4: 调参抽屉 -->
+                    </Grid.RowDefinitions>
                     <!-- 顶部工具栏 -->
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
@@ -1628,6 +1634,33 @@
                                        Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"/>
                         </Border>
                     </Grid>
+                    <!-- 调参切换条（#8）—— 不遮挡横轴，独立一行更显眼 -->
+                    <Border Grid.Row="2" x:Name="barTuningToggle"
+                            Background="{DynamicResource SecondaryHoverBgBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                            Height="28" Visibility="Collapsed">
+                        <Button x:Name="btnTuningToggle"
+                                Content="▲ 调参工作台" Width="140" Height="24"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                FontSize="12"
+                                HorizontalAlignment="Center"
+                                Click="btnTuningToggle_Click"
+                                ToolTip="展开/收起调参滑杆"/>
+                    </Border>
+                    <!-- 调参抽屉分隔条（#8） -->
+                    <GridSplitter Grid.Row="3" x:Name="splitterTuning"
+                                  Height="4" Visibility="Collapsed"
+                                  ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"
+                                  HorizontalAlignment="Stretch"
+                                  Background="{DynamicResource SeparatorBrush}"/>
+                    <!-- 调参抽屉内容（#8） -->
+                    <ScrollViewer Grid.Row="4" x:Name="panelTuningDrawer"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Background="{DynamicResource CardBgBrush}"
+                                  BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                                  Visibility="Collapsed">
+                        <StackPanel x:Name="tuningSlidersPanel" Margin="12,8"/>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- 按键（Phase 4） -->

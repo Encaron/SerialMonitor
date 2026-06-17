@@ -58,24 +58,29 @@ namespace 串口助手
         };
 
         // ——— 初始化 ———
-        private void InitSliderPanel()
+        private void InitSliderPanel(bool refreshUI = true)
         {
-            if (_sliderVM != null) return;
-            _sliderVM = new SliderPanelViewModel();
-
-            // 恢复滑杆
-            if (_prefsData != null && _prefsData.TryGetValue("sliders", out var slidersObj)
-                && slidersObj is List<object> rawList && rawList.Count > 0)
+            if (_sliderVM == null)
             {
-                var list = new List<Dictionary<string, object>>();
-                foreach (var item in rawList)
-                    if (item is Dictionary<string, object> d) list.Add(d);
-                if (list.Count > 0) _sliderVM.DeserializeSliders(list);
+                _sliderVM = new SliderPanelViewModel();
+
+                // 恢复滑杆
+                if (_prefsData != null && _prefsData.TryGetValue("sliders", out var slidersObj)
+                    && slidersObj is List<object> rawList && rawList.Count > 0)
+                {
+                    var list = new List<Dictionary<string, object>>();
+                    foreach (var item in rawList)
+                        if (item is Dictionary<string, object> d) list.Add(d);
+                    if (list.Count > 0) _sliderVM.DeserializeSliders(list);
+                }
             }
 
-            InitSlidersColorPanel();
-            RefreshSlidersUI();
-                   }
+            if (refreshUI)
+            {
+                InitSlidersColorPanel();
+                RefreshSlidersUI();
+            }
+        }
 
         // ——— 颜色面板 ———
         private bool _slidersColorPanelInited;
@@ -825,7 +830,7 @@ namespace 串口助手
         // ═══════════════════════════════════════
 
         private void HandleSliderMessage(string name, string valStr) {
-            InitSliderPanel();
+            InitSliderPanel(refreshUI: false);
             if (double.TryParse(valStr, out double val)) {
                 _sliderVM.SetSliderValue(name, val);
                 // ⚠️ 不要调 RefreshSlidersUI()——会销毁当前正在拖拽的 Slider 控件！

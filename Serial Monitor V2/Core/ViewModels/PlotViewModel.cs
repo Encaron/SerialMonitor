@@ -5,6 +5,7 @@ using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Threading;
 
 namespace 串口助手
 {
@@ -18,6 +19,9 @@ namespace 串口助手
         public PlotModel Model { get; private set; }
         public bool IsPaused { get; set; }
         public bool IsActive { get; set; } = true;
+        /// <summary>#8 调度法：同屏拖拽滑杆时用 Background 优先级渲染，让路给 MouseMove</summary>
+        public bool UseBackgroundRender { get; set; } = false;
+        private bool _backgroundRenderScheduled = false;
         public bool ShowValueHud { get; set; } = true;
         public bool XAxisAutoRange { get; set; } = true;
         public bool YAxisAutoRange { get; set; } = true;
@@ -203,7 +207,24 @@ namespace 串口助手
                     else
                         ApplySweepWindow();
                     RecalcYAxis();
-                    Model.InvalidatePlot(true);
+                    if (UseBackgroundRender)
+                    {
+                        if (!_backgroundRenderScheduled)
+                        {
+                            _backgroundRenderScheduled = true;
+                            System.Windows.Application.Current.Dispatcher.BeginInvoke(
+                                DispatcherPriority.Background,
+                                new Action(() =>
+                                {
+                                    _backgroundRenderScheduled = false;
+                                    Model.InvalidatePlot(false);
+                                }));
+                        }
+                    }
+                    else
+                    {
+                        Model.InvalidatePlot(true);
+                    }
                 }
             }
         }

@@ -371,6 +371,9 @@ namespace 串口助手
                                 if (plotEmptyHint.Visibility == Visibility.Visible)
                                     plotEmptyHint.Visibility = Visibility.Collapsed;
                                 UpdatePlotHud();
+                                // 初次收到 plot 数据时检测调参按钮（已在 Plot 页无需切标签）
+                                if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
+                                    RefreshTuningDrawer();
                             }
                         }
                         // Phase 4: [key,name,state]
@@ -384,6 +387,8 @@ namespace 串口助手
                         else if (msg.Type == "slider" && msg.Args.Count >= 2)
                         {
                             HandleSliderMessage(msg.Args[0], msg.Args[1]);
+                            if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
+                                RefreshTuningDrawer();
                         }
                         // Phase 4: [joystick,id,x1,y1,x2,y2]
                         else if (msg.Type == "joystick" && msg.Args.Count >= 5)
@@ -547,6 +552,14 @@ namespace 串口助手
             if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 btnPauseDisplay_Click(sender, e);
+                e.Handled = true;
+                return;
+            }
+
+            // ESC → 关闭调参抽屉（#8）
+            if (e.Key == Key.Escape && _tuningDrawerOpen)
+            {
+                ToggleTuningDrawer();
                 e.Handled = true;
                 return;
             }
@@ -1434,12 +1447,19 @@ namespace 串口助手
         {
             _currentSettingsPage = null; // 离开设置子页面
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
-            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); }
+            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); RefreshTuningDrawer(); }
             else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; InitKeyPanel(); }
             else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; InitSliderPanel(); }
             else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; InitOLEDPanel(); }
             else if (sender == tabJoystick){ _currentTab = "Joystick"; _previousContentTab = "Joystick"; InitJoystickPanel(); }
-            if (_plotVM != null) _plotVM.IsActive = (_currentTab == "Plot");
+            if (_plotVM != null)
+            {
+                bool wasActive = _plotVM.IsActive;
+                _plotVM.IsActive = (_currentTab == "Plot");
+                // 切回 Plot 时立即刷新积压数据（非 Plot 期间数据照存但未渲染）
+                if (!wasActive && _plotVM.IsActive)
+                    _plotVM.Flush();
+            }
             RefreshContentVisibility();
         }
         private void TabSettings_Checked(object sender, RoutedEventArgs e)
@@ -2291,6 +2311,230 @@ namespace 串口助手
         private void btnPlotFit_Click(object sender, RoutedEventArgs e)
         {
             _plotVM.ResetView();
+        }
+
+        // ═══ #8 调参工作台（Plot 底部抽屉）═══
+
+        private bool _tuningDrawerOpen = false;
+        private readonly Dictionary<string, TextBlock> _tuningValueLabels = new Dictionary<string, TextBlock>();
+
+        private void btnTuningToggle_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleTuningDrawer();
+        }
+
+        private void ToggleTuningDrawer()
+        {
+            _tuningDrawerOpen = !_tuningDrawerOpen;
+            if (_tuningDrawerOpen)
+            {
+                RefreshTuningDrawer();
+                // 先强制完成当前布局，再改 Visibility，避免 OxyPlot resize 时拿到非法尺寸
+                panelPlot.UpdateLayout();
+                panelTuningDrawer.Visibility = Visibility.Visible;
+                splitterTuning.Visibility = Visibility.Visible;
+                panelTuningDrawer.Height = 160;
+                btnTuningToggle.Content = "▼ 收起";
+                if (_plotVM != null) _plotVM.UseBackgroundRender = true;
+            }
+            else
+            {
+                panelTuningDrawer.Visibility = Visibility.Collapsed;
+                splitterTuning.Visibility = Visibility.Collapsed;
+                btnTuningToggle.Content = "▲ 调参";
+                if (_plotVM != null) _plotVM.UseBackgroundRender = false;
+            }
+        }
+
+        /// <summary>
+        /// 轻量初始化 _sliderVM（不创建 UI），供调参抽屉使用。
+        /// InitSliderPanel() 需要 slidersPanel 可见，这里只恢复 VM 数据。
+        /// </summary>
+        private void EnsureSliderVM()
+        {
+            if (_sliderVM != null) return;
+            _sliderVM = new SliderPanelViewModel();
+            if (_prefsData != null && _prefsData.TryGetValue("sliders", out var slidersObj)
+                && slidersObj is List<object> rawList && rawList.Count > 0)
+            {
+                var list = new List<Dictionary<string, object>>();
+                foreach (var item in rawList)
+                    if (item is Dictionary<string, object> d) list.Add(d);
+                if (list.Count > 0) _sliderVM.DeserializeSliders(list);
+            }
+        }
+
+        /// <summary>
+        /// 填充调参抽屉：仅显示与 Plot Series 同名的滑杆（名字交集），紧凑排列。
+        /// </summary>
+        private void RefreshTuningDrawer()
+        {
+            tuningSlidersPanel.Children.Clear();
+            _tuningValueLabels.Clear();
+            if (_plotVM == null) return;
+            EnsureSliderVM();
+            if (_sliderVM == null || _sliderVM.Sliders.Count == 0) return;
+
+            var plotNames = new HashSet<string>(_plotVM.GetChannelNames());
+            var matching = _sliderVM.Sliders.Where(s => plotNames.Contains(s.Name)).ToList();
+
+            barTuningToggle.Visibility = matching.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (matching.Count == 0) return;
+
+            foreach (var svm in matching)
+            {
+                var row = new Grid { Height = 32, Margin = new Thickness(0, 0, 0, 4) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });       // 名称
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 滑杆
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });       // 数值
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });       // -
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });       // +
+
+                // 名称
+                var nameTb = new TextBlock
+                {
+                    Text = svm.Name,
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 6, 0),
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                };
+                Grid.SetColumn(nameTb, 0); row.Children.Add(nameTb);
+
+                // 滑杆
+                var slider = new Slider
+                {
+                    Minimum = svm.MinValue,
+                    Maximum = svm.MaxValue,
+                    Value = svm.Value,
+                    SmallChange = svm.Step,
+                    LargeChange = svm.Step * 10,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Style = (Style)FindResource("ColoredSliderStyle"),
+                    Tag = svm,
+                };
+                slider.ValueChanged += (s, e2) =>
+                {
+                    var sl = s as Slider; var vm = sl?.Tag as SliderViewModel; if (vm == null) return;
+                    double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
+                    rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
+                    vm.Value = rounded;
+                    if (_tuningValueLabels.TryGetValue(vm.Name, out var tb))
+                        tb.Text = vm.DisplayValue;
+                    // 节流发送（复用已有发送逻辑）
+                    var now = DateTime.Now;
+                    if (!_sliderLastSent.TryGetValue(vm.Name, out var last)
+                        || (now - last).TotalMilliseconds >= vm.SendIntervalMs)
+                    {
+                        _sliderLastSent[vm.Name] = now;
+                        SendSliderValue(vm);
+                    }
+                };
+                // Q 弹（复用 Sliders.cs 的 SpringPress/SpringRelease）
+                slider.PreviewMouseLeftButtonDown += (s, e2) =>
+                {
+                    var sl = s as Slider; sl?.ApplyTemplate();
+                    var thumb = sl?.Template.FindName("Thumb", sl) as FrameworkElement;
+                    if (thumb != null) SpringPress(thumb);
+                };
+                slider.PreviewMouseLeftButtonUp += (s, e2) =>
+                {
+                    var sl = s as Slider; sl?.ApplyTemplate();
+                    var thumb = sl?.Template.FindName("Thumb", sl) as FrameworkElement;
+                    if (thumb != null) SpringRelease(thumb);
+                    var vm = (sl?.Tag as SliderViewModel); if (vm == null) return;
+                    double rounded = Math.Round(sl.Value / vm.Step) * vm.Step;
+                    rounded = Math.Max(vm.MinValue, Math.Min(vm.MaxValue, rounded));
+                    sl.Value = rounded; vm.Value = rounded;
+                    if (_tuningValueLabels.TryGetValue(vm.Name, out var tb2))
+                        tb2.Text = vm.DisplayValue;
+                };
+                Grid.SetColumn(slider, 1); row.Children.Add(slider);
+
+                // 数值
+                var valTb = new TextBlock
+                {
+                    Text = svm.DisplayValue,
+                    FontSize = 11,
+                    FontFamily = new System.Windows.Media.FontFamily("Sarasa Mono SC, Consolas, Courier New"),
+                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                };
+                _tuningValueLabels[svm.Name] = valTb;
+                Grid.SetColumn(valTb, 2); row.Children.Add(valTb);
+
+                // - 按钮
+                var btnMinus = new Button
+                {
+                    Content = "−",
+                    FontSize = 11,
+                    FontWeight = FontWeights.Bold,
+                    Width = 20, Height = 20,
+                    Padding = new Thickness(0),
+                    Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Tag = svm,
+                };
+                btnMinus.Click += (s, e2) =>
+                {
+                    var vm = (s as Button)?.Tag as SliderViewModel; if (vm == null) return;
+                    double step = vm.Step > 0 ? vm.Step : 1;
+                    vm.Value = Math.Max(vm.MinValue, vm.Value - step);
+                    // 同步更新滑杆控件
+                    UpdateTuningSliderPosition(vm);
+                };
+                Grid.SetColumn(btnMinus, 3); row.Children.Add(btnMinus);
+
+                // + 按钮
+                var btnPlus = new Button
+                {
+                    Content = "+",
+                    FontSize = 11,
+                    FontWeight = FontWeights.Bold,
+                    Width = 20, Height = 20,
+                    Padding = new Thickness(0),
+                    Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Tag = svm,
+                };
+                btnPlus.Click += (s, e2) =>
+                {
+                    var vm = (s as Button)?.Tag as SliderViewModel; if (vm == null) return;
+                    double step = vm.Step > 0 ? vm.Step : 1;
+                    vm.Value = Math.Min(vm.MaxValue, vm.Value + step);
+                    UpdateTuningSliderPosition(vm);
+                };
+                Grid.SetColumn(btnPlus, 4); row.Children.Add(btnPlus);
+
+                tuningSlidersPanel.Children.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// +/- 微调后同步滑杆控件位置、数值显示、发送。
+        /// </summary>
+        private void UpdateTuningSliderPosition(SliderViewModel vm)
+        {
+            // 更新数值显示
+            if (_tuningValueLabels.TryGetValue(vm.Name, out var tb))
+                tb.Text = vm.DisplayValue;
+            // 找到对应的 Slider 控件并更新位置
+            foreach (var child in tuningSlidersPanel.Children)
+            {
+                if (child is Grid row && row.Children.Count >= 2)
+                {
+                    var slider = row.Children[1] as Slider;
+                    if (slider != null && (slider.Tag as SliderViewModel) == vm)
+                    {
+                        slider.Value = vm.Value;
+                        break;
+                    }
+                }
+            }
+            // 立即发送
+            SendSliderValue(vm);
+            _sliderLastSent[vm.Name] = DateTime.Now;
         }
 
         private void UpdatePlotHud()
