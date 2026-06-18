@@ -1556,7 +1556,7 @@ namespace 串口助手
                 _sensorVM.IsActive = (_currentTab == "Sensors");
                 if (_sensorVM.IsActive)
                 {
-                    if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled)
+                    if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && !_sensorVM.IsEditMode)
                         _sensorRefreshTimer.Start();
                     RefreshAllRows();
                 }
@@ -1564,6 +1564,7 @@ namespace 串口助手
                 {
                     if (_sensorRefreshTimer != null && _sensorRefreshTimer.IsEnabled)
                         _sensorRefreshTimer.Stop();
+                    DeselectCard();
                 }
             }
             RefreshContentVisibility();
@@ -2224,9 +2225,11 @@ namespace 串口助手
                 case "Sensors":  tbSidePanelTitle.Text = "卡片管理"; break;
                 case "Settings": tbSidePanelTitle.Text = "设置"; break;
             }
-            // 切换到按键/滑杆面板时刷新侧面板
+            // 切换到按键/滑杆/传感面板时刷新侧面板
             if (_currentTab == "Keys") RefreshKeysSidePanel();
             if (_currentTab == "Sliders") RefreshSlidersSidePanel();
+            if (_currentTab == "Sensors" && _sensorVM != null && _sensorVM.IsEditMode)
+                RefreshSensorSidePanel();
         }
 
         /// <summary>
