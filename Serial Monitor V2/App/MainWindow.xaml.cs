@@ -14,6 +14,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using ICSharpCode.AvalonEdit.Search;
 
@@ -103,6 +104,20 @@ namespace 串口助手
         // ——— 暗色主题 ———
         private bool isDarkTheme = false;
 
+        // ——— 版本更新检查 ———
+        private string _updateUrl;          // 非 null 表示有新版本可用
+        private string _remoteVersion;      // "2.5.0"
+
+        // ——— 接收区协议筛选 ———
+        private bool _showProtocolMsgs = true;
+        private bool _showPlainText = true;
+        private Dictionary<string, bool> _protocolTypeFilters = new()
+        {
+            ["sensor"] = true, ["ctrl"] = true, ["plot"] = true,
+            ["slider"] = true, ["key"] = true, ["joystick"] = true,
+            ["display"] = true, ["fft"] = true, ["draw"] = true,
+        };
+
         // Phase 2: 标签切换
         private string _currentTab = "Receive";
         private string _previousContentTab = "Receive";
@@ -169,6 +184,12 @@ namespace 串口助手
 
             // 关于页：版本号 + 运行时 + GitHub + 数据路径 + Issue 反馈
             SetVersionDisplay();
+            tbAboutVersion.MouseLeftButtonDown += (s, e) =>
+            {
+                if (_updateUrl != null)
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                        _updateUrl) { UseShellExecute = true });
+            };
             tbAboutRuntime.Text = $"{RuntimeInformation.FrameworkDescription} · {RuntimeInformation.ProcessArchitecture}";
             tbAboutGitHub.Text = "https://github.com/Encaron/SerialMonitor";
             tbAboutIssues.Text = "https://github.com/Encaron/SerialMonitor/issues";
@@ -300,6 +321,13 @@ namespace 串口助手
             btnThemeSwitch.Background = isDarkTheme
                 ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
                 : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
+            tbThemeToggleLabel.Text = isDarkTheme ? "亮" : "暗";
+            imgThemeToggle.Source = new BitmapImage(new Uri(
+                isDarkTheme ? "Icons/setting/theme/theme-sun.png" : "Icons/setting/theme/theme-moon.png",
+                UriKind.Relative));
+
+            // 初始化接收区筛选按钮状态
+            UpdateFilterButtonAppearance();
 
             // 启动后异步检查 GitHub 更新（不阻塞窗口加载）
             Loaded += async (_, _) => await CheckForUpdateAsync();
@@ -313,9 +341,20 @@ namespace 串口助手
         {
             var ver = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
             string v = ver != null ? $"v{ver.Major}.{ver.Minor}.{ver.Build}" : "v?.?.?";
-            tbAboutVersion.Text = v;
+
             tbStatusVersion.Text = v;
             tbSettingsVersion.Text = v;
+
+            if (_updateUrl != null)
+            {
+                tbAboutVersion.Text = $"{v}  →  v{_remoteVersion} 可用";
+                tbAboutVersion.Cursor = Cursors.Hand;
+                tbAboutVersion.ToolTip = "点击查看更新内容";
+            }
+            else
+            {
+                tbAboutVersion.Text = v;
+            }
         }
 
         /// <summary>
@@ -340,18 +379,10 @@ namespace 串口助手
                 var local = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
                 if (local == null || remote <= local) return;
 
-                // 弹窗提示新版本
-                Dispatcher.Invoke(() =>
-                {
-                    var result = MessageBox.Show(
-                        $"当前版本：v{local.Major}.{local.Minor}.{local.Build}\n最新版本：v{remote}\n\n是否查看更新内容？",
-                        "发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Information);
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
-                            "https://github.com/Encaron/SerialMonitor/releases/latest") { UseShellExecute = true });
-                    }
-                });
+                // 静默记录新版本信息，只在设置→关于页版本号旁提示
+                _remoteVersion = remote.ToString();
+                _updateUrl = "https://github.com/Encaron/SerialMonitor/releases/latest";
+                Dispatcher.Invoke(() => SetVersionDisplay());
             }
             catch
             {
@@ -368,13 +399,15 @@ namespace 串口助手
         /// </summary>
         private void OnLineReceived(string line)
         {
-            LogReceived(line);
+            // 解析一次，过滤和路由共用
+            var pr = ProtocolParser.Parse(line);
+            if (ShouldShowInReceiveArea(line, pr))
+                LogReceived(line);
             UpdateTrafficDisplay();
 
             // Phase 3 & 4: 协议路由——[type,...] → 对应面板
             try
             {
-                var pr = ProtocolParser.Parse(line);
                 if (pr.Messages.Count > 0)
                 {
                     foreach (var msg in pr.Messages)
@@ -515,6 +548,30 @@ namespace 串口助手
             {
                 LogSystem($"协议路由异常：{ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 接收区协议筛选——判断一行数据是否应该在接收区显示。
+        /// </summary>
+        private bool ShouldShowInReceiveArea(string line, ParseResult pr)
+        {
+            // 非协议行（不以 '[' 开头）→ 只看"普通文本"开关
+            if (line.Length == 0 || line[0] != '[')
+                return _showPlainText;
+
+            if (pr.Messages.Count == 0)
+                return _showPlainText; // 解析失败的 [ 开头行当普通文本
+
+            if (!_showProtocolMsgs)
+                return false;
+
+            // 至少有一个协议类型的筛选是开启的
+            foreach (var msg in pr.Messages)
+            {
+                if (_protocolTypeFilters.TryGetValue(msg.Type, out var on) && on)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -1086,6 +1143,204 @@ namespace 串口助手
         private void btnClearReceive_Click(object sender, RoutedEventArgs e)
         {
             ClearEditorContent();
+        }
+
+        // ——— 接收区协议筛选 ———
+
+        private Popup _filterPopup;
+
+        private void BtnFilterMenu_Click(object sender, RoutedEventArgs e)
+        {
+            // 已打开 → 关闭
+            if (_filterPopup != null && _filterPopup.IsOpen)
+            {
+                _filterPopup.IsOpen = false;
+                return;
+            }
+
+            var btn = sender as Button;
+            if (btn == null) return;
+
+            var popup = new Popup
+            {
+                PlacementTarget = btn,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+                StaysOpen = true,
+                AllowsTransparency = true,
+            };
+
+            var border = new Border
+            {
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(12, 8, 12, 8),
+                MinWidth = 190,
+            };
+
+            var stack = new StackPanel();
+
+            // —— 协议主开关 ——
+            var cbProtocol = new CheckBox
+            {
+                Content = "📡 协议消息",
+                IsChecked = _showProtocolMsgs,
+                FontSize = 13,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                Margin = new Thickness(0, 0, 0, 4),
+            };
+            cbProtocol.Checked += (s2, args2) =>
+            {
+                _showProtocolMsgs = true;
+                UpdateFilterButtonAppearance();
+                RebuildProtocolSubItems(stack);
+            };
+            cbProtocol.Unchecked += (s2, args2) =>
+            {
+                _showProtocolMsgs = false;
+                UpdateFilterButtonAppearance();
+                RebuildProtocolSubItems(stack);
+            };
+            stack.Children.Add(cbProtocol);
+
+            // —— 子类型占位（初始填充） ——
+            var subPanel = new StackPanel { Margin = new Thickness(18, 0, 0, 4) };
+            stack.Children.Add(subPanel);
+
+            // —— 分隔线 ——
+            stack.Children.Add(new Border
+            {
+                Height = 1,
+                Background = (Brush)FindResource("SeparatorBrush"),
+                Margin = new Thickness(0, 4, 0, 6),
+            });
+
+            // —— 普通文本开关 ——
+            var cbPlain = new CheckBox
+            {
+                Content = "普通文本",
+                IsChecked = _showPlainText,
+                FontSize = 13,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                Margin = new Thickness(0, 0, 0, 2),
+            };
+            cbPlain.Checked += (s2, args2) => { _showPlainText = true; UpdateFilterButtonAppearance(); };
+            cbPlain.Unchecked += (s2, args2) => { _showPlainText = false; UpdateFilterButtonAppearance(); };
+            stack.Children.Add(cbPlain);
+
+            border.Child = stack;
+            popup.Child = border;
+
+            // 初始填充子类型
+            RebuildProtocolSubItems(stack);
+
+            // 窗口拖走时 Popup 跟随（StaysOpen=true 不会自动跟踪 PlacementTarget）
+            EventHandler locationHandler = null;
+            locationHandler = (s2, args2) =>
+            {
+                if (!popup.IsOpen) return;
+                var offset = popup.HorizontalOffset;
+                popup.HorizontalOffset = offset + 0.001;
+                popup.HorizontalOffset = offset;
+            };
+            LocationChanged += locationHandler;
+
+            // 切换到其他应用 → 自动关闭 Popup
+            EventHandler deactivatedHandler = null;
+            deactivatedHandler = (s2, args2) =>
+            {
+                if (popup.IsOpen) popup.IsOpen = false;
+            };
+            Deactivated += deactivatedHandler;
+
+            // 点击 Popup 外部 → 关闭（硬约束 #12 模式）
+            MouseButtonEventHandler closeHandler = null;
+            closeHandler = (s2, args2) =>
+            {
+                if (!popup.IsOpen) return;
+                // 检查点击是否在 Popup 内部
+                var clicked = args2.OriginalSource as DependencyObject;
+                if (clicked != null && popup.Child is Border b && b.IsAncestorOf(clicked))
+                    return;
+                // 点击了打开 Popup 的按钮自身 → 由 BtnFilterMenu_Click 处理 toggle
+                if (args2.OriginalSource == btn || (btn.IsAncestorOf(args2.OriginalSource as DependencyObject)))
+                    return;
+
+                popup.IsOpen = false;
+            };
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                PreviewMouseLeftButtonDown += closeHandler;
+            }));
+
+            popup.Closed += (s2, args2) =>
+            {
+                LocationChanged -= locationHandler;
+                Deactivated -= deactivatedHandler;
+                PreviewMouseLeftButtonDown -= closeHandler;
+                _filterPopup = null;
+                UpdateFilterButtonAppearance();
+            };
+
+            popup.IsOpen = true;
+            _filterPopup = popup;
+        }
+
+        /// <summary>
+        /// 重建协议子类型复选框——协议主开关切换时刷新灰态/可用。
+        /// </summary>
+        private void RebuildProtocolSubItems(StackPanel parentStack)
+        {
+            // 找到子类型占位 StackPanel（index 1）
+            if (parentStack.Children.Count < 2) return;
+            if (parentStack.Children[1] is not StackPanel subPanel) return;
+
+            subPanel.Children.Clear();
+
+            var labels = new Dictionary<string, string>
+            {
+                ["sensor"] = "传感", ["ctrl"] = "控制", ["plot"] = "波形",
+                ["slider"] = "滑杆", ["key"] = "按键", ["joystick"] = "摇杆",
+                ["display"] = "OLED", ["fft"] = "频谱", ["draw"] = "绘图",
+            };
+
+            foreach (var kv in labels)
+            {
+                var cb = new CheckBox
+                {
+                    Content = $"[{kv.Key}]  {kv.Value}",
+                    IsChecked = _protocolTypeFilters[kv.Key],
+                    IsEnabled = _showProtocolMsgs,
+                    Opacity = _showProtocolMsgs ? 1.0 : 0.45,
+                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                    FontSize = 12,
+                    Margin = new Thickness(0, 1, 0, 1),
+                    Tag = kv.Key,
+                };
+                cb.Checked += (s, args) =>
+                {
+                    if (cb.Tag is string t) _protocolTypeFilters[t] = true;
+                };
+                cb.Unchecked += (s, args) =>
+                {
+                    if (cb.Tag is string t) _protocolTypeFilters[t] = false;
+                };
+                subPanel.Children.Add(cb);
+            }
+        }
+
+        /// <summary>
+        /// 筛选按钮外观：有任何过滤生效时降低不透明度。
+        /// </summary>
+        private void UpdateFilterButtonAppearance()
+        {
+            bool anyFiltered = !_showProtocolMsgs || !_showPlainText
+                || _protocolTypeFilters.Values.Any(v => !v);
+
+            btnFilterMenu.Opacity = anyFiltered ? 0.55 : 1.0;
         }
 
         private void btnClearSend_Click(object sender, RoutedEventArgs e)

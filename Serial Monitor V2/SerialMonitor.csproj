@@ -44,5 +44,7 @@
     <Resource Include="Icons\tabs\settings.png" />
     <Resource Include="Icons\tabs\joystick.png" />
     <Resource Include="Icons\tabs\sensors.png" />
+    <Resource Include="Icons\setting\theme\theme-sun.png" />
+    <Resource Include="Icons\setting\theme\theme-moon.png" />
   </ItemGroup>
 </Project>

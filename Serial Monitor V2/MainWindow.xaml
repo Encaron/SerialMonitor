@@ -676,8 +676,23 @@
                             Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="76"
                             Click="btnOpen_Click" ToolTip="打开/关闭串口（Ctrl+Enter）" />
                 </StackPanel>
-                <TextBlock x:Name="tbStatusVersion" FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
-                           VerticalAlignment="Center" HorizontalAlignment="Right" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="btnThemeToggleTop" Height="32"
+                            Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
+                            Background="{DynamicResource StatusBarBgBrush}"
+                            BorderBrush="{DynamicResource InputBorderBrush}"
+                            Padding="8,0" Margin="0,0,12,0" Cursor="Hand"
+                            Click="BtnThemeToggleTop_Click" ToolTip="切换亮色/暗色主题">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="tbThemeToggleLabel" VerticalAlignment="Center" FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <Image x:Name="imgThemeToggle" Width="18" Height="18" Margin="5,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock x:Name="tbStatusVersion" FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
+                               VerticalAlignment="Center" />
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -1721,20 +1736,28 @@
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
                             Padding="8,4">
-                        <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnPauseDisplay" Content="⏸ 暂停"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
-                                    Click="btnPauseDisplay_Click" ToolTip="冻结接收区（Ctrl+P）"/>
-                            <Button Content="导出日志" Style="{DynamicResource SecondaryButtonStyle}"
-                                    Height="28" MinWidth="0" Margin="6,0,0,0"
-                                    Click="btnExportLog_Click" ToolTip="导出日志"/>
-                            <Button Content="清空接收区" Style="{DynamicResource SecondaryButtonStyle}"
-                                    Height="28" MinWidth="0" Margin="6,0,0,0"
-                                    Click="btnClearReceive_Click" ToolTip="清空（Ctrl+L）"/>
-                            <Button Content="🔍 搜索" Style="{DynamicResource SecondaryButtonStyle}"
-                                    Height="28" MinWidth="0" Margin="6,0,0,0"
-                                    Click="btnSearch_Click" ToolTip="搜索（Ctrl+F）"/>
-                        </StackPanel>
+                        <DockPanel>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                <Button x:Name="btnFilterMenu" Content="📡 筛选 ▾"
+                                        Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
+                                        Padding="8,0" Click="BtnFilterMenu_Click"
+                                        ToolTip="筛选接收区显示内容"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="btnPauseDisplay" Content="⏸ 暂停"
+                                        Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
+                                        Click="btnPauseDisplay_Click" ToolTip="冻结接收区（Ctrl+P）"/>
+                                <Button Content="导出日志" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" MinWidth="0" Margin="6,0,0,0"
+                                        Click="btnExportLog_Click" ToolTip="导出日志"/>
+                                <Button Content="清空接收区" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" MinWidth="0" Margin="6,0,0,0"
+                                        Click="btnClearReceive_Click" ToolTip="清空（Ctrl+L）"/>
+                                <Button Content="🔍 搜索" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Height="28" MinWidth="0" Margin="6,0,0,0"
+                                        Click="btnSearch_Click" ToolTip="搜索（Ctrl+F）"/>
+                            </StackPanel>
+                        </DockPanel>
                     </Border>
                     <DockPanel Grid.Row="1">
                         <ListBox x:Name="lbSystemLog" DockPanel.Dock="Top"

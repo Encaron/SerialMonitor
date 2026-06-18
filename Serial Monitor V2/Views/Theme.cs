@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace 串口助手
 {
@@ -64,6 +65,11 @@ namespace 串口助手
             btnThemeSwitch.Background = dark
                 ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
                 : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
+            // 顶栏紧凑切换按钮
+            tbThemeToggleLabel.Text = dark ? "亮" : "暗";
+            imgThemeToggle.Source = new BitmapImage(new Uri(
+                dark ? "Icons/setting/theme/theme-sun.png" : "Icons/setting/theme/theme-moon.png",
+                UriKind.Relative));
 
             // 触发 LogColorizer 重新着色所有可见行
             editor.TextArea.TextView.Redraw();
@@ -97,6 +103,11 @@ namespace 串口助手
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyTheme(!isDarkTheme);
+        }
+
+        private void BtnThemeToggleTop_Click(object sender, RoutedEventArgs e)
         {
             ApplyTheme(!isDarkTheme);
         }
