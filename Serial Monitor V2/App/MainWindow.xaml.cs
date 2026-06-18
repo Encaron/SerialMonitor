@@ -1534,6 +1534,33 @@ namespace 串口助手
         // ==================================================================
         private void TabContent_Checked(object sender, RoutedEventArgs e)
         {
+            // 切标签页时自动退出「正在离开」的面板的编辑模式（不保存，只有点"完成"才保存）
+            if (_currentTab == "Sensors" && _sensorVM != null && _sensorVM.IsEditMode)
+            {
+                _sensorVM.IsEditMode = false;
+                _selectedCard = null;
+                btnSensorEdit.Content = "编辑";
+                rightSensors.Visibility = Visibility.Collapsed;
+                if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
+                    _sensorRefreshTimer.Start();
+                RefreshAllRows();
+                RefreshSensorSidePanel();
+            }
+            else if (_currentTab == "Keys" && _keyVM != null && _keyVM.IsEditMode)
+            {
+                CancelKeysConfirm();
+                _keyVM.IsEditMode = false; _selectedKeys.Clear(); _selectedModuleGroupId = null;
+                keysToolbarNormal.Visibility = Visibility.Visible; keysToolbarEdit.Visibility = Visibility.Collapsed;
+                RefreshKeysUI(); RefreshKeysSidePanel();
+            }
+            else if (_currentTab == "Sliders" && _sliderVM != null && _sliderVM.IsEditMode)
+            {
+                CancelSlidersConfirm();
+                _sliderVM.IsEditMode = false; _selectedSliders.Clear();
+                slidersToolbarNormal.Visibility = Visibility.Visible; slidersToolbarEdit.Visibility = Visibility.Collapsed;
+                RefreshSlidersUI(); RefreshSlidersSidePanel();
+            }
+
             _currentSettingsPage = null; // 离开设置子页面
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
             else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); if (!_isFreqDomain) RefreshTuningDrawer(); }
@@ -1571,6 +1598,33 @@ namespace 串口助手
         }
         private void TabSettings_Checked(object sender, RoutedEventArgs e)
         {
+            // 切换到设置页时自动退出「正在离开」的面板的编辑模式（不保存，只有点"完成"才保存）
+            if (_currentTab == "Sensors" && _sensorVM != null && _sensorVM.IsEditMode)
+            {
+                _sensorVM.IsEditMode = false;
+                _selectedCard = null;
+                btnSensorEdit.Content = "编辑";
+                rightSensors.Visibility = Visibility.Collapsed;
+                if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
+                    _sensorRefreshTimer.Start();
+                RefreshAllRows();
+                RefreshSensorSidePanel();
+            }
+            else if (_currentTab == "Keys" && _keyVM != null && _keyVM.IsEditMode)
+            {
+                CancelKeysConfirm();
+                _keyVM.IsEditMode = false; _selectedKeys.Clear(); _selectedModuleGroupId = null;
+                keysToolbarNormal.Visibility = Visibility.Visible; keysToolbarEdit.Visibility = Visibility.Collapsed;
+                RefreshKeysUI(); RefreshKeysSidePanel();
+            }
+            else if (_currentTab == "Sliders" && _sliderVM != null && _sliderVM.IsEditMode)
+            {
+                CancelSlidersConfirm();
+                _sliderVM.IsEditMode = false; _selectedSliders.Clear();
+                slidersToolbarNormal.Visibility = Visibility.Visible; slidersToolbarEdit.Visibility = Visibility.Collapsed;
+                RefreshSlidersUI(); RefreshSlidersSidePanel();
+            }
+
             _currentTab = "Settings";
             _currentSettingsPage = null;
             RefreshContentVisibility();
@@ -2222,13 +2276,13 @@ namespace 串口助手
                 case "Sliders":  tbSidePanelTitle.Text = "滑杆属性"; break;
                 case "Joystick": tbSidePanelTitle.Text = "摇杆设置"; break;
                 case "OLED":     tbSidePanelTitle.Text = "OLED 设置"; break;
-                case "Sensors":  tbSidePanelTitle.Text = "卡片管理"; break;
+                case "Sensors":  tbSidePanelTitle.Text = (_sensorVM?.IsEditMode == true) ? "卡片管理" : "传感面板"; break;
                 case "Settings": tbSidePanelTitle.Text = "设置"; break;
             }
             // 切换到按键/滑杆/传感面板时刷新侧面板
             if (_currentTab == "Keys") RefreshKeysSidePanel();
             if (_currentTab == "Sliders") RefreshSlidersSidePanel();
-            if (_currentTab == "Sensors" && _sensorVM != null && _sensorVM.IsEditMode)
+            if (_currentTab == "Sensors" && _sensorVM != null)
                 RefreshSensorSidePanel();
         }
 

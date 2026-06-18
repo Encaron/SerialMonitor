@@ -31,6 +31,8 @@ namespace 串口助手
         private SensorCardViewModel _selectedCard;
         private readonly Dictionary<SensorCardViewModel, Border> _cardEditWrapperMap = new();
         private readonly Dictionary<SensorCardViewModel, Button> _cardDeleteBtnMap = new();
+        private bool _sidePanelDirty;
+        private DispatcherTimer _sidePanelRefreshTimer;
 
         // ——— 初始化 ———
         private void InitSensorPanel()
@@ -67,6 +69,20 @@ namespace 串口助手
                     e.Handled = true;
                 }
             };
+
+            // 正常模式侧栏：500ms dirty flag 刷新（减少 UI 抖动）
+            _sidePanelRefreshTimer = new DispatcherTimer(
+                TimeSpan.FromMilliseconds(500), DispatcherPriority.Background,
+                (s, e) =>
+                {
+                    if (_sidePanelDirty && _sensorVM != null
+                        && !_sensorVM.IsEditMode && _currentTab == "Sensors")
+                    {
+                        _sidePanelDirty = false;
+                        RefreshSensorSidePanel();
+                    }
+                }, Dispatcher);
+            _sidePanelRefreshTimer.Start();
 
             RefreshAllRows();
         }
@@ -456,6 +472,9 @@ namespace 串口助手
             {
                 slTb.Text = (vm.Status == "on") ? "状态：已开启" : "状态：已关闭";
             }
+
+            // 正常模式侧栏 dirty flag
+            _sidePanelDirty = true;
         }
 
         // ═══ 全量重建 ═══
@@ -693,6 +712,9 @@ namespace 串口助手
 
             if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
                 _sensorRefreshTimer.Start();
+
+            // 正常模式侧栏 dirty flag（新卡建卡或全量重建）
+            _sidePanelDirty = true;
         }
 
         // ═══ 持久化 ═══
@@ -716,13 +738,17 @@ namespace 串口助手
             if (_sensorVM.IsEditMode)
             {
                 btnSensorEdit.Content = "完成";
+                // 若当前在其他标签页（如设置），先切回传感面板——让 RefreshContentVisibility
+                // 统一管理侧栏显隐，避免设置侧栏和卡片管理侧栏叠在一起
+                if (_currentTab != "Sensors")
+                    tabSensors.IsChecked = true;
                 rightSensors.Visibility = Visibility.Visible;
                 _sensorRefreshTimer?.Stop();
             }
             else
             {
                 btnSensorEdit.Content = "编辑";
-                rightSensors.Visibility = Visibility.Collapsed;
+                rightSensors.Visibility = Visibility.Visible;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
                     _sensorRefreshTimer.Start();
             }
@@ -821,6 +847,108 @@ namespace 串口助手
                 if (found != null) return found;
             }
             return null;
+        }
+
+        // ═══ 正常模式侧栏——卡片概览行 ═══
+
+        /// <summary>
+        /// 正常模式侧栏行：竖条色圆点 + 卡片名 + 当前值右对齐，高 28px。
+        /// 点一下 → 主区滚动定位到该卡 + 脉冲高亮。
+        /// </summary>
+        private FrameworkElement CreateNormalSidebarRow(SensorCardViewModel card)
+        {
+            var row = new Grid { Height = 28, Margin = new Thickness(0, 1, 0, 1), Tag = card };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // 竖条色圆点 10×10
+            var dot = new Ellipse
+            {
+                Width = 10, Height = 10,
+                Fill = ParseColor(card.GetAccentHex(isDarkTheme)),
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            Grid.SetColumn(dot, 0);
+
+            // 卡片名
+            var nameBlock = new TextBlock
+            {
+                Text = card.Name,
+                FontSize = 12,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+            Grid.SetColumn(nameBlock, 1);
+
+            // 当前值（右对齐）
+            string displayValue = card.Type switch
+            {
+                "status" => card.Status ?? "--",
+                "control" => card.Status == "on" ? "ON" : "OFF",
+                _ => (card.Value ?? "--") + card.GetUnit(),
+            };
+            var valueBlock = new TextBlock
+            {
+                Text = displayValue,
+                FontSize = 12,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(12, 0, 0, 0),
+            };
+            Grid.SetColumn(valueBlock, 2);
+
+            row.Children.Add(dot);
+            row.Children.Add(nameBlock);
+            row.Children.Add(valueBlock);
+
+            // 点击 → 主区滚动定位 + 脉冲高亮
+            var captureCard = card;
+            row.Cursor = Cursors.Hand;
+            row.MouseLeftButtonDown += (s, e) =>
+            {
+                if (_cardBorderMap.TryGetValue(captureCard, out var border))
+                {
+                    border.BringIntoView();
+                    PulseCardHighlight(captureCard);
+                }
+                e.Handled = true;
+            };
+
+            return row;
+        }
+
+        /// <summary>
+        /// 卡片脉冲高亮：边框闪蓝 600ms 后恢复原样。
+        /// 用于正常模式侧栏点击跳转后的视觉反馈。
+        /// </summary>
+        private void PulseCardHighlight(SensorCardViewModel card)
+        {
+            if (!_cardBorderMap.TryGetValue(card, out var border)) return;
+
+            var pulseBrush = isDarkTheme
+                ? ParseColor("#42A5F5", 0.6)
+                : (Brush)FindResource("PrimaryBrush");
+            var originalBrush = border.BorderBrush;
+            var originalThickness = border.BorderThickness;
+
+            border.BorderBrush = pulseBrush;
+            border.BorderThickness = new Thickness(2);
+
+            var timer = new DispatcherTimer(
+                TimeSpan.FromMilliseconds(600),
+                DispatcherPriority.Background,
+                (s, e) =>
+                {
+                    border.BorderBrush = originalBrush;
+                    border.BorderThickness = originalThickness;
+                    ((DispatcherTimer)s).Stop();
+                },
+                Dispatcher);
+            timer.Start();
         }
 
         // ═══ 编辑模式——卡片外覆（× 删除按钮） ═══
@@ -1119,7 +1247,7 @@ namespace 串口助手
             popup.IsOpen = true;
         }
 
-        // ═══ 侧栏刷新（编辑模式行管理器） ═══
+        // ═══ 侧栏刷新（正常模式概览 / 编辑模式行管理器） ═══
 
         private void RefreshSensorSidePanel()
         {
@@ -1133,65 +1261,110 @@ namespace 串口助手
             }
             container.Children.Clear();
 
+            _sidePanelDirty = false;
             bool isEdit = _sensorVM.IsEditMode;
-            if (!isEdit) return; // Phase C: 正常模式侧栏
 
             try
             {
-                // 标题
-                container.Children.Add(new TextBlock
+                if (isEdit)
                 {
-                    Text = "卡片管理",
-                    Style = (Style)FindResource("CardHeaderStyle"),
-                    Margin = new Thickness(0, 0, 0, 10),
-                });
+                    // ═══ 编辑模式：行管理器 ═══
+                    tbSidePanelTitle.Text = "卡片管理";
 
-            // 遍历每组
-            for (int gi = 0; gi < _sensorVM.Groups.Count; gi++)
-            {
-                var group = _sensorVM.Groups[gi];
-                BuildGroupSection(container, group, gi);
-
-                // 组间分隔
-                if (gi < _sensorVM.Groups.Count - 1)
-                {
-                    container.Children.Add(new Border
+                    container.Children.Add(new TextBlock
                     {
-                        Height = 1,
-                        Background = (Brush)FindResource("SeparatorBrush"),
-                        Margin = new Thickness(0, 6, 0, 6),
+                        Text = "卡片管理",
+                        Style = (Style)FindResource("CardHeaderStyle"),
+                        Margin = new Thickness(0, 0, 0, 10),
                     });
+
+                    for (int gi = 0; gi < _sensorVM.Groups.Count; gi++)
+                    {
+                        var group = _sensorVM.Groups[gi];
+                        BuildGroupSection(container, group, gi);
+
+                        if (gi < _sensorVM.Groups.Count - 1)
+                        {
+                            container.Children.Add(new Border
+                            {
+                                Height = 1,
+                                Background = (Brush)FindResource("SeparatorBrush"),
+                                Margin = new Thickness(0, 6, 0, 6),
+                            });
+                        }
+                    }
+
+                    var addGroupBtn = new Button
+                    {
+                        Content = "+ 添加组",
+                        Style = (Style)FindResource("SecondaryButtonStyle"),
+                        Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
+                        Margin = new Thickness(0, 10, 0, 4),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                    };
+                    addGroupBtn.Click += (s, e) =>
+                    {
+                        _sensorVM.AddGroup();
+                        RefreshAllRows();
+                        RefreshSensorSidePanel();
+                    };
+                    container.Children.Add(addGroupBtn);
+
+                    var doneBtn = new Button
+                    {
+                        Content = "完成编辑",
+                        Style = (Style)FindResource("PrimaryButtonStyle"),
+                        Height = 28, MinWidth = 0, Padding = new Thickness(14, 0, 14, 0),
+                        Margin = new Thickness(0, 4, 0, 0),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                    };
+                    doneBtn.Click += (s, e) => BtnSensorEdit_Click(s, e);
+                    container.Children.Add(doneBtn);
                 }
-            }
+                else
+                {
+                    // ═══ 正常模式：卡片概览 + 快速跳转 ═══
+                    tbSidePanelTitle.Text = "传感面板";
 
-            // 底部 [+ 添加组]
-            var addGroupBtn = new Button
-            {
-                Content = "+ 添加组",
-                Style = (Style)FindResource("SecondaryButtonStyle"),
-                Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
-                Margin = new Thickness(0, 10, 0, 4),
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-            addGroupBtn.Click += (s, e) =>
-            {
-                _sensorVM.AddGroup();
-                RefreshAllRows();
-                RefreshSensorSidePanel();
-            };
-            container.Children.Add(addGroupBtn);
+                    bool anyVisible = false;
+                    foreach (var group in _sensorVM.Groups)
+                    {
+                        // 组名标题
+                        if (!string.IsNullOrEmpty(group.Name))
+                        {
+                            container.Children.Add(new TextBlock
+                            {
+                                Text = group.Name,
+                                FontSize = 11,
+                                Foreground = (Brush)FindResource("TextMutedBrush"),
+                                Margin = new Thickness(0, anyVisible ? 8 : 0, 0, 3),
+                                TextTrimming = TextTrimming.CharacterEllipsis,
+                            });
+                        }
 
-            // 底部 [完成编辑]
-            var doneBtn = new Button
-            {
-                Content = "完成编辑",
-                Style = (Style)FindResource("PrimaryButtonStyle"),
-                Height = 28, MinWidth = 0, Padding = new Thickness(14, 0, 14, 0),
-                Margin = new Thickness(0, 4, 0, 0),
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-            doneBtn.Click += (s, e) => BtnSensorEdit_Click(s, e);
-            container.Children.Add(doneBtn);
+                        foreach (var item in group.Items)
+                        {
+                            if (item is string) continue; // 跳过换行标记
+                            if (item is SensorCardViewModel card)
+                            {
+                                container.Children.Add(CreateNormalSidebarRow(card));
+                                anyVisible = true;
+                            }
+                        }
+                    }
+
+                    if (!anyVisible)
+                    {
+                        container.Children.Add(new TextBlock
+                        {
+                            Text = "暂无卡片",
+                            FontSize = 12,
+                            Foreground = (Brush)FindResource("TextMutedBrush"),
+                            Margin = new Thickness(0, 20, 0, 0),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                        });
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -1222,7 +1395,7 @@ namespace 串口助手
             var nameBlock = new TextBlock
             {
                 Text = string.IsNullOrEmpty(group.Name) ? "(未命名)" : group.Name,
-                FontSize = 12, FontWeight = FontWeights.SemiBold,
+                FontSize = 14, FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
@@ -1442,7 +1615,7 @@ namespace 串口助手
             // 卡片名
             var nameBlock = new TextBlock
             {
-                Text = card.Name, FontSize = 11,
+                Text = card.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
