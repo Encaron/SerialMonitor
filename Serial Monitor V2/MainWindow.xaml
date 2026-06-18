@@ -710,7 +710,7 @@
                 <DockPanel LastChildFill="False">
                     <!-- 折叠按钮 -->
                     <Button x:Name="btnPanelCollapse" DockPanel.Dock="Top"
-                            Content="◀" Width="26" Height="26" Padding="0"
+                            Content="◀" Width="24" Height="24" Padding="0"
                             Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
                             Margin="8,4,0,0" HorizontalAlignment="Center"
                             Click="BtnPanelCollapse_Click" ToolTip="折叠侧面板" />
@@ -2066,37 +2066,43 @@
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="6,3">
                         <StackPanel Orientation="Horizontal">
+                            <!-- 锁定 -->
+                            <Button x:Name="btnLockCanvas" Content="🔒" Width="22" Height="22" ToolTip="解锁画布（默认锁定，只看不画）"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="1,0"
+                                    Click="btnLockCanvas_Click"/>
+                            <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 绘图工具 -->
-                            <Button x:Name="btnToolPencil" Content="✏" Width="30" Height="26" ToolTip="画笔"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button x:Name="btnToolPencil" Content="✏" Width="24" Height="24" ToolTip="画笔"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolPencil_Click"/>
-                            <Button x:Name="btnToolLine" Content="📏" Width="30" Height="26" ToolTip="直线"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button x:Name="btnToolLine" Content="📏" Width="24" Height="24" ToolTip="直线"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolLine_Click"/>
-                            <Button x:Name="btnToolRect" Content="▭" Width="30" Height="26" ToolTip="矩形"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button x:Name="btnToolRect" Content="▭" Width="24" Height="24" ToolTip="矩形"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolRect_Click"/>
-                            <Button x:Name="btnToolCircle" Content="◯" Width="30" Height="26" ToolTip="圆"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button x:Name="btnToolCircle" Content="◯" Width="24" Height="24" ToolTip="圆"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolCircle_Click"/>
-                            <Button x:Name="btnToolText" Content="T" Width="30" Height="26" ToolTip="文字"
+                            <Button x:Name="btnToolText" Content="T" Width="24" Height="24" ToolTip="文字"
                                     FontWeight="Bold"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolText_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 线宽 -->
                             <ComboBox x:Name="cbLineWidth" Width="44" Height="26"
                                       SelectionChanged="cbLineWidth_Changed" ToolTip="线宽"/>
                             <!-- 颜色 -->
-                            <Button x:Name="btnDrawColor" Width="30" Height="26" ToolTip="颜色"
+                            <Button x:Name="btnDrawColor" Width="24" Height="24" ToolTip="颜色"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnDrawColor_Click">
                                 <Border x:Name="colorSwatch" Width="14" Height="14" CornerRadius="2"
                                         Background="#FFFFFF"
                                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"/>
                             </Button>
                             <!-- 橡皮擦 -->
-                            <Button x:Name="btnToolEraser" Content="🧹" Width="30" Height="26" ToolTip="橡皮擦"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="橡皮擦"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolEraser_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 发送 / 导出 -->
@@ -2133,6 +2139,7 @@
                                 <Border x:Name="oledCanvasBorder" Background="#111111" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                         RenderOptions.EdgeMode="Aliased">
                                     <Canvas x:Name="oledCanvas" Width="640" Height="320" ClipToBounds="True"
+                                            Background="Transparent"
                                             RenderOptions.EdgeMode="Aliased"
                                             TextOptions.TextRenderingMode="Aliased"/>
                                 </Border>

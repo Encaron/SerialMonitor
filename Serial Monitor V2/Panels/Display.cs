@@ -23,7 +23,9 @@ namespace 串口助手
         private DrawTool _drawTool = DrawTool.None;
         private string _drawColor = "#FFFFFF";
         private int _drawLineWidth = 1;
+        private bool _isLocked = true;
         private bool _isDrawing = false;
+        private Ellipse _eraserCursor = null;
         private Point _drawStart;
         private UIElement _previewShape = null;
         private Point _lastSamplePoint;
@@ -264,19 +266,20 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 画线 [draw,line,x1,y1,x2,y2,#RRGGBB] ──
+        // ── 画线 [draw,line,x1,y1,x2,y2,#RRGGBB,w] ──
         private void HandleDrawLine(List<string> args)
         {
             if (args.Count < 5) return;
             if (!int.TryParse(args[1], out int x1) || !int.TryParse(args[2], out int y1)
              || !int.TryParse(args[3], out int x2) || !int.TryParse(args[4], out int y2)) return;
             string color = args.Count >= 6 ? args[5] : "#FFFFFF";
+            int lw = (args.Count >= 7 && int.TryParse(args[6], out int w)) ? w : 1;
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var line = new Line
             {
                 X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
-                Stroke = brush, StrokeThickness = 1,
+                Stroke = brush, StrokeThickness = lw,
             };
 
             oledCanvas.Children.Add(line);
@@ -285,19 +288,20 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 空心矩形 [draw,rect,x,y,w,h,#RRGGBB] ──
+        // ── 空心矩形 [draw,rect,x,y,w,h,#RRGGBB,w] ──
         private void HandleDrawRect(List<string> args)
         {
             if (args.Count < 5) return;
             if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)
              || !int.TryParse(args[3], out int w) || !int.TryParse(args[4], out int h)) return;
             string color = args.Count >= 6 ? args[5] : "#FFFFFF";
+            int lw = (args.Count >= 7 && int.TryParse(args[6], out int sw)) ? sw : 1;
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var rect = new Rectangle
             {
                 Width = w, Height = h,
-                Stroke = brush, StrokeThickness = 1,
+                Stroke = brush, StrokeThickness = lw,
             };
             Canvas.SetLeft(rect, x);
             Canvas.SetTop(rect, y);
@@ -331,19 +335,20 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 空心圆 [draw,circle,cx,cy,r,#RRGGBB] ──
+        // ── 空心圆 [draw,circle,cx,cy,r,#RRGGBB,w] ──
         private void HandleDrawCircle(List<string> args)
         {
             if (args.Count < 4) return;
             if (!int.TryParse(args[1], out int cx) || !int.TryParse(args[2], out int cy)
              || !int.TryParse(args[3], out int r)) return;
             string color = args.Count >= 5 ? args[4] : "#FFFFFF";
+            int lw = (args.Count >= 6 && int.TryParse(args[5], out int sw)) ? sw : 1;
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var circle = new Ellipse
             {
                 Width = r * 2, Height = r * 2,
-                Stroke = brush, StrokeThickness = 1,
+                Stroke = brush, StrokeThickness = lw,
             };
             Canvas.SetLeft(circle, cx - r);
             Canvas.SetTop(circle, cy - r);
@@ -354,19 +359,20 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 空心椭圆 [draw,ellipse,x,y,a,b,#RRGGBB] ──
+        // ── 空心椭圆 [draw,ellipse,x,y,a,b,#RRGGBB,w] ──
         private void HandleDrawEllipse(List<string> args)
         {
             if (args.Count < 5) return;
             if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)
              || !int.TryParse(args[3], out int a) || !int.TryParse(args[4], out int b)) return;
             string color = args.Count >= 6 ? args[5] : "#FFFFFF";
+            int lw = (args.Count >= 7 && int.TryParse(args[6], out int sw)) ? sw : 1;
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var ellipse = new Ellipse
             {
                 Width = a * 2, Height = b * 2,
-                Stroke = brush, StrokeThickness = 1,
+                Stroke = brush, StrokeThickness = lw,
             };
             Canvas.SetLeft(ellipse, x - a);
             Canvas.SetTop(ellipse, y - b);
@@ -377,7 +383,7 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 空心三角形 [draw,triangle,x0,y0,x1,y1,x2,y2,#RRGGBB] ──
+        // ── 空心三角形 [draw,triangle,x0,y0,x1,y1,x2,y2,#RRGGBB,w] ──
         private void HandleDrawTriangle(List<string> args)
         {
             if (args.Count < 7) return;
@@ -385,12 +391,13 @@ namespace 串口助手
              || !int.TryParse(args[3], out int x1) || !int.TryParse(args[4], out int y1)
              || !int.TryParse(args[5], out int x2) || !int.TryParse(args[6], out int y2)) return;
             string color = args.Count >= 8 ? args[7] : "#FFFFFF";
+            int lw = (args.Count >= 9 && int.TryParse(args[8], out int sw)) ? sw : 1;
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var triangle = new Polygon
             {
                 Points = new PointCollection { new Point(x0, y0), new Point(x1, y1), new Point(x2, y2) },
-                Stroke = brush, StrokeThickness = 1,
+                Stroke = brush, StrokeThickness = lw,
             };
 
             oledCanvas.Children.Add(triangle);
@@ -443,11 +450,53 @@ namespace 串口助手
         // ── 工具切换 ──
         private void SelectTool(DrawTool tool, Button activeBtn)
         {
+            if (_isLocked) return;
             _drawTool = tool;
             foreach (var b in _toolButtons)
                 b.Style = (Style)FindResource("SecondaryButtonStyle");
-            activeBtn.Style = (Style)FindResource("PrimaryButtonStyle");
+            if (activeBtn != null)
+                activeBtn.Style = (Style)FindResource("PrimaryButtonStyle");
             oledCanvas.Cursor = tool == DrawTool.None ? Cursors.Arrow : Cursors.Cross;
+
+            // 橡皮擦光标
+            if (tool == DrawTool.Eraser)
+                ShowEraserCursor();
+            else
+                HideEraserCursor();
+        }
+
+        private void ShowEraserCursor()
+        {
+            if (_eraserCursor != null) return;
+            int r = _drawLineWidth * 4 + 2;
+            _eraserCursor = new Ellipse
+            {
+                Width = r * 2, Height = r * 2,
+                Stroke = (Brush)FindResource("TextPrimaryBrush"),
+                StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 4, 3 },
+                Fill = new SolidColorBrush(Colors.Transparent),
+                IsHitTestVisible = false,
+            };
+            oledCanvas.Children.Add(_eraserCursor);
+            Canvas.SetZIndex(_eraserCursor, 999);
+        }
+
+        private void HideEraserCursor()
+        {
+            if (_eraserCursor == null) return;
+            oledCanvas.Children.Remove(_eraserCursor);
+            _eraserCursor = null;
+        }
+
+        private void UpdateEraserCursor(Point pos)
+        {
+            if (_eraserCursor == null) return;
+            int r = _drawLineWidth * 4 + 2;
+            _eraserCursor.Width = r * 2;
+            _eraserCursor.Height = r * 2;
+            Canvas.SetLeft(_eraserCursor, pos.X - r);
+            Canvas.SetTop(_eraserCursor, pos.Y - r);
         }
 
         private void btnToolPencil_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Pencil,  btnToolPencil); }
@@ -457,22 +506,150 @@ namespace 串口助手
         private void btnToolText_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Text,    btnToolText); }
         private void btnToolEraser_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Eraser,  btnToolEraser); }
 
+        // ── 锁定 / 解锁 ──
+        private void btnLockCanvas_Click(object sender, RoutedEventArgs e)
+        {
+            _isLocked = !_isLocked;
+            btnLockCanvas.Content = _isLocked ? "🔒" : "🔓";
+            btnLockCanvas.ToolTip = _isLocked ? "解锁画布" : "锁定画布";
+            if (_isLocked)
+            {
+                btnLockCanvas.Foreground = (Brush)FindResource("PrimaryBrush");
+                SelectTool(DrawTool.None, null);
+                oledCanvas.Cursor = Cursors.Arrow;
+            }
+            else
+            {
+                btnLockCanvas.ClearValue(Control.ForegroundProperty);
+                oledCanvas.Cursor = Cursors.Cross;
+            }
+        }
+
         // ── 线宽 ──
         private void cbLineWidth_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (cbLineWidth.SelectedItem is ComboBoxItem item && item.Tag is int w)
+            {
                 _drawLineWidth = w;
+                // 橡皮擦光标同步大小
+                if (_eraserCursor != null)
+                {
+                    int r = w * 4 + 2;
+                    _eraserCursor.Width = r * 2;
+                    _eraserCursor.Height = r * 2;
+                }
+            }
         }
 
         // ── 颜色 ──
         private void btnDrawColor_Click(object sender, RoutedEventArgs e)
         {
-            ShowColorPickerPopup(btnDrawColor, hex =>
+            ShowDrawColorPicker(btnDrawColor, hex =>
             {
                 _drawColor = hex;
                 var brush = ParseColorBrush(hex);
                 if (brush != null) colorSwatch.Background = brush;
             });
+        }
+
+        /// <summary>画板专用颜色选择——40色块点即关，hex手输走确认</summary>
+        private void ShowDrawColorPicker(FrameworkElement placementTarget, Action<string> onColorPicked)
+        {
+            string[] palette = {
+                "#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#2196F3","#03A9F4","#00BCD4",
+                "#009688","#4CAF50","#8BC34A","#CDDC39","#FFEB3B","#FFC107","#FF9800","#FF5722",
+                "#795548","#9E9E9E","#607D8B","#555555","#FFFFFF","#FF4081","#7C4DFF","#536DFE",
+                "#448AFF","#40C4FF","#18FFFF","#64FFDA","#69F0AE","#B2FF59","#EEFF41","#FFD740",
+                "#FFAB40","#FF6E40","#FF8A80","#EA80FC","#B388FF","#8C9EFF","#80D8FF","#A7FFEB",
+            };
+
+            string currentHex = _drawColor;
+            var fg = (Brush)FindResource("TextPrimaryBrush");
+            var popup = new Popup();
+
+            var border = new Border {
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10), MaxWidth = 244,
+            };
+            var stack = new StackPanel();
+
+            // 40 色块
+            var colorGrid = new System.Windows.Controls.Primitives.UniformGrid { Columns = 8, Margin = new Thickness(0, 0, 0, 8) };
+            foreach (var hex in palette)
+            {
+                var color = (Color)ColorConverter.ConvertFromString(hex);
+                var swatch = new Border {
+                    Width = 24, Height = 24, CornerRadius = new CornerRadius(3),
+                    Background = new SolidColorBrush(color),
+                    BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                    BorderThickness = new Thickness(1), Margin = new Thickness(1),
+                    Cursor = Cursors.Hand, Tag = hex,
+                };
+                swatch.MouseLeftButtonDown += (s, ev) =>
+                {
+                    popup.IsOpen = false;
+                    onColorPicked(hex);
+                    ev.Handled = true;
+                };
+                colorGrid.Children.Add(swatch);
+            }
+            stack.Children.Add(colorGrid);
+
+            // Hex 输入行
+            var hexRow = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+            hexRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            hexRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var previewSwatch = new Border {
+                Width = 20, Height = 20, CornerRadius = new CornerRadius(3),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(currentHex)),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            Grid.SetColumn(previewSwatch, 0);
+            hexRow.Children.Add(previewSwatch);
+            var hexBox = new TextBox {
+                Text = currentHex, FontFamily = new FontFamily("Consolas"),
+                FontSize = 12, Height = 24, Padding = new Thickness(6, 2, 6, 2),
+                Foreground = fg, Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                VerticalContentAlignment = VerticalAlignment.Center,
+            };
+            Grid.SetColumn(hexBox, 1);
+            hexRow.Children.Add(hexBox);
+            hexBox.TextChanged += (_, __) =>
+            {
+                currentHex = hexBox.Text;
+                try { previewSwatch.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(currentHex)); }
+                catch { }
+            };
+            stack.Children.Add(hexRow);
+
+            // 确认 / 取消
+            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var cancelBtn = new Button { Content = "取消", Style = (Style)FindResource("SecondaryButtonStyle"),
+                Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0) };
+            var confirmBtn = new Button { Content = "确认", Style = (Style)FindResource("PrimaryButtonStyle"),
+                Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(8, 0, 0, 0) };
+            btnRow.Children.Add(cancelBtn);
+            btnRow.Children.Add(confirmBtn);
+            stack.Children.Add(btnRow);
+
+            border.Child = stack;
+            popup.Child = border;
+            popup.AllowsTransparency = true;
+            popup.PlacementTarget = placementTarget;
+            popup.Placement = PlacementMode.Right;
+            popup.StaysOpen = false;
+            popup.PopupAnimation = PopupAnimation.None;
+
+            cancelBtn.Click += (_, __) => popup.IsOpen = false;
+            confirmBtn.Click += (_, __) => { popup.IsOpen = false; onColorPicked(currentHex); };
+            popup.IsOpen = true;
+            hexBox.Focus();
+            hexBox.SelectAll();
         }
 
         // ═══════════════════════════════════════
@@ -481,7 +658,7 @@ namespace 串口助手
 
         private void OledCanvas_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (_drawTool == DrawTool.None) return;
+            if (_isLocked || _drawTool == DrawTool.None) return;
             InitOLEDPanel();
             var pos = e.GetPosition(oledCanvas);
             _drawStart = pos;
@@ -492,13 +669,17 @@ namespace 串口助手
             {
                 case DrawTool.Pencil:
                 case DrawTool.Eraser:
+                {
                     // 自由绘制：首点
                     string color = _drawTool == DrawTool.Eraser ? _displayVM.CanvasBackground : _drawColor;
                     _lastSamplePoint = pos;
                     _lastSampleTime = DateTime.Now;
-                    SendDrawCmd("point", new List<string> { "point",
-                        ((int)pos.X).ToString(), ((int)pos.Y).ToString(), color });
+                    var ptArgs = new List<string> { "point",
+                        ((int)pos.X).ToString(), ((int)pos.Y).ToString(), color };
+                    HandleDrawPoint(ptArgs);       // 本地渲染
+                    SendDrawCmd("point", ptArgs);  // 发串口
                     break;
+                }
 
                 case DrawTool.Line:
                 case DrawTool.Rect:
@@ -517,8 +698,13 @@ namespace 串口助手
 
         private void OledCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (!_isDrawing) return;
             var pos = e.GetPosition(oledCanvas);
+
+            // 橡皮擦光标跟随（非绘制中）
+            if (_drawTool == DrawTool.Eraser && !_isDrawing)
+                UpdateEraserCursor(pos);
+
+            if (!_isDrawing) return;
 
             switch (_drawTool)
             {
@@ -532,9 +718,12 @@ namespace 串口助手
                         return; // 节流：30ms 且位移 ≥ 2px
 
                     string color = _drawTool == DrawTool.Eraser ? _displayVM.CanvasBackground : _drawColor;
-                    SendDrawCmd("line", new List<string> { "line",
+                    var lineArgs = new List<string> { "line",
                         ((int)_lastSamplePoint.X).ToString(), ((int)_lastSamplePoint.Y).ToString(),
-                        ((int)pos.X).ToString(), ((int)pos.Y).ToString(), color });
+                        ((int)pos.X).ToString(), ((int)pos.Y).ToString(), color };
+                    if (_drawLineWidth != 1) lineArgs.Add(_drawLineWidth.ToString());
+                    HandleDrawLine(lineArgs);       // 本地渲染
+                    SendDrawCmd("line", lineArgs);  // 发串口
 
                     _lastSamplePoint = pos;
                     _lastSampleTime = now;
@@ -698,19 +887,25 @@ namespace 串口助手
                 default: return;
             }
 
-            // 渲染到画布 + 发串口
-            Dispatcher.InvokeAsync(() =>
+            // 线宽写入协议
+            if (_drawLineWidth != 1) args.Add(_drawLineWidth.ToString());
+
+            // 渲染到画布
+            switch (tool)
             {
-                HandleDrawMessage(args);
-                SendDrawCmd(type, args);
-            });
+                case DrawTool.Line:    HandleDrawLine(args);    break;
+                case DrawTool.Rect:    HandleDrawRect(args);    break;
+                case DrawTool.Circle:  HandleDrawCircle(args);  break;
+            }
+            // 发串口
+            SendDrawCmd(type, args);
         }
 
         /// <summary>向串口发送 [draw,...] 协议</summary>
         private void SendDrawCmd(string type, List<string> args)
         {
             if (_session == null || !_session.IsOpen) return;
-            string payload = "[" + string.Join(",", args) + "]";
+            string payload = "[draw," + string.Join(",", args) + "]";
             SendRaw(payload, appendLineEnding: true);
         }
 
@@ -819,7 +1014,7 @@ namespace 串口助手
             // 重发图形
             foreach (var cmd in _displayVM.DrawCommands)
             {
-                string payload = "[" + string.Join(",", cmd.Args) + "]";
+                string payload = "[draw," + string.Join(",", cmd.Args) + "]";
                 SendRaw(payload, appendLineEnding: true);
             }
         }
