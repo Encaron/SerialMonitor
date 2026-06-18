@@ -329,6 +329,9 @@ namespace 串口助手
             // 初始化接收区筛选按钮状态
             UpdateFilterButtonAppearance();
 
+            // 接收区"回到底部"按钮——监听滚动
+            SetupScrollToBottomButton();
+
             // 启动后异步检查 GitHub 更新（不阻塞窗口加载）
             Loaded += async (_, _) => await CheckForUpdateAsync();
         }
@@ -473,7 +476,7 @@ namespace 串口助手
                             HandleDisplayClear();
                         }
                         // #19 传感面板: [sensor,子类型,卡片名,值,辅助]
-                        else if (msg.Type == "sensor" && msg.Args.Count >= 3)
+                        else if (msg.Type == "sensor" && msg.Args.Count >= 3 && _sensorVM != null)
                         {
                             string subType = msg.Args[0];
                             string name = msg.Args[1];
@@ -508,7 +511,7 @@ namespace 串口助手
                             }
                         }
                         // #19 传感面板: [ctrl,子类型,卡片名,动作]
-                        else if (msg.Type == "ctrl" && msg.Args.Count >= 3)
+                        else if (msg.Type == "ctrl" && msg.Args.Count >= 3 && _sensorVM != null)
                         {
                             string subType = msg.Args[0];
                             string name = msg.Args[1];
@@ -537,7 +540,7 @@ namespace 串口助手
                                 SaveSensorPrefs();
                             }
                         }
-                        else
+                        else if (msg.Type != "sensor" && msg.Type != "ctrl")
                         {
                             LogSystem($"未知协议类型: [{msg.Type}]");
                         }
@@ -1333,13 +1336,11 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 筛选按钮外观：有任何过滤生效时降低不透明度。
+        /// 筛选按钮外观：主开关关了才灰（子类型不影响）。
         /// </summary>
         private void UpdateFilterButtonAppearance()
         {
-            bool anyFiltered = !_showProtocolMsgs || !_showPlainText
-                || _protocolTypeFilters.Values.Any(v => !v);
-
+            bool anyFiltered = !_showProtocolMsgs || !_showPlainText;
             btnFilterMenu.Opacity = anyFiltered ? 0.55 : 1.0;
         }
 

@@ -1759,15 +1759,19 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
-                    <DockPanel Grid.Row="1">
-                        <ListBox x:Name="lbSystemLog" DockPanel.Dock="Top"
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <ListBox x:Name="lbSystemLog" Grid.Row="0"
                                  Height="36" MinHeight="18" MaxHeight="72"
                                  Background="{DynamicResource SecondaryHoverBgBrush}"
                                  BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="3,1,1,1"
                                  FontFamily="Sarasa Mono SC, Consolas, Courier New" FontSize="11"
                                  Foreground="{DynamicResource TextMutedBrush}" Padding="4,2"
                                  Margin="0,2,0,4" Visibility="Collapsed"/>
-                        <avalonedit:TextEditor x:Name="editor"
+                        <avalonedit:TextEditor x:Name="editor" Grid.Row="1"
                             FontFamily="Sarasa Mono SC, Consolas, Courier New" FontSize="12"
                             ShowLineNumbers="True" LineNumbersForeground="{DynamicResource TextMutedBrush}"
                             IsReadOnly="True" WordWrap="False"
@@ -1794,7 +1798,15 @@
                                 </ContextMenu>
                             </avalonedit:TextEditor.ContextMenu>
                         </avalonedit:TextEditor>
-                    </DockPanel>
+                        <Button x:Name="btnScrollToBottom" Grid.Row="1"
+                                Content="↓ 回到底部"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Height="28" MinWidth="0" Padding="8,0" FontSize="11"
+                                HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                Margin="0,0,8,8" Visibility="Collapsed"
+                                Click="BtnScrollToBottom_Click"
+                                ToolTip="回到底部"/>
+                    </Grid>
                     <WrapPanel Grid.Row="2" x:Name="quickSendPanel" Margin="0,6,0,4" Visibility="Collapsed"/>
                     <Grid Grid.Row="3">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>

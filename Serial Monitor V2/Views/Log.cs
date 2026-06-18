@@ -170,6 +170,10 @@ namespace 串口助手
                 editor.Document.Insert(editor.Document.TextLength, Environment.NewLine);
             editor.Document.Insert(editor.Document.TextLength, text);
 
+            // 用户不在底部 → 显示"回到底部"按钮
+            if (!atBottom && btnScrollToBottom != null)
+                btnScrollToBottom.Visibility = Visibility.Visible;
+
             // 记录角色
             _lineRoles.Add(role ?? "received");
 
@@ -193,7 +197,34 @@ namespace 串口助手
 
             // 自动滚底
             if (atBottom)
+            {
                 editor.ScrollToEnd();
+                if (btnScrollToBottom != null)
+                    btnScrollToBottom.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// 点击"回到底部"按钮
+        /// </summary>
+        private void BtnScrollToBottom_Click(object sender, RoutedEventArgs e)
+        {
+            editor.ScrollToEnd();
+            btnScrollToBottom.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 接收区初始化：订阅滚动事件，用户手动滚到底部时隐藏按钮
+        /// </summary>
+        private void SetupScrollToBottomButton()
+        {
+            editor.TextArea.TextView.ScrollOffsetChanged += (s, e) =>
+            {
+                var tv = editor.TextArea.TextView;
+                bool atBottom = tv.VerticalOffset >= tv.DocumentHeight - tv.ActualHeight - SmartScrollLockPixels;
+                if (atBottom && btnScrollToBottom != null)
+                    btnScrollToBottom.Visibility = Visibility.Collapsed;
+            };
         }
 
         /// <summary>
