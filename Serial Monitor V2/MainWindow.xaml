@@ -2060,14 +2060,56 @@
                     </Grid>
                 </Grid>
 
-                <!-- OLED（Phase 4） -->
+                <!-- OLED（Phase 4 + #6 + #7） -->
                 <Grid x:Name="panelOLED" Visibility="Collapsed">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <Border Grid.Row="0" Background="{DynamicResource SecondaryHoverBgBrush}"
-                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="6,3">
                         <StackPanel Orientation="Horizontal">
+                            <!-- 绘图工具 -->
+                            <Button x:Name="btnToolPencil" Content="✏" Width="30" Height="26" ToolTip="画笔"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnToolPencil_Click"/>
+                            <Button x:Name="btnToolLine" Content="📏" Width="30" Height="26" ToolTip="直线"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnToolLine_Click"/>
+                            <Button x:Name="btnToolRect" Content="▭" Width="30" Height="26" ToolTip="矩形"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnToolRect_Click"/>
+                            <Button x:Name="btnToolCircle" Content="◯" Width="30" Height="26" ToolTip="圆"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnToolCircle_Click"/>
+                            <Button x:Name="btnToolText" Content="T" Width="30" Height="26" ToolTip="文字"
+                                    FontWeight="Bold"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnToolText_Click"/>
+                            <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
+                            <!-- 线宽 -->
+                            <ComboBox x:Name="cbLineWidth" Width="44" Height="26"
+                                      SelectionChanged="cbLineWidth_Changed" ToolTip="线宽"/>
+                            <!-- 颜色 -->
+                            <Button x:Name="btnDrawColor" Width="30" Height="26" ToolTip="颜色"
+                                    Click="btnDrawColor_Click">
+                                <Border x:Name="colorSwatch" Width="14" Height="14" CornerRadius="2"
+                                        Background="#FFFFFF"
+                                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"/>
+                            </Button>
+                            <!-- 橡皮擦 -->
+                            <Button x:Name="btnToolEraser" Content="🧹" Width="30" Height="26" ToolTip="橡皮擦"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnToolEraser_Click"/>
+                            <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
+                            <!-- 发送 / 导出 -->
+                            <Button x:Name="btnSendCanvas" Content="发送" Height="26" MinWidth="0" Padding="8,0"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnSendCanvas_Click" ToolTip="重发全部图形到串口"/>
+                            <Button x:Name="btnExportC" Content="导出C" Height="26" MinWidth="0" Padding="8,0"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Click="btnExportC_Click" ToolTip="导出画布为 C 数组"/>
+                            <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
+                            <!-- 清屏 -->
                             <Button x:Name="btnOLEDClear" Content="🗑 清屏"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Height="26" MinWidth="0" Padding="8,0"
                                     Click="btnOLEDClear_Click" ToolTip="清除 OLED 屏幕（display-clear）"/>
                         </StackPanel>
                     </Border>
@@ -2088,7 +2130,7 @@
                             <Grid x:Name="oledYAxis" Grid.Row="1" Grid.Column="0" Width="34" Margin="0,0,2,0"/>
                             <!-- 画布 Viewbox（NearestNeighbor = 清晰像素） -->
                             <Viewbox Grid.Row="1" Grid.Column="1" Stretch="Uniform">
-                                <Border Background="#111111" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                <Border x:Name="oledCanvasBorder" Background="#111111" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                         RenderOptions.EdgeMode="Aliased">
                                     <Canvas x:Name="oledCanvas" Width="640" Height="320" ClipToBounds="True"
                                             RenderOptions.EdgeMode="Aliased"

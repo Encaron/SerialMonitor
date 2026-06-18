@@ -499,6 +499,11 @@ namespace 串口助手
                         {
                             HandleDisplayClear();
                         }
+                        // #6 OLED 绘图: [draw,point|line|rect|fill|circle|ellipse|triangle|clear,...]
+                        else if (msg.Type == "draw" && msg.Args.Count >= 1)
+                        {
+                            HandleDrawMessage(msg.Args);
+                        }
                         // #19 传感面板: [sensor,子类型,卡片名,值,辅助]
                         else if (msg.Type == "sensor" && msg.Args.Count >= 3 && _sensorVM != null)
                         {
