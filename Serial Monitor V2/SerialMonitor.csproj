@@ -11,7 +11,7 @@
     <NoWarn>CA1416</NoWarn>
 
     <!-- 程序集信息（由 SDK 自动生成 → AssemblyName.GetName().Version 读取） -->
-    <Version>2.3.0</Version>
+    <Version>2.4.0</Version>
     <Title>串口助手 WPF</Title>
     <Description>串口调试助手 — WPF 版</Description>
     <Product>串口助手 WPF</Product>

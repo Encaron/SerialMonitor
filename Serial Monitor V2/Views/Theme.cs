@@ -100,6 +100,9 @@ namespace 串口助手
             // 快捷键页键帽颜色随主题
             PopulateShortcutPage();
             PopulateExamplesPage();
+            // 设置子页导航高亮颜色随主题
+            if (_currentSettingsPage != null)
+                UpdateSettingsNavHighlight(_currentSettingsPage);
         }
 
         private void btnThemeSwitch_Click(object sender, RoutedEventArgs e)

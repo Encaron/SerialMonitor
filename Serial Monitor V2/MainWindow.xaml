@@ -1711,15 +1711,15 @@
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <TextBlock Text="设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                <Button Content="📡 串口配置" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsSerial" Content="📡 串口配置" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsSerial_Click"/>
-                                <Button Content="⌨ 快捷键提示" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsShortcuts" Content="⌨ 快捷键提示" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsShortcuts_Click"/>
-                                <Button Content="📖 使用示例" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsExamples" Content="📖 使用示例" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsExamples_Click"/>
-                                <Button Content="🎨 素材自定义" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsAssets" Content="🎨 素材自定义" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAssets_Click"/>
-                                <Button Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsAbout" Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAbout_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Button x:Name="btnThemeSwitch" Height="36" FontSize="13"

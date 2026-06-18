@@ -19,13 +19,17 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.3.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.4.0-green.svg)
 
 ## Preview
 
 | 🌙 暗色主题 | ☀️ 亮色主题 |
 |:-----------:|:-----------:|
 | ![Dark](assets/dark.png) | ![Light](assets/light.png) |
+
+| 📶 FFT 频谱分析 | 📡 传感面板 |
+|:-----------:|:-----------:|
+| ![FFT](assets/V2-3新增频域界面-频谱分析更加简单.png) | ![Sensors](assets/V2-4重磅更新-新增全新传感面板-更方便切换主题-更新消息不再烦人.png) |
 
 ## Install
 
@@ -182,7 +186,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 |------|------|------|
 | ✅ **v2.2.0** | 🔴 全部 5 条快速改进 | Bug 修复 + 体验提升：拖拽不卡、HEX 提醒、波形冻结、版本号、侧栏充实 |
 | ✅ **v2.3.0** | 🟡 调参工作台 + FFT 频谱 | 拖滑杆同时看波形 + PC 端自动 FFT 频域分析 |
-| **v2.4.0** | 🟡 传感面板 | 模块化卡片式 UI：5 类传感卡片 + 迷你波形 + 开关控制 |
+| ✅ **v2.4.0** | 🟡 传感面板 + 体验修缮 | 8 类传感卡片 + 编辑模式 + 侧栏管理 + 调参工作台 + FFT 频谱 + 协议筛选 + 主题切换按钮 + 版本静默更新 |
 | **v2.5.0** | 🟡 OLED 绘图 + PC 画板 | 绘图指令 + PC 端绘制 → STM32 物理屏 |
 | **v2.6.0** | 🟢 内部优化 | i18n 预埋 + 路由抽出 + 主题优化，为英文版铺路 |
 

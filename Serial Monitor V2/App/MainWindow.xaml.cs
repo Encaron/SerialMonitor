@@ -122,6 +122,7 @@ namespace 串口助手
         private string _currentTab = "Receive";
         private string _previousContentTab = "Receive";
         private string _currentSettingsPage; // null = 未展开子页 / "serial" / "shortcuts" / "about"
+        private HashSet<string> _expandedExampleTypes = new(); // 使用示例页已展开的协议类型
         private SearchPanel _searchPanel;
 
         // 图标栏面板显隐管理（决策 12改：+ 下拉菜单切换）
@@ -2068,7 +2069,7 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 使用示例页 — 6 个协议示例卡片
+        /// 使用示例页 — 8 组协议示例，按类型折叠分组
         /// </summary>
         private void PopulateExamplesPage()
         {
@@ -2084,7 +2085,7 @@ namespace 串口助手
                          ("数值", "浮点数，如 25.3、1024、-0.5") },
                  "// 每 50ms 发送一次\r\nprintf(\"[plot,ch1,%.1f]\\r\\n\", adc_val);"),
 
-                ("按键触发", "key",
+                ("按键事件", "key",
                  "设备端按键按下/松开时通知 PC，KeyPanel 对应按键高亮并可选回传命令。",
                  "[key,名称,状态]",
                  "[key,btn_a,down]",
@@ -2092,7 +2093,7 @@ namespace 串口助手
                          ("状态", "\"down\"（按下）或 \"up\"（松开）") },
                  "// 按键按下\r\nprintf(\"[key,btn_a,down]\\r\\n\");\r\n// 按键松开\r\nprintf(\"[key,btn_a,up]\\r\\n\");"),
 
-                ("滑块数值", "slider",
+                ("滑杆数值", "slider",
                  "发送数值到 PC，Slider 面板对应滑块同步位置。常用于传感器反馈。",
                  "[slider,名称,数值]",
                  "[slider,speed,512]",
@@ -2109,8 +2110,45 @@ namespace 串口助手
                          ("y", "Y 轴坐标，范围 0~255") },
                  "// 发送摇杆位置\r\nprintf(\"[joystick,0,%d,%d]\\r\\n\", x_adc, y_adc);"),
 
+                ("传感数据", "sensor",
+                 "MCU 上报传感器数据，PC 端传感面板自动建卡。子类型决定卡片样式（竖条色/进度条/波形/开关）。",
+                 "[sensor,子类型,卡片名,数值,辅助参数]",
+                 "[sensor,temp,芯片温度,42.5,45.0]",
+                 new[] { ("子类型",
+                          "8 种（与添加卡片面板一致）：\n" +
+                          "  temp      温度卡 — 黄色竖条 + 迷你波形\n" +
+                          "  humidity  湿度卡 — 蓝色竖条 + 进度条 + 迷你波形\n" +
+                          "  pressure  气压卡 — 青色竖条 + 进度条 + 迷你波形\n" +
+                          "  status    状态卡 — 绿/红色竖条，无波形，支持 alarm/error/offline\n" +
+                          "  control   开关卡 — 橙色竖条 + 胶囊开关，点击回控 MCU\n" +
+                          "  motor     电机卡 — 紫色竖条 + 迷你波形 + 转速单位\n" +
+                          "  slider    滑杆卡 — 靛蓝竖条 + Slider + ±微调 + 发送间隔\n" +
+                          "  generic   通用卡 — 灰色竖条，自定义名称/单位/颜色"),
+                         ("卡片名", "显示名称，支持中文。跨所有组唯一。"),
+                         ("数值", "浮点数 / on·off / online·alarm·error·offline"),
+                         ("辅助参数", "可选。温度=最大值，湿度=露点，气压=趋势，状态=告警原因…") },
+                 "// 温度（带最大值）\r\nprintf(\"[sensor,temp,芯片温度,%.1f,%.1f]\\r\\n\", val, max_val);\r\n// 湿度（自动进度条）\r\nprintf(\"[sensor,humidity,环境湿度,%.1f]\\r\\n\", humidity);\r\n// 状态（在线/告警/离线）\r\nprintf(\"[sensor,status,主板,online]\\r\\n\");\r\n// 开关（点击回控 MCU）\r\nprintf(\"[sensor,control,主板LED,off]\\r\\n\");\r\n// 通用（自定义单位/颜色）\r\nprintf(\"[sensor,generic,电池电压,%.2f]\\r\\n\", battery_v);"),
+
+                ("控制指令", "ctrl",
+                 "PC 端向 MCU 发送控制指令。开关卡点击自动发送，滑杆卡拖拽节流发送（间隔在卡片详情面板设置）。",
+                 "[ctrl,子类型,卡片名,动作/数值]",
+                 "[ctrl,led,主板LED,on]",
+                 new[] { ("子类型", "led / relay / slider（PC→MCU 方向。固件端自行解析，可扩展）"),
+                         ("卡片名", "匹配传感面板中已存在的卡片名"),
+                         ("动作", "开关类：on / off；滑杆类：浮点数值") },
+                 "// MCU 端解析 ctrl 消息控制硬件\r\nif (strcmp(type, \"ctrl\") == 0) {\r\n    if (strcmp(subType, \"led\") == 0)\r\n        HAL_GPIO_WritePin(LED_PORT, LED_PIN,\r\n            strcmp(action, \"on\") == 0\r\n                ? GPIO_PIN_RESET : GPIO_PIN_SET);\r\n}"),
+
+                ("频谱数据", "fft",
+                 "MCU 发送 FFT 频谱数据，PC 端频域页显示柱状图。PC 端亦可从 [plot,...] 原始波形自动滑窗 FFT（MCU 零代码）。",
+                 "[fft,通道名,点数,bin0,bin1,...]",
+                 "[fft,ch1,512,0.12,0.35,0.67,0.89,0.45,...]",
+                 new[] { ("通道名", "FFT 数据标识名，出现在频域页数据源下拉框（📶 前缀）。兼容旧格式省略通道名"),
+                         ("点数", "FFT bin 数量（整数），如 64/128/256/512"),
+                         ("bin值", "各频率 bin 归一化幅度（0~1），从低到高排列。bin 数需与点数一致") },
+                 "// CMSIS-DSP FFT（MCU 端运算）\r\nprintf(\"[fft,ch1,%d\", N);\r\nfor (int i = 0; i < N; i++)\r\n    printf(\",%.2f\", mag[i]);\r\nprintf(\"]\\r\\n\");\r\n// 或交给 PC 端自动 FFT：发 [plot,...] 后选 📈 数据源即可"),
+
                 ("OLED 显示", "display",
-                 "在 PC 端 OLED 面板指定位置显示文本。支持自定义字号和颜色。",
+                 "在 PC 端 OLED 面板指定位置显示文本。支持自定义字号和颜色。省略参数直接发 [display-clear] 即清屏。",
                  "[display,x,y,文本,字号,#RRGGBB]",
                  "[display,10,20,\"hello\",16]",
                  new[] { ("x", "像素横坐标（整数），如 10"),
@@ -2118,14 +2156,7 @@ namespace 串口助手
                          ("文本", "要显示的文字，含逗号时需双引号包裹"),
                          ("字号", "字体大小（整数），如 16"),
                          ("颜色", "可选，十六进制颜色 #RRGGBB，如 #FF0000") },
-                 "// 显示文本\r\nprintf(\"[display,10,20,\\\"hello\\\",16]\\r\\n\");\r\n// 带颜色\r\nprintf(\"[display,30,40,\\\"ok\\\",24,#00FF00]\\r\\n\");"),
-
-                ("清屏", "display-clear",
-                 "清空 OLED 面板上所有文字。无参数。",
-                 "[display-clear]",
-                 "[display-clear]",
-                 new (string, string)[0],
-                 "// 清空 OLED 面板\r\nprintf(\"[display-clear]\\r\\n\");"),
+                 "// 显示文本\r\nprintf(\"[display,10,20,\\\"hello\\\",16]\\r\\n\");\r\n// 带颜色\r\nprintf(\"[display,30,40,\\\"ok\\\",24,#00FF00]\\r\\n\");\r\n// 清屏\r\nprintf(\"[display-clear]\\r\\n\");"),
             };
 
             // 颜色随主题
@@ -2146,33 +2177,50 @@ namespace 串口助手
 
             foreach (var ex in examples)
             {
-                // ——— 卡片容器 ———
-                var cardBorder = new Border
+                // ——— 折叠组容器 ———
+                var groupBorder = new Border
                 {
                     Background = cardBg,
                     BorderBrush = cardBorderBrush,
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(8),
-                    Padding = new Thickness(14, 12, 14, 14),
-                    Margin = new Thickness(0, 0, 0, 10),
+                    Margin = new Thickness(0, 0, 0, 8),
                 };
-                var card = new StackPanel();
+                var groupStack = new StackPanel();
 
-                // ——— 标题行：名称 + 类型标签 + 复制代码按钮 ———
-                var titleRow = new Grid { Margin = new Thickness(0, 0, 0, 8) };
-                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                titleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                var titleText = new TextBlock
+                // ——— Header 行（始终可见，点按折叠/展开） ———
+                var headerBorder = new Border
                 {
-                    Text = ex.Title,
-                    FontSize = 14, FontWeight = System.Windows.FontWeights.SemiBold,
-                    Foreground = textPrimary, VerticalAlignment = VerticalAlignment.Center,
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(10, 8, 12, 8),
+                    Cursor = System.Windows.Input.Cursors.Hand,
                 };
-                Grid.SetColumn(titleText, 0);
-                titleRow.Children.Add(titleText);
+                // hover 效果
+                headerBorder.MouseEnter += (s, e) =>
+                {
+                    if (s is Border bd) bd.Background = (Brush)FindResource("SecondaryHoverBgBrush");
+                };
+                headerBorder.MouseLeave += (s, e) =>
+                {
+                    if (s is Border bd) bd.Background = Brushes.Transparent;
+                };
+
+                var headerGrid = new Grid();
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                // 折叠箭头
+                var arrowText = new TextBlock
+                {
+                    Text = "▶",
+                    FontSize = 11, FontFamily = codeFont,
+                    Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                };
+                Grid.SetColumn(arrowText, 0);
+                headerGrid.Children.Add(arrowText);
 
                 // 类型小标签
                 var typeTag = new Border
@@ -2180,7 +2228,7 @@ namespace 串口助手
                     Background = new SolidColorBrush(dark ? Color.FromRgb(0x1E, 0x50, 0x7C) : Color.FromRgb(0xDE, 0xEC, 0xF9)),
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(6, 2, 6, 2),
-                    Margin = new Thickness(8, 0, 0, 0),
+                    Margin = new Thickness(6, 0, 0, 0),
                     VerticalAlignment = VerticalAlignment.Center,
                 };
                 typeTag.Child = new TextBlock
@@ -2190,7 +2238,18 @@ namespace 串口助手
                     Foreground = primary,
                 };
                 Grid.SetColumn(typeTag, 1);
-                titleRow.Children.Add(typeTag);
+                headerGrid.Children.Add(typeTag);
+
+                // 标题
+                var titleText = new TextBlock
+                {
+                    Text = ex.Title,
+                    FontSize = 13, FontWeight = System.Windows.FontWeights.SemiBold,
+                    Foreground = textPrimary, VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(8, 0, 0, 0),
+                };
+                Grid.SetColumn(titleText, 2);
+                headerGrid.Children.Add(titleText);
 
                 // 复制代码按钮
                 var btnCopyCode = new Button
@@ -2210,9 +2269,35 @@ namespace 串口助手
                     }
                 };
                 Grid.SetColumn(btnCopyCode, 3);
-                titleRow.Children.Add(btnCopyCode);
+                headerGrid.Children.Add(btnCopyCode);
 
-                card.Children.Add(titleRow);
+                headerBorder.Child = headerGrid;
+                groupStack.Children.Add(headerBorder);
+
+                // ——— 内容区（根据记忆恢复展开/折叠） ———
+                bool isExpanded = _expandedExampleTypes.Contains(ex.Type);
+                var contentBorder = new Border
+                {
+                    Visibility = isExpanded ? Visibility.Visible : Visibility.Collapsed,
+                    Padding = new Thickness(14, 0, 14, 14),
+                };
+                var card = new StackPanel();
+
+                // 折叠箭头初始状态
+                arrowText.Text = isExpanded ? "▼" : "▶";
+
+                // 点击 header 切换展开/折叠
+                headerBorder.MouseLeftButtonDown += (s, e) =>
+                {
+                    isExpanded = !isExpanded;
+                    arrowText.Text = isExpanded ? "▼" : "▶";
+                    contentBorder.Visibility = isExpanded ? Visibility.Visible : Visibility.Collapsed;
+                    if (isExpanded)
+                        _expandedExampleTypes.Add(ex.Type);
+                    else
+                        _expandedExampleTypes.Remove(ex.Type);
+                    e.Handled = true;
+                };
 
                 // ——— 描述 ———
                 card.Children.Add(new TextBlock
@@ -2220,7 +2305,7 @@ namespace 串口助手
                     Text = ex.Desc,
                     FontSize = 12, FontFamily = yaheiFont,
                     Foreground = textSecondary, TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 10),
+                    Margin = new Thickness(0, 8, 0, 10),
                 });
 
                 // ——— 协议格式 ———
@@ -2245,52 +2330,59 @@ namespace 串口助手
                 });
                 card.Children.Add(formatRow);
 
-                // ——— 协议示例行 ———
-                var exampleRow = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Margin = new Thickness(0, 0, 0, 10),
-                };
-                exampleRow.Children.Add(new TextBlock
+                // ——— 协议示例 ———
+                var exampleHeader = new TextBlock
                 {
                     Text = "协议示例",
                     FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                    Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
-                    Width = 72,
-                });
-                // 示例文本（可选中复制）
-                var tbExample = new TextBox
-                {
-                    Text = ex.Example,
-                    IsReadOnly = true, BorderThickness = new Thickness(0),
-                    FontSize = 12, FontFamily = codeFont,
-                    Foreground = primary,
-                    Background = Brushes.Transparent,
-                    Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
-                    Cursor = System.Windows.Input.Cursors.Arrow,
+                    Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
                 };
-                exampleRow.Children.Add(tbExample);
+                card.Children.Add(exampleHeader);
 
-                var btnCopyExample = new Button
+                void AddExampleRow(string exampleText)
                 {
-                    Content = "📋",
-                    Style = (Style)FindResource("SecondaryButtonStyle"),
-                    Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
-                    FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(6, 0, 0, 0),
-                };
-                btnCopyExample.Tag = ex.Example;
-                btnCopyExample.Click += (s, e) =>
-                {
-                    if (s is Button b && b.Tag is string exp)
+                    var exampleRow = new StackPanel
                     {
-                        SafeSetClipboard(exp);
-                        ShowCopyToastAndShake(b);
-                    }
-                };
-                exampleRow.Children.Add(btnCopyExample);
+                        Orientation = Orientation.Horizontal,
+                        Margin = new Thickness(0, 0, 0, 4),
+                    };
+                    var tbExample = new TextBox
+                    {
+                        Text = exampleText,
+                        IsReadOnly = true, BorderThickness = new Thickness(0),
+                        FontSize = 12, FontFamily = codeFont,
+                        Foreground = primary,
+                        Background = Brushes.Transparent,
+                        Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
+                        Cursor = System.Windows.Input.Cursors.Arrow,
+                    };
+                    exampleRow.Children.Add(tbExample);
 
-                card.Children.Add(exampleRow);
+                    var btnCopy = new Button
+                    {
+                        Content = "📋",
+                        Style = (Style)FindResource("SecondaryButtonStyle"),
+                        Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
+                        FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(6, 0, 0, 0),
+                    };
+                    btnCopy.Tag = exampleText;
+                    btnCopy.Click += (s2, e2) =>
+                    {
+                        if (s2 is Button b2 && b2.Tag is string exp)
+                        {
+                            SafeSetClipboard(exp);
+                            ShowCopyToastAndShake(b2);
+                        }
+                    };
+                    exampleRow.Children.Add(btnCopy);
+                    card.Children.Add(exampleRow);
+                }
+
+                AddExampleRow(ex.Example);
+                // display 协议额外显示清屏示例
+                if (ex.Type == "display")
+                    AddExampleRow("[display-clear]");
 
                 // ——— 参数 ———
                 if (ex.Params.Length > 0)
@@ -2299,30 +2391,31 @@ namespace 串口助手
                     {
                         Text = "参数",
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                        Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
+                        Foreground = textMuted, Margin = new Thickness(0, 8, 0, 4),
                     };
                     card.Children.Add(paramsHeader);
 
                     foreach (var (name, desc) in ex.Params)
                     {
-                        var paramRow = new StackPanel
+                        var paramStack = new StackPanel
                         {
                             Orientation = Orientation.Horizontal,
                             Margin = new Thickness(0, 0, 0, 3),
                         };
-                        paramRow.Children.Add(new TextBlock
+                        paramStack.Children.Add(new TextBlock
                         {
                             Text = name,
                             FontSize = 11, FontFamily = codeFont,
                             Foreground = textSecondary, Width = 72,
+                            VerticalAlignment = VerticalAlignment.Top,
                         });
-                        paramRow.Children.Add(new TextBlock
+                        paramStack.Children.Add(new TextBlock
                         {
                             Text = desc,
                             FontSize = 11, FontFamily = yaheiFont,
                             Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
                         });
-                        card.Children.Add(paramRow);
+                        card.Children.Add(paramStack);
                     }
                 }
 
@@ -2353,8 +2446,11 @@ namespace 串口助手
                 codeBlock.Child = codeText;
                 card.Children.Add(codeBlock);
 
-                cardBorder.Child = card;
-                examplesListPanel.Children.Add(cardBorder);
+                contentBorder.Child = card;
+                groupStack.Children.Add(contentBorder);
+
+                groupBorder.Child = groupStack;
+                examplesListPanel.Children.Add(groupBorder);
             }
         }
 
@@ -2465,8 +2561,30 @@ namespace 串口助手
             settingsExamplesPage.Visibility   = page == "examples"   ? Visibility.Visible : Visibility.Collapsed;
             settingsAssetsPage.Visibility     = page == "assets"     ? Visibility.Visible : Visibility.Collapsed;
             settingsAboutPage.Visibility      = page == "about"      ? Visibility.Visible : Visibility.Collapsed;
+            // 高亮当前子页导航按钮
+            UpdateSettingsNavHighlight(page);
             // 有子页 → 主区显示设置面板（_previousContentTab 不动，保持之前内容标签）
             RefreshContentVisibility();
+        }
+
+        /// <summary>设置子页导航高亮：当前页按钮 PrimaryBrush + SemiBold，其余还原</summary>
+        private void UpdateSettingsNavHighlight(string active)
+        {
+            var navButtons = new[] {
+                (btnSettingsSerial, "serial"),
+                (btnSettingsShortcuts, "shortcuts"),
+                (btnSettingsExamples, "examples"),
+                (btnSettingsAssets, "assets"),
+                (btnSettingsAbout, "about"),
+            };
+            var primary = (Brush)FindResource("PrimaryBrush");
+            var secondary = (Brush)FindResource("TextSecondaryBrush");
+            foreach (var (btn, key) in navButtons)
+            {
+                bool isActive = key == active;
+                btn.Foreground = isActive ? primary : secondary;
+                btn.FontWeight = isActive ? FontWeights.SemiBold : FontWeights.Regular;
+            }
         }
 
         /// <summary>

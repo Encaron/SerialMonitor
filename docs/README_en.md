@@ -18,13 +18,17 @@ A serial debugging tool based on WPF + AvalonEdit + OxyPlot.
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.3.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.4.0-green.svg)
 
 ## Preview
 
 | 🌙 Dark | ☀️ Light |
 |:-------:|:--------:|
 | ![Dark](../assets/dark.png) | ![Light](../assets/light.png) |
+
+| 📶 FFT Spectrum | 📡 Sensor Panel |
+|:-----------:|:-----------:|
+| ![FFT](../assets/V2-3新增频域界面-频谱分析更加简单.png) | ![Sensors](../assets/V2-4重磅更新-新增全新传感面板-更方便切换主题-更新消息不再烦人.png) |
 
 ## Install
 
@@ -150,7 +154,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 |------|------|------|
 | ✅ **v2.2.0** | 🔴 All 5 quick fixes | Stutter fix, HEX warning, waveform freeze, version auto-inject, sidebar enrichment |
 | ✅ **v2.3.0** | 🟡 Tuning Workbench + FFT Spectrum | Drag sliders while viewing plots + PC-side auto FFT |
-| **v2.4.0** | 🟡 Sensor Panel | Modular card-based UI: 5 sensor card types + mini plots + switch control |
+| ✅ **v2.4.0** | 🟡 Sensor Panel + Refinements | 8 card types + edit mode + sidebar management + Tuning Workbench + FFT Spectrum + protocol filter + theme toggle + silent update check |
 | **v2.5.0** | 🟡 OLED Drawing + PC Canvas | Draw primitives + PC-side drawing → STM32 physical display |
 | **v2.6.0** | 🟢 Internal polish | i18n prep + routing refactor + theme optimization |
 
