@@ -184,7 +184,7 @@ namespace 串口助手
 
             // 关于页：版本号 + 运行时 + GitHub + 数据路径 + Issue 反馈
             SetVersionDisplay();
-            tbAboutVersion.MouseLeftButtonDown += (s, e) =>
+            bdAboutVersion.MouseLeftButtonDown += (s, e) =>
             {
                 if (_updateUrl != null)
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
@@ -207,9 +207,17 @@ namespace 串口助手
             PopulateShortcutPage();
             PopulateExamplesPage();
 
-            // "+" 按钮 hover 效果
-            btnAddPanel.MouseEnter += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextPrimaryBrush");
-            btnAddPanel.MouseLeave += (s, e) => btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
+            // "+" 按钮 hover / active 效果
+            btnAddPanel.MouseEnter += (s, e) =>
+            {
+                if (_addPanelPopup == null || !_addPanelPopup.IsOpen)
+                    btnAddPanel.Foreground = (Brush)FindResource("TextPrimaryBrush");
+            };
+            btnAddPanel.MouseLeave += (s, e) =>
+            {
+                if (_addPanelPopup == null || !_addPanelPopup.IsOpen)
+                    btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
+            };
 
             // 图标栏二次点击抖动：handledEventsToo=true 确保 ButtonBase 不吞事件
             var icons = new RadioButton[] { tabReceive, tabPlot, tabKeys, tabSliders, tabOLED, tabJoystick, tabSettings };
@@ -353,10 +361,25 @@ namespace 串口助手
                 tbAboutVersion.Text = $"{v}  →  v{_remoteVersion} 可用";
                 tbAboutVersion.Cursor = Cursors.Hand;
                 tbAboutVersion.ToolTip = "点击查看更新内容";
+
+                // 按钮样式：PrimaryBrush 描边 + 半透明底色
+                var primaryBrush = (SolidColorBrush)FindResource("PrimaryBrush");
+                bdAboutVersion.BorderBrush = primaryBrush;
+                bdAboutVersion.BorderThickness = new Thickness(1);
+                bdAboutVersion.Background = new SolidColorBrush(primaryBrush.Color) { Opacity = 0.12 };
+                bdAboutVersion.Padding = new Thickness(12, 6, 12, 6);
+                bdAboutVersion.Cursor = Cursors.Hand;
+                bdAboutVersion.ToolTip = "点击查看更新内容";
             }
             else
             {
                 tbAboutVersion.Text = v;
+                bdAboutVersion.BorderBrush = null;
+                bdAboutVersion.BorderThickness = new Thickness(0);
+                bdAboutVersion.Background = Brushes.Transparent;
+                bdAboutVersion.Padding = new Thickness(0);
+                bdAboutVersion.Cursor = Cursors.Arrow;
+                bdAboutVersion.ToolTip = null;
             }
         }
 
@@ -2575,7 +2598,12 @@ namespace 串口助手
         /// </summary>
         private void BtnAddPanel_Click(object sender, RoutedEventArgs e)
         {
-            if (_addPanelPopup != null && _addPanelPopup.IsOpen) { _addPanelPopup.IsOpen = false; return; }
+            // 已打开 → 关闭
+            if (_addPanelPopup != null && _addPanelPopup.IsOpen)
+            {
+                CloseAddPanelPopup();
+                return;
+            }
 
             var panel = new StackPanel { MinWidth = 180 };
 
@@ -2600,9 +2628,8 @@ namespace 串口助手
             AddPopupItem(panel, "📡 传感面板", _panelVisible["Sensors"], tab: "Sensors");
 
             var border = new Border {
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("CardBorderBrush"),
-                BorderThickness = new Thickness(1),
+                Background = (Brush)FindResource("StatusBarBgBrush"),
+                BorderThickness = new Thickness(0),
                 CornerRadius = new CornerRadius(6),
                 Child = panel,
             };
@@ -2610,13 +2637,55 @@ namespace 串口助手
             _addPanelPopup = new Popup {
                 PlacementTarget = btnAddPanel,
                 Placement = System.Windows.Controls.Primitives.PlacementMode.Left,
-                StaysOpen = false,
+                StaysOpen = true,
                 AllowsTransparency = true,
                 Child = border,
                 PopupAnimation = System.Windows.Controls.Primitives.PopupAnimation.Fade,
                 HorizontalOffset = -4,
             };
+            _addPanelPopup.Closed += (s2, e2) =>
+            {
+                btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
+            };
             _addPanelPopup.IsOpen = true;
+
+            // "+" 按钮 active 态
+            btnAddPanel.Foreground = (Brush)FindResource("PrimaryBrush");
+
+            // 点 Popup 外部关闭（延迟订阅，避开当前 Click 事件）
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                MouseButtonEventHandler outsideHandler = null;
+                outsideHandler = (s2, e2) =>
+                {
+                    if (_addPanelPopup == null || !_addPanelPopup.IsOpen) return;
+                    var clicked = e2.OriginalSource as DependencyObject;
+                    // 检查是否点在 Popup 内或 "+" 按钮上（后者由 BtnAddPanel_Click 处理 toggle）
+                    bool inside = false;
+                    var current = clicked;
+                    while (current != null)
+                    {
+                        if (current == _addPanelPopup.Child || current == btnAddPanel) { inside = true; break; }
+                        current = VisualTreeHelper.GetParent(current);
+                    }
+                    if (!inside)
+                    {
+                        CloseAddPanelPopup();
+                        RemoveHandler(PreviewMouseLeftButtonDownEvent, outsideHandler);
+                    }
+                };
+                AddHandler(PreviewMouseLeftButtonDownEvent, outsideHandler, handledEventsToo: true);
+            }));
+        }
+
+        private void CloseAddPanelPopup()
+        {
+            if (_addPanelPopup != null)
+            {
+                _addPanelPopup.IsOpen = false;
+                _addPanelPopup = null;
+            }
+            btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
         }
 
         private void AddPopupItem(StackPanel panel, string label, bool isVisible, string tab = null, bool canToggle = true)

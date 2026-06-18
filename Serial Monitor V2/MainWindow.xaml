@@ -731,7 +731,13 @@
                             Background="Transparent" BorderThickness="0"
                             FontSize="20" FontWeight="Bold" Cursor="Hand"
                             Content="+" ToolTip="管理标签显示" Margin="0,2"
-                            Click="BtnAddPanel_Click" />
+                            Click="BtnAddPanel_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <StackPanel Margin="0,4,0,0">
                         <RadioButton x:Name="tabReceive" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
@@ -2303,8 +2309,12 @@
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,16"/>
                             <TextBlock Text="Serial Monitor" FontSize="18" FontWeight="Bold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                            <TextBlock x:Name="tbAboutVersion" FontSize="13"
-                                       Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,20"/>
+                            <Border x:Name="bdAboutVersion" CornerRadius="8" Padding="0"
+                                    HorizontalAlignment="Left" Margin="0,0,0,20"
+                                    Background="Transparent" BorderThickness="0">
+                                <TextBlock x:Name="tbAboutVersion" FontSize="13"
+                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                            </Border>
                             <!-- 制作 -->
                             <TextBlock Text="制作" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>

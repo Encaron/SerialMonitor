@@ -528,7 +528,11 @@ namespace 串口助手
             {
                 if (_sliderProgrammaticUpdate) return;
                 if (_sensorVM != null && _sensorVM.IsEditMode) return;
-                var newVal = e.NewValue;
+                double rawVal = e.NewValue;
+                double step = vm.SliderStep > 0 ? vm.SliderStep : 1;
+                // decimal 量化消除 IEEE 754 误差（0.01*3416 = 34.160000000000004）
+                double newVal = (double)(Math.Round((decimal)rawVal / (decimal)step) * (decimal)step);
+                newVal = Math.Clamp(newVal, vm.SliderMin, vm.SliderMax);
                 valueText.Text = $"{newVal:0.##}{vm.GetUnit()}";
                 if (isDragging)
                     ThrottledSliderSend(vm, newVal);
@@ -572,8 +576,9 @@ namespace 串口助手
         private void ThrottledSliderSend(SensorCardViewModel vm, double value)
         {
             var now = DateTime.Now;
+            int interval = vm.SendIntervalMs >= 20 ? vm.SendIntervalMs : 200;
             if (_sliderLastSend.TryGetValue(vm, out var last)
-                && (now - last).TotalMilliseconds < 200)
+                && (now - last).TotalMilliseconds < interval)
                 return;
             _sliderLastSend[vm] = now;
             SendSliderValueImmediate(vm, value);
@@ -581,7 +586,11 @@ namespace 串口助手
 
         private void SendSliderValueImmediate(SensorCardViewModel vm, double value)
         {
-            double clamped = Math.Round(Math.Clamp(value, vm.SliderMin, vm.SliderMax), 2);
+            // 按步长量化（WPF Slider 连续值 → 对齐到 step 整数倍）
+            // decimal 运算消除 IEEE 754 误差
+            double step = vm.SliderStep > 0 ? vm.SliderStep : 1;
+            double stepped = (double)(Math.Round((decimal)value / (decimal)step) * (decimal)step);
+            double clamped = Math.Clamp(stepped, vm.SliderMin, vm.SliderMax);
             _sliderLastSend[vm] = DateTime.Now;
             vm.Value = $"{clamped:G}";
             UpdateCardUI(vm);
@@ -1027,10 +1036,29 @@ namespace 串口助手
             if (vm != null && _sensorVM.IsEditMode && _currentTab != "Sensors")
                 tabSensors.IsChecked = true;
 
+            // 编辑模式→slider/generic 卡直接跳详情面板（侧栏态3）
+            if (vm != null && _sensorVM.IsEditMode && (vm.Type == "slider" || vm.Type == "generic"))
+            {
+                if (_detailCard != vm)
+                {
+                    _detailCard = vm;
+                    RefreshSensorSidePanel();
+                }
+            }
+            else if (vm != null && _sensorVM.IsEditMode)
+            {
+                // 其他类型→退出详情回到行管理器
+                if (_detailCard != null)
+                {
+                    _detailCard = null;
+                    RefreshSensorSidePanel();
+                }
+            }
+
             if (_selectedCard == vm)
             {
-                // 同卡再点：只做侧栏恢复 + 定位
-                if (vm != null && _sensorVM.IsEditMode && _currentTab == "Sensors")
+                // 同卡再点：只做侧栏定位（非详情模式下）
+                if (vm != null && _sensorVM.IsEditMode && _currentTab == "Sensors" && _detailCard == null)
                 {
                     var container = rightSensors?.Content as StackPanel;
                     if (container == null || container.Children.Count == 0)
@@ -1060,8 +1088,8 @@ namespace 串口助手
                 newBorder.BorderThickness = new Thickness(2);
             }
 
-            // 编辑模式→侧栏恢复 + 滚动定位
-            if (vm != null && _sensorVM.IsEditMode)
+            // 编辑模式→非详情模式才做侧栏滚动定位
+            if (vm != null && _sensorVM.IsEditMode && _detailCard == null)
             {
                 if (_currentTab == "Sensors")
                 {
@@ -2086,6 +2114,9 @@ namespace 串口助手
                     if (_cardSliderMap.TryGetValue(card, out var sl)) { sl.SmallChange = v; sl.LargeChange = v * 10; }
                     _sliderProgrammaticUpdate = false;
                 });
+                AddDetailNumberField(container, "发送间隔(ms)：", card.SendIntervalMs, v => {
+                    card.SendIntervalMs = Math.Max(20, (int)v);
+                });
             }
             if (card.Type == "generic")
             {
@@ -2140,7 +2171,7 @@ namespace 串口助手
 
             var box = new TextBox
             {
-                Text = currentValue.ToString("F0"),
+                Text = currentValue.ToString("G"),
                 FontSize = 12, Height = 28,
                 Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 Background = (Brush)FindResource("CardBgBrush"),
@@ -2151,12 +2182,14 @@ namespace 串口助手
             };
             box.LostFocus += (s, e) =>
             {
+                if (!container.Children.Contains(box)) return;
                 if (double.TryParse(box.Text, NumberStyles.Float,
                     CultureInfo.InvariantCulture, out double v))
                     onChanged(v);
             };
             box.KeyDown += (s, e) =>
             {
+                if (!container.Children.Contains(box)) return;
                 if (e.Key == Key.Enter)
                 {
                     if (double.TryParse(box.Text, NumberStyles.Float,

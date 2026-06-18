@@ -51,6 +51,9 @@ namespace 串口助手
         /// <summary>仅 slider 卡：步长</summary>
         public double SliderStep { get; set; } = 1;
 
+        /// <summary>仅 slider 卡：拖拽发送节流间隔（毫秒），>=20</summary>
+        public int SendIntervalMs { get; set; } = 200;
+
         /// <summary>上次收到数据的时间（离线超时检测用）</summary>
         public DateTime LastSeen { get; set; } = DateTime.Now;
 
@@ -143,6 +146,7 @@ namespace 串口助手
                 d["min"] = SliderMin;
                 d["max"] = SliderMax;
                 d["step"] = SliderStep;
+                if (SendIntervalMs != 200) d["interval"] = SendIntervalMs;
             }
             return d;
         }
@@ -162,6 +166,7 @@ namespace 串口助手
             if (d.TryGetValue("min", out var mn) && mn is double dMn) card.SliderMin = dMn;
             if (d.TryGetValue("max", out var mx) && mx is double dMx) card.SliderMax = dMx;
             if (d.TryGetValue("step", out var st) && st is double dSt) card.SliderStep = dSt;
+            if (d.TryGetValue("interval", out var iv) && iv is double dIv && dIv >= 20) card.SendIntervalMs = (int)dIv;
             return card;
         }
     }
