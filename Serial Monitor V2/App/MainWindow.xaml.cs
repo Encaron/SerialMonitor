@@ -455,7 +455,7 @@ namespace 串口助手
                                 if (existing != null)
                                 {
                                     existing.Update(value, aux);
-                                    if (_sensorVM.IsActive) UpdateCardUI(existing);
+                                    if (_sensorVM.IsActive && !_sensorVM.IsEditMode) UpdateCardUI(existing);
                                 }
                                 // slider 不存在 → 忽略（等手动建卡）
                                 continue;
@@ -464,7 +464,7 @@ namespace 串口助手
                             var card = _sensorVM.OnSensorMessage(subType, name, value, aux);
                             if (card != null)
                             {
-                                if (_sensorVM.IsActive)
+                                if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
                                 {
                                     if (isNewCard)
                                         RefreshAllRows();       // 首次建卡 → 重建
@@ -494,7 +494,7 @@ namespace 串口助手
                             var card = _sensorVM.OnCtrlMessage(subType, name, action);
                             if (card != null)
                             {
-                                if (_sensorVM.IsActive)
+                                if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
                                 {
                                     if (isNewCard)
                                         RefreshAllRows();
@@ -1539,6 +1539,7 @@ namespace 串口助手
             {
                 _sensorVM.IsEditMode = false;
                 _selectedCard = null;
+                _detailCard = null;
                 btnSensorEdit.Content = "编辑";
                 rightSensors.Visibility = Visibility.Collapsed;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
@@ -1603,6 +1604,7 @@ namespace 串口助手
             {
                 _sensorVM.IsEditMode = false;
                 _selectedCard = null;
+                _detailCard = null;
                 btnSensorEdit.Content = "编辑";
                 rightSensors.Visibility = Visibility.Collapsed;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)

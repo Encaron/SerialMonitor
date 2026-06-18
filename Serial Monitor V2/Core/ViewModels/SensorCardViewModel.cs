@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -50,6 +51,9 @@ namespace 串口助手
         /// <summary>仅 slider 卡：步长</summary>
         public double SliderStep { get; set; } = 1;
 
+        /// <summary>上次收到数据的时间（离线超时检测用）</summary>
+        public DateTime LastSeen { get; set; } = DateTime.Now;
+
         /// <summary>迷你波形历史（30 点）</summary>
         public FixedSizeQueue<double> History { get; } = new(30);
 
@@ -99,11 +103,19 @@ namespace 串口助手
 
         public void Update(string value, string aux)
         {
+            LastSeen = DateTime.Now;
+
             if (Type == "status")
             {
                 Status = value;
                 Value = string.IsNullOrEmpty(value) ? "--" : value;
                 AlarmReason = aux;
+            }
+            else if (Type == "slider")
+            {
+                // 滑杆卡：MCU 确认值 → 回填 Value（驱动 Slider 同步）
+                Value = string.IsNullOrEmpty(value) ? Value : value;
+                AuxText = aux;
             }
             else
             {

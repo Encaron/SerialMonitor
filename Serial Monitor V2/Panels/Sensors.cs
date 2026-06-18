@@ -33,6 +33,12 @@ namespace 串口助手
         private readonly Dictionary<SensorCardViewModel, Button> _cardDeleteBtnMap = new();
         private bool _sidePanelDirty;
         private DispatcherTimer _sidePanelRefreshTimer;
+        private readonly Dictionary<SensorCardViewModel, Slider> _cardSliderMap = new();
+        private readonly Dictionary<SensorCardViewModel, TextBlock> _cardSliderMinLabelMap = new();
+        private readonly Dictionary<SensorCardViewModel, TextBlock> _cardSliderMaxLabelMap = new();
+        private readonly Dictionary<SensorCardViewModel, DateTime> _sliderLastSend = new();
+        private bool _sliderProgrammaticUpdate;
+        private SensorCardViewModel _detailCard; // null = 编辑侧栏显示行管理器，非 null = 显示该卡详情面板
 
         // ——— 初始化 ———
         private void InitSensorPanel()
@@ -83,6 +89,32 @@ namespace 串口助手
                     }
                 }, Dispatcher);
             _sidePanelRefreshTimer.Start();
+
+            // 离线超时检测：每 1s 检查所有 status 卡，超过 2s 无数据 → 标红 offline
+            var offlineTimer = new DispatcherTimer(
+                TimeSpan.FromSeconds(1), DispatcherPriority.Background,
+                (s, e) =>
+                {
+                    if (_sensorVM == null) return;
+                    var now = DateTime.Now;
+                    foreach (var group in _sensorVM.Groups)
+                    {
+                        foreach (var card in group.Items.OfType<SensorCardViewModel>())
+                        {
+                            if (card.Type != "status") continue;
+                            if (card.Status == "offline") continue;
+                            if ((now - card.LastSeen).TotalSeconds > 2)
+                            {
+                                card.Status = "offline";
+                                card.Value = "offline";
+                                card.AlarmReason = null;
+                                if (_sensorVM.IsActive)
+                                    UpdateCardUI(card);
+                            }
+                        }
+                    }
+                }, Dispatcher);
+            offlineTimer.Start();
 
             RefreshAllRows();
         }
@@ -201,15 +233,26 @@ namespace 串口助手
                 _cardStatusLabelMap[vm] = statusLabel;
             }
 
-            // 组装——波形用 * 行自动填满剩余高度
+            // 滑杆卡：± 按钮 + Slider + min/max 标尺
+            FrameworkElement sliderSection = null;
+            if (vm.Type == "slider")
+            {
+                sliderSection = CreateSliderControl(vm, accentBrush);
+            }
+
+            // 组装——波形/Slider 用 * 行自动填满剩余高度
             var contentGrid = new Grid { Margin = new Thickness(8, 6, 8, 6) };
 
             // 上半：文字区（Auto 行）
             var textStack = new StackPanel();
             textStack.Children.Add(title);
-            textStack.Children.Add(valueText);
+            // 滑杆卡的值在 sliderSection 里，其他卡在 textStack 里
+            if (vm.Type != "slider")
+            {
+                textStack.Children.Add(valueText);
+            }
             if (progressBar != null) { textStack.Children.Add(progressBar); }
-            else if (miniPlot == null) { textStack.Children.Add(auxText); }
+            else if (miniPlot == null && vm.Type != "slider") { textStack.Children.Add(auxText); }
             if (toggleSection != null) { textStack.Children.Add(toggleSection); textStack.Children.Add(statusLabel); }
 
             if (miniPlot != null)
@@ -219,14 +262,24 @@ namespace 串口助手
                 if (progressBar == null) textStack.Children.Add(auxText); // 辅助行在波形上方
                 Grid.SetRow(textStack, 0);
                 Grid.SetRow(miniPlot, 1);
-                // Canvas 高度走 VerticalAlignment=Stretch + 实际可用高度
                 if (miniPlot is Canvas cv)
                 {
-                    cv.Height = double.NaN; // 由所在行的 Stretch 决定，初始给 1 防报错
+                    cv.Height = double.NaN;
                     cv.VerticalAlignment = VerticalAlignment.Stretch;
                 }
                 contentGrid.Children.Add(textStack);
                 contentGrid.Children.Add(miniPlot);
+            }
+            else if (sliderSection != null)
+            {
+                // 滑杆卡：文字区（仅标题）+ 滑杆控件填满
+                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                ((Grid)sliderSection).Margin = new Thickness(0, 4, 0, 0);
+                Grid.SetRow(textStack, 0);
+                Grid.SetRow(sliderSection, 1);
+                contentGrid.Children.Add(textStack);
+                contentGrid.Children.Add(sliderSection);
             }
             else
             {
@@ -243,10 +296,10 @@ namespace 串口助手
             grid.Children.Add(strip);
             grid.Children.Add(contentGrid);
 
-            double cardWidth = vm.Type == "slider" ? 280 : 160;
+            double cardWidth = vm.Type == "slider" ? 306 : 160;
             var card = new Border
             {
-                Width = cardWidth, Height = 200,
+                Width = cardWidth, Height = 160,
                 Background = (Brush)FindResource("CardBgBrush"),
                 BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(0.5),
@@ -350,6 +403,190 @@ namespace 串口助手
             container.Children.Add(canvas);
 
             return (new Border { Child = container }, track, thumb);
+        }
+
+        // ═══ 滑杆卡控件 ═══
+
+        /// <summary>
+        /// 滑杆卡控件：± 按钮 + Slider + min/max 标尺。拖拽节流 200ms 发 [ctrl,slider,...]。
+        /// </summary>
+        private FrameworkElement CreateSliderControl(SensorCardViewModel vm, SolidColorBrush accentBrush)
+        {
+            var panel = new Grid();
+            panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            panel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // ——— ± 按钮行 ———
+            var btnRow = new Grid { Margin = new Thickness(0, 0, 0, 2) };
+            btnRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            btnRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            btnRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            double step = vm.SliderStep > 0 ? vm.SliderStep : 1;
+
+            // [-] 按钮
+            var minusBtn = new Button
+            {
+                Content = "−", Width = 24, Height = 24,
+                FontSize = 16, FontWeight = FontWeights.Bold,
+                Background = Brushes.Transparent,
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Foreground = accentBrush,
+                Padding = new Thickness(0),
+                Cursor = Cursors.Hand,
+            };
+            minusBtn.Click += (s, e) =>
+            {
+                if (_sensorVM != null && _sensorVM.IsEditMode) return;
+                if (!double.TryParse(vm.Value, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double cur)) cur = vm.SliderMin;
+                double newVal = Math.Max(vm.SliderMin, cur - step);
+                SendSliderValueImmediate(vm, newVal);
+            };
+            Grid.SetColumn(minusBtn, 0);
+
+            // 当前值（主显示）
+            var valueText = new TextBlock
+            {
+                Text = GetDisplayValue(vm),
+                FontSize = 22, FontWeight = FontWeights.Bold,
+                Foreground = accentBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+            _cardValueMap[vm] = valueText;
+            Grid.SetColumn(valueText, 1);
+
+            // [+] 按钮
+            var plusBtn = new Button
+            {
+                Content = "+", Width = 24, Height = 24,
+                FontSize = 16, FontWeight = FontWeights.Bold,
+                Background = Brushes.Transparent,
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Foreground = accentBrush,
+                Padding = new Thickness(0),
+                Cursor = Cursors.Hand,
+            };
+            plusBtn.Click += (s, e) =>
+            {
+                if (_sensorVM != null && _sensorVM.IsEditMode) return;
+                if (!double.TryParse(vm.Value, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double cur)) cur = vm.SliderMin;
+                double newVal = Math.Min(vm.SliderMax, cur + step);
+                SendSliderValueImmediate(vm, newVal);
+            };
+            Grid.SetColumn(plusBtn, 2);
+
+            btnRow.Children.Add(minusBtn);
+            btnRow.Children.Add(valueText);
+            btnRow.Children.Add(plusBtn);
+
+            // ——— Slider ———
+            double curValue = vm.SliderMin;
+            if (double.TryParse(vm.Value, NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double parsed))
+                curValue = parsed;
+
+            var slider = new Slider
+            {
+                Minimum = vm.SliderMin,
+                Maximum = vm.SliderMax,
+                Value = Math.Clamp(curValue, vm.SliderMin, vm.SliderMax),
+                SmallChange = step,
+                LargeChange = step * 10,
+                Margin = new Thickness(0, 2, 0, 2),
+                Foreground = accentBrush,
+                IsSnapToTickEnabled = false,
+            };
+            _cardSliderMap[vm] = slider;
+
+            // 拖拽开始/结束标记——松手立即发，拖中节流 200ms
+            bool isDragging = false;
+            slider.PreviewMouseLeftButtonDown += (s, e) =>
+            {
+                if (_sensorVM != null && _sensorVM.IsEditMode) return; // 编辑模式禁用
+                isDragging = true;
+            };
+            slider.PreviewMouseLeftButtonUp += (s, e) =>
+            {
+                if (_sensorVM != null && _sensorVM.IsEditMode) return;
+                isDragging = false;
+                SendSliderValueImmediate(vm, slider.Value);
+            };
+            slider.PreviewMouseMove += (s, e) =>
+            {
+                if (!isDragging) return;
+                if (e.LeftButton != MouseButtonState.Pressed) { isDragging = false; return; }
+            };
+
+            slider.ValueChanged += (s, e) =>
+            {
+                if (_sliderProgrammaticUpdate) return;
+                if (_sensorVM != null && _sensorVM.IsEditMode) return;
+                var newVal = e.NewValue;
+                valueText.Text = $"{newVal:0.##}{vm.GetUnit()}";
+                if (isDragging)
+                    ThrottledSliderSend(vm, newVal);
+                else
+                    SendSliderValueImmediate(vm, newVal);
+            };
+
+            // ——— Min/Max 标尺 ———
+            var labelRow = new Grid { Margin = new Thickness(0, 2, 0, 0) };
+            var minLabel = new TextBlock
+            {
+                Text = $"{vm.SliderMin:F0}",
+                FontSize = 10,
+                Foreground = (Brush)FindResource("TextMutedBrush"),
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            _cardSliderMinLabelMap[vm] = minLabel;
+            var maxLabel = new TextBlock
+            {
+                Text = $"{vm.SliderMax:F0}",
+                FontSize = 10,
+                Foreground = (Brush)FindResource("TextMutedBrush"),
+                HorizontalAlignment = HorizontalAlignment.Right,
+            };
+            _cardSliderMaxLabelMap[vm] = maxLabel;
+            labelRow.Children.Add(minLabel);
+            labelRow.Children.Add(maxLabel);
+
+            // Grid 三行布局
+            Grid.SetRow(btnRow, 0);
+            Grid.SetRow(slider, 1);
+            Grid.SetRow(labelRow, 2);
+            slider.VerticalAlignment = VerticalAlignment.Center;
+            panel.Children.Add(btnRow);
+            panel.Children.Add(slider);
+            panel.Children.Add(labelRow);
+
+            return panel;
+        }
+
+        private void ThrottledSliderSend(SensorCardViewModel vm, double value)
+        {
+            var now = DateTime.Now;
+            if (_sliderLastSend.TryGetValue(vm, out var last)
+                && (now - last).TotalMilliseconds < 200)
+                return;
+            _sliderLastSend[vm] = now;
+            SendSliderValueImmediate(vm, value);
+        }
+
+        private void SendSliderValueImmediate(SensorCardViewModel vm, double value)
+        {
+            double clamped = Math.Round(Math.Clamp(value, vm.SliderMin, vm.SliderMax), 2);
+            _sliderLastSend[vm] = DateTime.Now;
+            vm.Value = $"{clamped:G}";
+            UpdateCardUI(vm);
+            string cmd = $"[ctrl,slider,{vm.Name},{clamped:G}]\r\n";
+            SendRaw(cmd);
         }
 
         // ═══ 迷你波形 ═══
@@ -472,6 +709,22 @@ namespace 串口助手
             {
                 slTb.Text = (vm.Status == "on") ? "状态：已开启" : "状态：已关闭";
             }
+
+            // 滑杆卡：Slider 位置 + min/max 标签
+            if (_cardSliderMap.TryGetValue(vm, out var slider))
+            {
+                if (double.TryParse(vm.Value, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double sv))
+                {
+                    _sliderProgrammaticUpdate = true;
+                    slider.Value = Math.Clamp(sv, slider.Minimum, slider.Maximum);
+                    _sliderProgrammaticUpdate = false;
+                }
+            }
+            if (_cardSliderMinLabelMap.TryGetValue(vm, out var minLb))
+                minLb.Text = $"{vm.SliderMin:F0}";
+            if (_cardSliderMaxLabelMap.TryGetValue(vm, out var maxLb))
+                maxLb.Text = $"{vm.SliderMax:F0}";
 
             // 正常模式侧栏 dirty flag
             _sidePanelDirty = true;
@@ -710,11 +963,16 @@ namespace 串口助手
                 sensorRowsPanel.Children.Add(groupBorder);
             }
 
-            if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
+            if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled
+                && _sensorVM.IsActive && !_sensorVM.IsEditMode)
                 _sensorRefreshTimer.Start();
 
             // 正常模式侧栏 dirty flag（新卡建卡或全量重建）
             _sidePanelDirty = true;
+
+            // 详情面板指向的卡被删了→清空引用
+            if (_detailCard != null && _sensorVM.FindByName(_detailCard.Name) == null)
+                _detailCard = null;
         }
 
         // ═══ 持久化 ═══
@@ -734,6 +992,7 @@ namespace 串口助手
 
             _sensorVM.IsEditMode = !_sensorVM.IsEditMode;
             _selectedCard = null;
+            _detailCard = null;
 
             if (_sensorVM.IsEditMode)
             {
@@ -755,6 +1014,8 @@ namespace 串口助手
 
             RefreshAllRows();
             RefreshSensorSidePanel();
+            if (_sensorVM.IsEditMode)
+                RefreshMiniPlots(); // 编辑模式：波形冻结前补一帧快照
             SaveSensorPrefs();
         }
 
@@ -1028,7 +1289,7 @@ namespace 串口助手
         {
             var grid = new Grid
             {
-                Width = 14, Height = 200,
+                Width = 14, Height = 160,
                 Margin = new Thickness(0, 0, 0, 8),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 ClipToBounds = false,
@@ -1038,7 +1299,7 @@ namespace 串口助手
             // 竖条指示线——加粗，暗色模式也不消失
             var line = new Border
             {
-                Width = 3, Height = 200,
+                Width = 3, Height = 160,
                 Background = (Brush)FindResource("TextMutedBrush"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -1049,7 +1310,7 @@ namespace 串口助手
             // 悬停展开的虚线框 + [+]——ScaleTransform 缩放，不挤卡片
             var expandGrid = new Grid
             {
-                Width = 16, Height = 200,
+                Width = 16, Height = 160,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 RenderTransform = new ScaleTransform(0, 1),
@@ -1058,7 +1319,7 @@ namespace 串口助手
             // 虚线框（Rectangle 支持 StrokeDashArray）
             var dashRect = new Rectangle
             {
-                Width = 16, Height = 200,
+                Width = 16, Height = 160,
                 Stroke = (Brush)FindResource("PrimaryBrush"),
                 StrokeThickness = 1,
                 StrokeDashArray = new DoubleCollection { 3, 2 },
@@ -1115,6 +1376,7 @@ namespace 串口助手
                 ("状态 (status)", "status"),
                 ("开关 (control)", "control"),
                 ("电机 (motor)", "motor"),
+                ("滑杆 (slider)", "slider"),
                 ("通用 (generic)", "generic"),
             };
 
@@ -1268,15 +1530,23 @@ namespace 串口助手
             {
                 if (isEdit)
                 {
-                    // ═══ 编辑模式：行管理器 ═══
+                    // ═══ 编辑模式：行管理器 / 卡片详情 ═══
                     tbSidePanelTitle.Text = "卡片管理";
 
                     container.Children.Add(new TextBlock
                     {
-                        Text = "卡片管理",
+                        Text = _detailCard != null ? "卡片详情" : "卡片管理",
                         Style = (Style)FindResource("CardHeaderStyle"),
                         Margin = new Thickness(0, 0, 0, 10),
                     });
+
+                    if (_detailCard != null)
+                    {
+                        BuildCardDetailPanel(container, _detailCard);
+                        // 跳过行管理器 + 底部按钮
+                    }
+                    else
+                    {
 
                     for (int gi = 0; gi < _sensorVM.Groups.Count; gi++)
                     {
@@ -1320,6 +1590,7 @@ namespace 串口助手
                     };
                     doneBtn.Click += (s, e) => BtnSensorEdit_Click(s, e);
                     container.Children.Add(doneBtn);
+                    } // _detailCard == null → 行管理器
                 }
                 else
                 {
@@ -1596,11 +1867,12 @@ namespace 串口助手
             int cardCount = allCards.Count;
 
             var row = new Grid { Margin = new Thickness(0, 1, 0, 1), Tag = card };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });             // 0: dot
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // 1: name
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });             // 2: ⚙
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });             // 3: ↑
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });             // 4: ↓
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });             // 5: ×
 
             // 竖条色圆点
             var dot = new Ellipse
@@ -1682,6 +1954,18 @@ namespace 串口助手
             };
             Grid.SetColumn(nameBlock, 1);
 
+            // [⚙]——滑杆卡 / 通用卡 → 详情面板
+            if (card.Type == "slider" || card.Type == "generic")
+            {
+                var cfgBtn = CreateSmallIconBtn("⚙", () =>
+                {
+                    _detailCard = card;
+                    RefreshSensorSidePanel();
+                });
+                Grid.SetColumn(cfgBtn, 2);
+                row.Children.Add(cfgBtn);
+            }
+
             // [↑]——非首张
             if (cardIdx > 0)
             {
@@ -1692,7 +1976,7 @@ namespace 串口助手
                     RefreshSensorSidePanel();
                     SaveSensorPrefs();
                 });
-                Grid.SetColumn(upBtn, 2);
+                Grid.SetColumn(upBtn, 3);
                 row.Children.Add(upBtn);
             }
 
@@ -1706,24 +1990,262 @@ namespace 串口助手
                     RefreshSensorSidePanel();
                     SaveSensorPrefs();
                 });
-                Grid.SetColumn(downBtn, 3);
+                Grid.SetColumn(downBtn, 4);
                 row.Children.Add(downBtn);
             }
 
             // [×]
             var delBtn = CreateSmallIconBtn("×", () =>
             {
+                if (_detailCard == card) _detailCard = null;
                 _sensorVM.RemoveCard(card);
                 if (_selectedCard == card) _selectedCard = null;
                 RefreshAllRows();
                 RefreshSensorSidePanel();
                 SaveSensorPrefs();
             });
-            Grid.SetColumn(delBtn, 4);
+            Grid.SetColumn(delBtn, 5);
 
             row.Children.Add(dot);
             row.Children.Add(nameBlock);
             row.Children.Add(delBtn);
+            container.Children.Add(row);
+        }
+
+        // ═══ 卡片详情面板（侧栏态3：滑杆卡配置 / 通用卡配置） ═══
+
+        private void BuildCardDetailPanel(StackPanel container, SensorCardViewModel card)
+        {
+            // ← 返回行管理器
+            var backBtn = new Button
+            {
+                Content = "← 返回",
+                Style = (Style)FindResource("SecondaryButtonStyle"),
+                Height = 24, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
+                FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 0, 10),
+            };
+            backBtn.Click += (s, e) =>
+            {
+                _detailCard = null;
+                RefreshSensorSidePanel();
+            };
+            container.Children.Add(backBtn);
+
+            // 名称（所有卡通用）
+            var nameLabel = new TextBlock
+            {
+                Text = "名称：", FontSize = 11,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                Margin = new Thickness(0, 0, 0, 2),
+            };
+            container.Children.Add(nameLabel);
+
+            var nameBox = new TextBox
+            {
+                Text = card.Name,
+                FontSize = 12, Height = 28,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 2, 6, 2),
+                Margin = new Thickness(0, 0, 0, 8),
+            };
+            nameBox.TextChanged += (s, e) =>
+            {
+                if (!string.IsNullOrWhiteSpace(nameBox.Text))
+                {
+                    card.Name = nameBox.Text.Trim();
+                    UpdateCardUI(card);
+                }
+            };
+            container.Children.Add(nameBox);
+
+            if (card.Type == "slider")
+            {
+                // ——— 滑杆卡专属：Min / Max / Step ———
+                AddDetailNumberField(container, "最小值：", card.SliderMin, v => {
+                    card.SliderMin = v;
+                    _sliderProgrammaticUpdate = true;
+                    if (_cardSliderMap.TryGetValue(card, out var sl)) sl.Minimum = v;
+                    _sliderProgrammaticUpdate = false;
+                    UpdateCardUI(card);
+                });
+                AddDetailNumberField(container, "最大值：", card.SliderMax, v => {
+                    card.SliderMax = v;
+                    _sliderProgrammaticUpdate = true;
+                    if (_cardSliderMap.TryGetValue(card, out var sl)) sl.Maximum = v;
+                    _sliderProgrammaticUpdate = false;
+                    UpdateCardUI(card);
+                });
+                AddDetailNumberField(container, "步长：", card.SliderStep, v => {
+                    card.SliderStep = v;
+                    _sliderProgrammaticUpdate = true;
+                    if (_cardSliderMap.TryGetValue(card, out var sl)) { sl.SmallChange = v; sl.LargeChange = v * 10; }
+                    _sliderProgrammaticUpdate = false;
+                });
+            }
+            if (card.Type == "generic")
+            {
+                // ——— 通用卡专属：单位 / 颜色 / 波形 ———
+                // 单位
+                AddDetailTextField(container, "单位：（留空=无）", card.CustomUnit ?? "", v => {
+                    card.CustomUnit = string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+                    UpdateCardUI(card);
+                    SaveSensorPrefs();
+                });
+
+                // 颜色 12 色下拉
+                BuildColorPicker(container, card);
+
+                // 波形勾选
+                var waveCheck = new CheckBox
+                {
+                    Content = "显示迷你波形",
+                    IsChecked = card.ShowWaveform,
+                    FontSize = 11,
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    Margin = new Thickness(0, 4, 0, 0),
+                };
+                waveCheck.Checked += (s, e) =>
+                {
+                    card.ShowWaveform = true;
+                    RefreshAllRows();
+                    SaveSensorPrefs();
+                };
+                waveCheck.Unchecked += (s, e) =>
+                {
+                    card.ShowWaveform = false;
+                    RefreshAllRows();
+                    SaveSensorPrefs();
+                };
+                container.Children.Add(waveCheck);
+            }
+
+            SaveSensorPrefs();
+        }
+
+        private void AddDetailNumberField(StackPanel container, string label, double currentValue,
+            Action<double> onChanged)
+        {
+            var lb = new TextBlock
+            {
+                Text = label, FontSize = 11,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                Margin = new Thickness(0, 0, 0, 2),
+            };
+            container.Children.Add(lb);
+
+            var box = new TextBox
+            {
+                Text = currentValue.ToString("F0"),
+                FontSize = 12, Height = 28,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 2, 6, 2),
+                Margin = new Thickness(0, 0, 0, 8),
+            };
+            box.LostFocus += (s, e) =>
+            {
+                if (double.TryParse(box.Text, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double v))
+                    onChanged(v);
+            };
+            box.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    if (double.TryParse(box.Text, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double v))
+                        onChanged(v);
+                    // 焦点转移到下一个控件（如果有）
+                    box.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                    e.Handled = true;
+                }
+            };
+            container.Children.Add(box);
+        }
+
+        /// <summary>详情面板文本字段（单位等）</summary>
+        private void AddDetailTextField(StackPanel container, string label, string currentValue,
+            Action<string> onChanged)
+        {
+            var lb = new TextBlock
+            {
+                Text = label, FontSize = 11,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                Margin = new Thickness(0, 0, 0, 2),
+            };
+            container.Children.Add(lb);
+
+            var box = new TextBox
+            {
+                Text = currentValue,
+                FontSize = 12, Height = 28,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                Background = (Brush)FindResource("CardBgBrush"),
+                BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 2, 6, 2),
+                Margin = new Thickness(0, 0, 0, 8),
+            };
+            box.LostFocus += (s, e) => onChanged(box.Text);
+            box.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter) { onChanged(box.Text); e.Handled = true; }
+            };
+            container.Children.Add(box);
+        }
+
+        /// <summary>通用卡颜色选择：色块预览 + 40 色 Popup（复用按键页 ShowColorPickerPopup）</summary>
+        private void BuildColorPicker(StackPanel container, SensorCardViewModel card)
+        {
+            var lb = new TextBlock
+            {
+                Text = "颜色：", FontSize = 11,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                Margin = new Thickness(0, 0, 0, 2),
+            };
+            container.Children.Add(lb);
+
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+
+            var currentHex = card.ColorHex ?? (isDarkTheme ? "#78909C" : "#607D8B");
+            var swatch = new Border
+            {
+                Width = 28, Height = 28,
+                CornerRadius = new CornerRadius(4),
+                Background = ParseColor(currentHex),
+                BorderBrush = (Brush)FindResource("CardBorderBrush"),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            var pickBtn = new Button
+            {
+                Content = "选择颜色...",
+                Style = (Style)FindResource("SecondaryButtonStyle"),
+                Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
+                FontSize = 11,
+            };
+            pickBtn.Click += (s, e) =>
+            {
+                ShowColorPickerPopup(pickBtn, hex =>
+                {
+                    card.ColorHex = hex;
+                    swatch.Background = ParseColor(hex);
+                    UpdateCardUI(card);
+                    SaveSensorPrefs();
+                });
+            };
+
+            row.Children.Add(swatch);
+            row.Children.Add(pickBtn);
             container.Children.Add(row);
         }
 
