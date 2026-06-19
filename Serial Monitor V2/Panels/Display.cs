@@ -28,8 +28,9 @@ namespace 串口助手
         private enum HandleRole
         {
             TopLeft, TopRight, BottomLeft, BottomRight, Center,
-            Endpoint1, Endpoint2,      // 预留：线端点独立拖拽
-            Vertex0, Vertex1, Vertex2   // 预留：三角形顶点独立拖拽
+            Endpoint1, Endpoint2,      // F2 线端点独立拖拽
+            Vertex0, Vertex1, Vertex2,  // F3 三角形顶点独立拖拽
+            RotateHandle               // F4 旋转控点
         }
 
         private DrawTool _drawTool = DrawTool.None;
@@ -66,6 +67,8 @@ namespace 串口助手
         private Point _selectDragOrigin;
         private Rect _originalBounds;
         private object _originalShapeState; // 拖拽前快照，防累积误差
+        private double _shapeRotationAngle = 0;   // F4 旋转：当前角度（度）
+        private double _rotationStartAngle = 0;   // F4 旋转开始时的初始角度
         private bool _hasMoved = false;
 
         // ——— F1 形状属性面板 ———
@@ -346,16 +349,9 @@ namespace 串口助手
         /// <summary>像素对齐渲染：防 1px 描边被 ClipToBounds 切掉半边</summary>
         private static void SnapShapeToPixel(Shape shape)
         {
-            // 直线：只用 SnapsToDevicePixels 对齐像素中心（不加 Aliased，防零高包围盒塌缩）
-            //   SnapsToDevicePixels 会把 lw=1 的水平线自动偏移到 Y+0.5，1px 描边恰好填一整行像素
-            if (shape is Line)
-            {
-                shape.SnapsToDevicePixels = true;
-                return;
-            }
-            // 封闭图形（矩形/圆等）：SnapsToDevicePixels + Aliased（D15 防 1px 边被裁）
+            // 所有图形统一：SnapsToDevicePixels 对齐像素中心，保留抗锯齿（丝滑）
+            // D15 原方案加过 EdgeMode.Aliased，但那会让斜线/曲边出现锯齿断裂
             shape.SnapsToDevicePixels = true;
-            RenderOptions.SetEdgeMode(shape, EdgeMode.Aliased);
         }
 
         // ── 文字 [draw,text,x,y,content,fontSize,#RRGGBB] ──
@@ -1061,13 +1057,30 @@ namespace 串口助手
                 if (_selectedShape != null)
                 {
                     var hitHandle = HitTestControlPoint(pos);
-                    // text 只支持平移，不响应角控点 resize
-                    if (hitHandle != null && !(_selectedShape is TextBlock))
+                    // text 只支持平移和旋转，不响应角控点 resize
+                    bool isText = _selectedShape is TextBlock;
+                    if (hitHandle != null && (!isText || hitHandle.Tag is HandleRole r && r == HandleRole.RotateHandle))
                     {
                         _activeHandle = (HandleRole)hitHandle.Tag;
                         _selectDragOrigin = pos;
                         _originalBounds = GetShapeBounds(_selectedShape);
                         CaptureOriginalState(_selectedShape, out _originalShapeState);
+                        // F4 旋转：保存初始角度（弧线用圆心，其他用包围盒中心）
+                        if (_activeHandle == HandleRole.RotateHandle)
+                        {
+                            double refCx = _originalBounds.Left + _originalBounds.Width / 2;
+                            double refCy = _originalBounds.Top + _originalBounds.Height / 2;
+                            if (_selectedShapeDrawType == "arc" && _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                            {
+                                var arcCmd = _displayVM.DrawCommands[_selectedIndex];
+                                if (arcCmd.Args != null && arcCmd.Args.Count >= 3)
+                                {
+                                    refCx = double.Parse(arcCmd.Args[1]);
+                                    refCy = double.Parse(arcCmd.Args[2]);
+                                }
+                            }
+                            _rotationStartAngle = Math.Atan2(pos.Y - refCy, pos.X - refCx) * 180.0 / Math.PI;
+                        }
                         _isDrawing = true;
                         _hasMoved = false;
                         oledCanvas.CaptureMouse();
@@ -1178,6 +1191,45 @@ namespace 串口助手
                     double totalDx = pos.X - _selectDragOrigin.X;
                     double totalDy = pos.Y - _selectDragOrigin.Y;
                     TranslateShapeFromOriginal(_selectedShape, totalDx, totalDy);
+                }
+                else if (_activeHandle == HandleRole.RotateHandle)
+                {
+                    // F4 旋转：算角度增量（弧线用圆心，其他用包围盒中心）
+                    double refCx = _originalBounds.Left + _originalBounds.Width / 2;
+                    double refCy = _originalBounds.Top + _originalBounds.Height / 2;
+                    if (_selectedShapeDrawType == "arc" && _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                    {
+                        var arcCmd = _displayVM.DrawCommands[_selectedIndex];
+                        if (arcCmd.Args != null && arcCmd.Args.Count >= 3)
+                        {
+                            refCx = double.Parse(arcCmd.Args[1]);
+                            refCy = double.Parse(arcCmd.Args[2]);
+                        }
+                    }
+                    double currentAngle = Math.Atan2(pos.Y - refCy, pos.X - refCx) * 180.0 / Math.PI;
+                    double deltaAngle = currentAngle - _rotationStartAngle;
+                    // 吸附：Shift 键时 15° 步进
+                    if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+                        deltaAngle = Math.Round(deltaAngle / 15.0) * 15.0;
+                    _shapeRotationAngle = deltaAngle;
+
+                    // 弧线：RotateTransform 绕圆心（Canvas=0 时本地=画布坐标，RotateTransform(cx,cy) 正好）
+                    if (_selectedShapeDrawType == "arc" && _selectedShape is System.Windows.Shapes.Path arcP5
+                        && _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                    {
+                        var arcCmd = _displayVM.DrawCommands[_selectedIndex];
+                        if (arcCmd.Args != null && arcCmd.Args.Count >= 3)
+                        {
+                            double arcCx = double.Parse(arcCmd.Args[1]);
+                            double arcCy = double.Parse(arcCmd.Args[2]);
+                            _selectedShape.RenderTransform = new RotateTransform(deltaAngle, arcCx, arcCy);
+                        }
+                    }
+                    else
+                    {
+                        _selectedShape.RenderTransformOrigin = new Point(0.5, 0.5);
+                        _selectedShape.RenderTransform = new RotateTransform(deltaAngle);
+                    }
                 }
                 else if (_activeHandle == HandleRole.Endpoint1 && _selectedShape is Line line1)
                 {
@@ -1959,6 +2011,32 @@ namespace 串口助手
         }
 
         /// <summary>全量同步画布到设备（clear + 全部 display + 全部 draw）</summary>
+        // F4：旋转矩形拆 2 填充三角，MCU 零改动
+        private void SendRotatedRectAsTriangles(Shape shape, DrawCommand cmd)
+        {
+            // 取旋转后的 4 个角点
+            double x = Canvas.GetLeft(shape), y = Canvas.GetTop(shape);
+            double w = shape is Rectangle r ? r.Width : ((FrameworkElement)shape).Width;
+            double h = shape is Rectangle r2 ? r2.Height : ((FrameworkElement)shape).Height;
+            var corners = new (double X, double Y)[]
+            {
+                (x, y), (x + w, y), (x + w, y + h), (x, y + h)
+            };
+            var rt = shape.RenderTransform as RotateTransform;
+            double angle = rt?.Angle ?? 0;
+            double cx = x + w / 2, cy = y + h / 2;
+            var rotated = corners.Select(c => RotatePoint(c.X, c.Y, cx, cy, angle)).ToArray();
+
+            // 2 填充三角: A-C-B, A-D-C
+            string color = cmd.Color ?? "#FFFFFF";
+            int lw = (cmd.Args.Count >= 7 && int.TryParse(cmd.Args[6], out int sw) && sw >= 1) ? sw : 1;
+
+            var tri1 = $"[draw,triangle,{(int)rotated[0].Item1},{(int)rotated[0].Item2},{(int)rotated[2].Item1},{(int)rotated[2].Item2},{(int)rotated[1].Item1},{(int)rotated[1].Item2},{color},{lw},fill]";
+            var tri2 = $"[draw,triangle,{(int)rotated[0].Item1},{(int)rotated[0].Item2},{(int)rotated[3].Item1},{(int)rotated[3].Item2},{(int)rotated[2].Item1},{(int)rotated[2].Item2},{color},{lw},fill]";
+            SendRaw(tri1, appendLineEnding: true);
+            SendRaw(tri2, appendLineEnding: true);
+        }
+
         private void SyncAllShapesToDevice()
         {
             if (_session == null || !_session.IsOpen) return;
@@ -1978,10 +2056,21 @@ namespace 串口助手
             }
 
             // 重发图形 + 新格式文字
-            foreach (var cmd in _displayVM.DrawCommands)
+            for (int i = 0; i < _displayVM.DrawCommands.Count; i++)
             {
-                string payload = "[draw," + string.Join(",", cmd.Args) + "]";
-                SendRaw(payload, appendLineEnding: true);
+                var cmd = _displayVM.DrawCommands[i];
+                // F4 旋转：矩形/圆角矩形 → 拆 2 填充三角发给 MCU
+                if (i < _drawElements.Count && _drawElements[i] is Shape shape
+                    && shape.RenderTransform is RotateTransform rt && rt.Angle != 0
+                    && (cmd.Type == "rect" || cmd.Type == "rrect"))
+                {
+                    SendRotatedRectAsTriangles(shape, cmd);
+                }
+                else
+                {
+                    string payload = "[draw," + string.Join(",", cmd.Args) + "]";
+                    SendRaw(payload, appendLineEnding: true);
+                }
             }
         }
 
@@ -2056,7 +2145,94 @@ namespace 串口助手
             else if (width == 0 && shape is Ellipse e) { width = e.Width; height = e.Height; }
             else if (width == 0 && shape is TextBlock tb) { width = 20; height = tb.FontSize + 4; }
             if (width <= 0) { width = 40; height = 40; }
-            return new Rect(left, top, width, height);
+            var bounds = new Rect(left, top, width, height);
+
+            // F4 旋转：矩形/椭圆保留 RotateTransform，包围盒需扩展为旋转后的 AABB
+            if (shape is FrameworkElement fe && fe.RenderTransform is RotateTransform rt && Math.Abs(rt.Angle) > 0.01)
+            {
+                double cx = bounds.Left + bounds.Width / 2, cy = bounds.Top + bounds.Height / 2;
+                double rad = rt.Angle * Math.PI / 180.0;
+                double cos = Math.Cos(rad), sin = Math.Sin(rad);
+                var corners = new[] {
+                    (bounds.Left, bounds.Top), (bounds.Right, bounds.Top),
+                    (bounds.Right, bounds.Bottom), (bounds.Left, bounds.Bottom)
+                };
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+                foreach (var (px, py) in corners)
+                {
+                    double dx = px - cx, dy = py - cy;
+                    double rx = cx + dx * cos - dy * sin;
+                    double ry = cy + dx * sin + dy * cos;
+                    if (rx < minX) minX = rx; if (ry < minY) minY = ry;
+                    if (rx > maxX) maxX = rx; if (ry > maxY) maxY = ry;
+                }
+                return new Rect(minX, minY, maxX - minX, maxY - minY);
+            }
+            return bounds;
+        }
+
+        // ── F4 旋转：判断当前选中图形是否支持旋转 ──
+        private bool IsRotationSupported()
+        {
+            if (_selectedShapeDrawType == "circle" || _selectedShapeDrawType == "point") return false;
+            return true;
+        }
+
+        // F4 在包围盒上方添加旋转控点（小圆 + 连接线）
+        private void AddRotationControlPoint(Rect bounds, Brush fill, Brush stroke)
+        {
+            if (!IsRotationSupported()) return;
+            double rotSize = 10;
+            double rotCx = bounds.Left + bounds.Width / 2;
+            double rotCy = bounds.Top - 20;
+            // 连接线
+            var connLine = new Line
+            {
+                X1 = rotCx, Y1 = bounds.Top,
+                X2 = rotCx, Y2 = rotCy + rotSize / 2,
+                Stroke = fill, StrokeThickness = 1,
+                IsHitTestVisible = false,
+            };
+            Canvas.SetZIndex(connLine, 999);
+            oledCanvas.Children.Add(connLine);
+            _controlPoints.Add(connLine);
+            // 旋转圆点（用 Rectangle——HitTestControlPoint 只查 Rectangle）
+            var rotDot = new Rectangle
+            {
+                Width = rotSize, Height = rotSize,
+                Fill = fill, Stroke = stroke, StrokeThickness = 1,
+                Tag = HandleRole.RotateHandle,
+                Cursor = Cursors.Hand,
+            };
+            Canvas.SetLeft(rotDot, rotCx - rotSize / 2);
+            Canvas.SetTop(rotDot, rotCy);
+            Canvas.SetZIndex(rotDot, 1000);
+            oledCanvas.Children.Add(rotDot);
+            _controlPoints.Add(rotDot);
+        }
+
+        // 更新旋转控点位置
+        private void UpdateRotationControlPoint(Rect bounds)
+        {
+            // 找到旋转控点（Tag=RotateHandle）和连接线（前一个元素）
+            for (int i = 0; i < _controlPoints.Count; i++)
+            {
+                if (_controlPoints[i] is Rectangle rotDot && rotDot.Tag is HandleRole r && r == HandleRole.RotateHandle)
+                {
+                    double rotCx = bounds.Left + bounds.Width / 2;
+                    double rotCy = bounds.Top - 20;
+                    Canvas.SetLeft(rotDot, rotCx - 5);
+                    Canvas.SetTop(rotDot, rotCy);
+                    // 连接线在 i-1
+                    if (i > 0 && _controlPoints[i - 1] is Line connLine)
+                    {
+                        connLine.X1 = rotCx; connLine.Y1 = bounds.Top;
+                        connLine.X2 = rotCx; connLine.Y2 = rotCy + 5;
+                    }
+                    return;
+                }
+            }
         }
 
         // ── 控点创建 / 更新 / 移除 ──
@@ -2103,6 +2279,7 @@ namespace 串口助手
                 Canvas.SetZIndex(outline, 999);
                 oledCanvas.Children.Add(outline);
                 _controlPoints.Add(outline);
+                AddRotationControlPoint(bounds, fill, stroke);
                 return;
             }
 
@@ -2143,6 +2320,7 @@ namespace 串口助手
                 Canvas.SetZIndex(triOutline, 999);
                 oledCanvas.Children.Add(triOutline);
                 _controlPoints.Add(triOutline);
+                AddRotationControlPoint(bounds, fill, stroke);
                 return;
             }
 
@@ -2186,6 +2364,7 @@ namespace 串口助手
             Canvas.SetZIndex(outline2, 999);
             oledCanvas.Children.Add(outline2);
             _controlPoints.Add(outline2);
+            AddRotationControlPoint(bounds, fill, stroke);
         }
 
         private void UpdateControlPoints(Rect bounds)
@@ -2206,6 +2385,7 @@ namespace 串口助手
                     lineOutline.Width = bounds.Width; lineOutline.Height = bounds.Height;
                     Canvas.SetLeft(lineOutline, bounds.Left); Canvas.SetTop(lineOutline, bounds.Top);
                 }
+                UpdateRotationControlPoint(bounds);
                 return;
             }
 
@@ -2228,6 +2408,7 @@ namespace 串口助手
                     triOutline.Width = bounds.Width; triOutline.Height = bounds.Height;
                     Canvas.SetLeft(triOutline, bounds.Left); Canvas.SetTop(triOutline, bounds.Top);
                 }
+                UpdateRotationControlPoint(bounds);
                 return;
             }
 
@@ -2252,6 +2433,7 @@ namespace 串口助手
                 Canvas.SetLeft(outline, bounds.Left);
                 Canvas.SetTop(outline, bounds.Top);
             }
+            UpdateRotationControlPoint(bounds);
         }
 
         private void RemoveControlPoints()
@@ -2554,12 +2736,88 @@ namespace 串口助手
 
         // ── 修改确认：协议重编码 + 同步 ──
 
+        // F4：将旋转角度"拍平"到坐标中（线/三角）或保留 Transform（矩/椭/文字）
+        private void BakeRotationIntoShape()
+        {
+            if (_selectedShape == null) return;
+            double a = _shapeRotationAngle;
+            // 获取旋转中心（原始包围盒中心）
+            double cx = _originalBounds.Left + _originalBounds.Width / 2;
+            double cy = _originalBounds.Top + _originalBounds.Height / 2;
+
+            if (_selectedShapeDrawType == "line" && _selectedShape is Line line)
+            {
+                // 旋转端点
+                (double rx1, double ry1) = RotatePoint(line.X1, line.Y1, cx, cy, a);
+                (double rx2, double ry2) = RotatePoint(line.X2, line.Y2, cx, cy, a);
+                line.X1 = rx1; line.Y1 = ry1; line.X2 = rx2; line.Y2 = ry2;
+                line.RenderTransform = Transform.Identity;
+            }
+            else if (_selectedShapeDrawType == "triangle" && _selectedShape is Polygon tri)
+            {
+                var newPts = new PointCollection();
+                foreach (var p in tri.Points)
+                {
+                    var (rx, ry) = RotatePoint(p.X, p.Y, cx, cy, a);
+                    newPts.Add(new Point(rx, ry));
+                }
+                tri.Points = newPts;
+                tri.RenderTransform = Transform.Identity;
+            }
+            else if (_selectedShapeDrawType == "arc" && _selectedShape is System.Windows.Shapes.Path arcP
+                && _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+            {
+                // 弧线旋转 = 改 startAngle/endAngle，松手时烘焙到 DrawCommand
+                var arcCmd = _displayVM.DrawCommands[_selectedIndex];
+                if (arcCmd.Args != null && arcCmd.Args.Count >= 6)
+                {
+                    int sa = int.Parse(arcCmd.Args[4]) + (int)a;
+                    int ea = int.Parse(arcCmd.Args[5]) + (int)a;
+                    arcCmd.Args[4] = ((sa % 360) + 360) % 360 + "";
+                    arcCmd.Args[5] = ((ea % 360) + 360) % 360 + "";
+                    // 重建几何（清除 RotateTransform）
+                    int acx = int.Parse(arcCmd.Args[1]), acy = int.Parse(arcCmd.Args[2]), arR = int.Parse(arcCmd.Args[3]);
+                    bool filled = arcP.Fill != null && arcP.Stroke == null;
+                    int lw = (int)arcP.StrokeThickness;
+                    var brush = arcP.Stroke ?? arcP.Fill ?? Brushes.White;
+                    var rebuilt = BuildArcPath(acx, acy, arR, sa, ea, brush, lw, filled, preview: false);
+                    arcP.Data = rebuilt.Data;
+                    if (filled) { arcP.Fill = brush; arcP.Stroke = null; }
+                    else { arcP.Stroke = brush; arcP.StrokeThickness = lw; arcP.Fill = null; }
+                    Canvas.SetLeft(arcP, 0); Canvas.SetTop(arcP, 0);
+                    arcP.RenderTransform = Transform.Identity;
+                }
+            }
+            else if (_selectedShapeDrawType == "circle" || _selectedShapeDrawType == "point")
+            {
+                // 不支持旋转，重置
+                _selectedShape.RenderTransform = Transform.Identity;
+            }
+            // rect / rrect / ellipse / text：保留 RotateTransform，不烘焙
+            _shapeRotationAngle = 0;
+        }
+
+        // 点 (x,y) 绕 (cx,cy) 旋转 a 度
+        private static (double, double) RotatePoint(double x, double y, double cx, double cy, double angleDeg)
+        {
+            double rad = angleDeg * Math.PI / 180.0;
+            double cos = Math.Cos(rad), sin = Math.Sin(rad);
+            double dx = x - cx, dy = y - cy;
+            return (cx + dx * cos - dy * sin, cy + dx * sin + dy * cos);
+        }
+
         private void FinalizeShapeModification()
         {
             if (_selectedShape == null || _selectedIndex < 0) return;
             if (_selectedIndex >= _displayVM.DrawCommands.Count) return;
 
             var oldCmd = _displayVM.DrawCommands[_selectedIndex];
+
+            // F4 旋转烘焙：线/三角/弧 → 拍平坐标；矩形/椭/文字 → 保留 RotateTransform
+            if (_activeHandle == HandleRole.RotateHandle && _shapeRotationAngle != 0)
+            {
+                BakeRotationIntoShape();
+            }
 
             // 弧线：平移后 Canvas 偏移 → 累加到 cmd.Args 圆心坐标
             //   (resize 已由 FitShapeToBounds 直接更新 cmd.Args，此处只补平移的 Canvas 偏移)
@@ -3021,9 +3279,9 @@ namespace 串口助手
 
                 case "triangle":
                     var tri = (Polygon)_selectedShape;
-                    add("上顶点 ▲", "X", "Y", ((int)tri.Points[0].X).ToString(), ((int)tri.Points[0].Y).ToString());
-                    add("左底角 ↙", "X", "Y", ((int)tri.Points[1].X).ToString(), ((int)tri.Points[1].Y).ToString());
-                    add("右底角 ↘", "X", "Y", ((int)tri.Points[2].X).ToString(), ((int)tri.Points[2].Y).ToString());
+                    add("顶点①", "X", "Y", ((int)tri.Points[0].X).ToString(), ((int)tri.Points[0].Y).ToString());
+                    add("顶点②", "X", "Y", ((int)tri.Points[1].X).ToString(), ((int)tri.Points[1].Y).ToString());
+                    add("顶点③", "X", "Y", ((int)tri.Points[2].X).ToString(), ((int)tri.Points[2].Y).ToString());
                     cbShapeFill.Visibility = Visibility.Visible;
                     break;
 
