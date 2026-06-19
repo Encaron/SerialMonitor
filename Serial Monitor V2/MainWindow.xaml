@@ -1645,6 +1645,8 @@
                         <ScrollViewer x:Name="rightOLED" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
+                                <!-- 默认：画布设置 -->
+                                <StackPanel x:Name="rightOLEDSettings" Visibility="Visible">
                                 <TextBlock Text="OLED 设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                 <TextBlock Text="画布尺寸" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
@@ -1704,6 +1706,50 @@
                                     <LineBreak/>
                                     <Run Text="[display-clear] 清屏"/>
                                 </TextBlock>
+                                </StackPanel>
+                                <!-- 文字编辑模式 -->
+                                <StackPanel x:Name="rightOLEDTextEditor" Visibility="Collapsed">
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="文字编辑" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"/>
+                                        <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
+                                                Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
+                                                Click="btnTextEditCancel_Click" ToolTip="取消编辑"/>
+                                    </Grid>
+                                    <TextBlock x:Name="tbTextEditPos" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                                               Text="位置: —" Margin="0,0,0,8"/>
+                                    <TextBlock Text="内容" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <TextBox x:Name="tbTextEditContent" Height="28"
+                                             FontFamily="Microsoft YaHei" FontSize="12"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             Background="{DynamicResource CardBgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}"
+                                             BorderThickness="1" Padding="6,2" Margin="0,0,0,8"
+                                             TextChanged="tbTextEditContent_Changed"/>
+                                    <TextBlock Text="字号" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="cbTextEditFontSize" Height="28" Margin="0,0,0,8"
+                                              FontFamily="Microsoft YaHei" FontSize="12"
+                                              Foreground="{DynamicResource TextPrimaryBrush}"
+                                              Background="{DynamicResource CardBgBrush}"
+                                              BorderBrush="{DynamicResource InputBorderBrush}"
+                                              SelectionChanged="cbTextEditFontSize_Changed"/>
+                                    <TextBlock Text="颜色" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Border x:Name="textEditColorSwatch" Grid.Column="0" Height="28" CornerRadius="4"
+                                                Background="#FFFFFF" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
+                                                MouseLeftButtonDown="textEditColorSwatch_Click" Cursor="Hand"/>
+                                        <Button Grid.Column="1" Content="选择颜色" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
+                                                Style="{DynamicResource SecondaryButtonStyle}" Click="textEditColorSwatch_Click"/>
+                                    </Grid>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Content="确定" Style="{DynamicResource PrimaryButtonStyle}"
+                                                Height="28" Margin="0,0,4,0" Click="btnTextEditConfirm_Click"/>
+                                        <Button Grid.Column="1" Content="取消" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="28" Click="btnTextEditCancel_Click"/>
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
                         <!-- 设置面板（导航） -->
@@ -2096,14 +2142,6 @@
                             <!-- 线宽 -->
                             <ComboBox x:Name="cbLineWidth" Width="44" Height="26"
                                       SelectionChanged="cbLineWidth_Changed" ToolTip="线宽"/>
-                            <!-- 颜色 -->
-                            <Button x:Name="btnDrawColor" Width="24" Height="24" ToolTip="颜色"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
-                                    Click="btnDrawColor_Click">
-                                <Border x:Name="colorSwatch" Width="14" Height="14" CornerRadius="2"
-                                        Background="#FFFFFF"
-                                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"/>
-                            </Button>
                             <!-- 橡皮擦 -->
                             <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="橡皮擦"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"

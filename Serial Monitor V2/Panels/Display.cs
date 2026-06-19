@@ -43,6 +43,12 @@ namespace 串口助手
         private DateTime _lastSampleTime;
         private readonly List<Button> _toolButtons = new List<Button>();
 
+        // ——— 文字编辑（侧栏模式） ———
+        private bool _isEditingText = false;
+        private Point _textEditPos;
+        private string _textEditColor = "#FFFFFF";
+        private Border _textPreview = null;
+
         // ——— #7 Phase 3：选择 + 控点调整 ———
         private UIElement _selectedShape = null;
         private int _selectedIndex = -1;
@@ -104,6 +110,9 @@ namespace 串口助手
             _toolButtons.Add(btnToolText);
             _toolButtons.Add(btnToolEraser);
 
+            // 锁屏按钮初始颜色（默认锁定=红色）
+            btnLockCanvas.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E53935"));
+
             // 画布鼠标事件（只挂一次）
             oledCanvas.MouseLeftButtonDown += OledCanvas_MouseLeftButtonDown;
             oledCanvas.MouseMove += OledCanvas_MouseMove;
@@ -119,6 +128,11 @@ namespace 串口助手
         {
             if (_displayVM == null) return;
             DeselectShape();
+
+            // 文字预览强保护：先摘下来，Children.Clear 后再挂回去
+            if (_isEditingText && _textPreview != null)
+                oledCanvas.Children.Remove(_textPreview);
+
             int w = _displayVM.CanvasWidth, h = _displayVM.CanvasHeight;
             oledCanvas.Width = w; oledCanvas.Height = h;
             oledCanvas.Children.Clear(); _oledTexts.Clear();
@@ -172,6 +186,10 @@ namespace 串口助手
             foreach (var shape in _drawElements)
                 oledCanvas.Children.Add(shape);
 
+            // ── 恢复文字预览（如果正在编辑）──
+            if (_isEditingText && _textPreview != null)
+                oledCanvas.Children.Add(_textPreview);
+
             // ── 恢复背景色 ──
             SetCanvasBackground(_displayVM.CanvasBackground);
         }
@@ -212,7 +230,12 @@ namespace 串口助手
             }
         }
 
-        private void tbOLEDSize_LostFocus(object sender, RoutedEventArgs e) { ApplyOLEDSize(); }
+        private void tbOLEDSize_LostFocus(object sender, RoutedEventArgs e)
+        {
+            // 文字编辑期间设置面板已隐藏，不响应隐藏控件的失焦
+            if (rightOLEDSettings.Visibility != Visibility.Visible) return;
+            ApplyOLEDSize();
+        }
         private void btnOLEDSizeApply_Click(object sender, RoutedEventArgs e) { ApplyOLEDSize(); }
 
         private void ApplyOLEDSize()
@@ -273,6 +296,13 @@ namespace 串口助手
             });
         }
 
+        /// <summary>像素对齐渲染：防 1px 描边被 ClipToBounds 切掉半边</summary>
+        private static void SnapShapeToPixel(Shape shape)
+        {
+            shape.SnapsToDevicePixels = true;
+            RenderOptions.SetEdgeMode(shape, EdgeMode.Aliased);
+        }
+
         // ── 画点 [draw,point,x,y,#RRGGBB] ──
         private void HandleDrawPoint(List<string> args)
         {
@@ -282,6 +312,7 @@ namespace 串口助手
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var pt = new Rectangle { Width = 1, Height = 1, Fill = brush };
+            SnapShapeToPixel(pt);
             Canvas.SetLeft(pt, x);
             Canvas.SetTop(pt, y);
 
@@ -306,6 +337,7 @@ namespace 串口助手
                 X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
                 Stroke = brush, StrokeThickness = lw,
             };
+            SnapShapeToPixel(line);
 
             oledCanvas.Children.Add(line);
             _drawElements.Add(line);
@@ -328,6 +360,7 @@ namespace 串口助手
                 Width = w, Height = h,
                 Stroke = brush, StrokeThickness = lw,
             };
+            SnapShapeToPixel(rect);
             Canvas.SetLeft(rect, x);
             Canvas.SetTop(rect, y);
 
@@ -351,6 +384,7 @@ namespace 串口助手
                 Width = w, Height = h,
                 Fill = brush,
             };
+            SnapShapeToPixel(rect);
             Canvas.SetLeft(rect, x);
             Canvas.SetTop(rect, y);
 
@@ -375,6 +409,7 @@ namespace 串口助手
                 Width = r * 2, Height = r * 2,
                 Stroke = brush, StrokeThickness = lw,
             };
+            SnapShapeToPixel(circle);
             Canvas.SetLeft(circle, cx - r);
             Canvas.SetTop(circle, cy - r);
 
@@ -399,6 +434,7 @@ namespace 串口助手
                 Width = a * 2, Height = b * 2,
                 Stroke = brush, StrokeThickness = lw,
             };
+            SnapShapeToPixel(ellipse);
             Canvas.SetLeft(ellipse, x - a);
             Canvas.SetTop(ellipse, y - b);
 
@@ -424,6 +460,7 @@ namespace 串口助手
                 Points = new PointCollection { new Point(x0, y0), new Point(x1, y1), new Point(x2, y2) },
                 Stroke = brush, StrokeThickness = lw,
             };
+            SnapShapeToPixel(triangle);
 
             oledCanvas.Children.Add(triangle);
             _drawElements.Add(triangle);
@@ -494,12 +531,18 @@ namespace 串口助手
             // 切换工具时取消选中
             if (tool != DrawTool.Select && _selectedShape != null)
                 DeselectShape();
+            // 离开 Text 工具时退出文字编辑
+            if (tool != DrawTool.Text && _isEditingText)
+                ExitTextEditMode(save: false);
         }
+
+        /// <summary>橡皮擦实际线宽（比绘制线宽粗，等于视觉光标半径）</summary>
+        private int EraserLineWidth => Math.Max(5, _drawLineWidth * 2 + 2);
 
         private void ShowEraserCursor()
         {
             if (_eraserCursor != null) return;
-            int r = _drawLineWidth * 4 + 2;
+            int r = EraserLineWidth / 2 + 1;
             _eraserCursor = new Ellipse
             {
                 Width = r * 2, Height = r * 2,
@@ -523,7 +566,7 @@ namespace 串口助手
         private void UpdateEraserCursor(Point pos)
         {
             if (_eraserCursor == null) return;
-            int r = _drawLineWidth * 4 + 2;
+            int r = EraserLineWidth / 2 + 1;
             _eraserCursor.Width = r * 2;
             _eraserCursor.Height = r * 2;
             Canvas.SetLeft(_eraserCursor, pos.X - r);
@@ -546,14 +589,14 @@ namespace 串口助手
             btnLockCanvas.ToolTip = _isLocked ? "解锁画布" : "锁定画布";
             if (_isLocked)
             {
-                btnLockCanvas.Foreground = (Brush)FindResource("PrimaryBrush");
+                btnLockCanvas.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E53935"));
                 DeselectShape();
                 SelectTool(DrawTool.None, null);
                 oledCanvas.Cursor = Cursors.Arrow;
             }
             else
             {
-                btnLockCanvas.ClearValue(Control.ForegroundProperty);
+                btnLockCanvas.Foreground = (Brush)FindResource("PrimaryBrush");
                 oledCanvas.Cursor = Cursors.Cross;
             }
         }
@@ -567,7 +610,7 @@ namespace 串口助手
                 // 橡皮擦光标同步大小
                 if (_eraserCursor != null)
                 {
-                    int r = w * 4 + 2;
+                    int r = EraserLineWidth / 2 + 1;
                     _eraserCursor.Width = r * 2;
                     _eraserCursor.Height = r * 2;
                 }
@@ -575,15 +618,7 @@ namespace 串口助手
         }
 
         // ── 颜色 ──
-        private void btnDrawColor_Click(object sender, RoutedEventArgs e)
-        {
-            ShowDrawColorPicker(btnDrawColor, hex =>
-            {
-                _drawColor = hex;
-                var brush = ParseColorBrush(hex);
-                if (brush != null) colorSwatch.Background = brush;
-            });
-        }
+        // 颜色选择已移至侧栏（文字编辑模式 + 将来图形属性面板）
 
         /// <summary>画板专用颜色选择——40色块点即关，hex手输走确认</summary>
         private void ShowDrawColorPicker(FrameworkElement placementTarget, Action<string> onColorPicked)
@@ -748,13 +783,12 @@ namespace 串口助手
                 return;
             }
 
-            _isDrawing = true;
-            oledCanvas.CaptureMouse();
-
             switch (_drawTool)
             {
                 case DrawTool.Pencil:
                 case DrawTool.Eraser:
+                    _isDrawing = true;
+                    oledCanvas.CaptureMouse();
                 {
                     // 自由绘制：首点
                     string color = _drawTool == DrawTool.Eraser ? _displayVM.CanvasBackground : _drawColor;
@@ -770,13 +804,17 @@ namespace 串口助手
                 case DrawTool.Line:
                 case DrawTool.Rect:
                 case DrawTool.Circle:
+                    _isDrawing = true;
+                    oledCanvas.CaptureMouse();
                     // 创建虚线预览
                     _previewShape = CreatePreviewShape(_drawTool, pos, pos);
                     if (_previewShape != null) oledCanvas.Children.Add(_previewShape);
                     break;
 
                 case DrawTool.Text:
-                    ShowTextInputPopup(pos);
+                    if (_isEditingText)
+                        ExitTextEditMode(save: false); // 先退出上一位置
+                    EnterTextEditMode(pos);
                     _isDrawing = false;
                     break;
             }
@@ -786,8 +824,8 @@ namespace 串口助手
         {
             var pos = e.GetPosition(oledCanvas);
 
-            // 橡皮擦光标跟随（非绘制中）
-            if (_drawTool == DrawTool.Eraser && !_isDrawing)
+            // 橡皮擦光标跟随（绘制中也跟，视觉反馈不中断）
+            if (_drawTool == DrawTool.Eraser)
                 UpdateEraserCursor(pos);
 
             if (!_isDrawing) return;
@@ -832,7 +870,8 @@ namespace 串口助手
                     var lineArgs = new List<string> { "line",
                         ((int)_lastSamplePoint.X).ToString(), ((int)_lastSamplePoint.Y).ToString(),
                         ((int)pos.X).ToString(), ((int)pos.Y).ToString(), color };
-                    if (_drawLineWidth != 1) lineArgs.Add(_drawLineWidth.ToString());
+                    int effectiveLw = _drawTool == DrawTool.Eraser ? EraserLineWidth : _drawLineWidth;
+                    if (effectiveLw != 1) lineArgs.Add(effectiveLw.ToString());
                     HandleDrawLine(lineArgs);       // 本地渲染
                     SendDrawCmd("line", lineArgs);  // 发串口
 
@@ -932,11 +971,13 @@ namespace 串口助手
                     shape = new Line { X1 = p1.X, Y1 = p1.Y, X2 = p2.X, Y2 = p2.Y,
                         Stroke = brush, StrokeThickness = _drawLineWidth,
                         StrokeDashArray = new DoubleCollection { 4, 3 } };
+                    SnapShapeToPixel(shape);
                     break;
                 case DrawTool.Rect:
                     shape = new Rectangle { Width = w, Height = h,
                         Stroke = brush, StrokeThickness = _drawLineWidth,
                         StrokeDashArray = new DoubleCollection { 4, 3 } };
+                    SnapShapeToPixel(shape);
                     Canvas.SetLeft(shape, x); Canvas.SetTop(shape, y);
                     break;
                 case DrawTool.Circle:
@@ -946,6 +987,7 @@ namespace 串口助手
                     shape = new Ellipse { Width = rx * 2, Height = ry * 2,
                         Stroke = brush, StrokeThickness = _drawLineWidth,
                         StrokeDashArray = new DoubleCollection { 4, 3 } };
+                    SnapShapeToPixel(shape);
                     Canvas.SetLeft(shape, cx - rx); Canvas.SetTop(shape, cy - ry);
                     break;
                 }
@@ -1038,85 +1080,183 @@ namespace 串口助手
         }
 
         // ═══════════════════════════════════════
-        //  文字输入 Popup
+        //  文字编辑（侧栏模式）
         // ═══════════════════════════════════════
 
-        private void ShowTextInputPopup(Point canvasPos)
+        /// <summary>切回 OLED 标签页时重置侧栏到设置视图</summary>
+        private void ResetOLEDSidePanel()
         {
-            var popup = new Popup
+            if (_isEditingText)
+                ExitTextEditMode(save: false);
+            rightOLEDSettings.Visibility = Visibility.Visible;
+            rightOLEDTextEditor.Visibility = Visibility.Collapsed;
+            tbSidePanelTitle.Text = "OLED 设置";
+        }
+
+        private void EnterTextEditMode(Point canvasPos)
+        {
+            _isEditingText = true;
+            _textEditPos = canvasPos;
+            _textEditColor = _drawColor;
+
+            // 初始填充字号下拉
+            if (cbTextEditFontSize.Items.Count == 0)
             {
-                PlacementTarget = oledCanvas,
-                Placement = PlacementMode.RelativePoint,
-                StaysOpen = true,
-                AllowsTransparency = true,
-            };
-            popup.HorizontalOffset = canvasPos.X + 8;
-            popup.VerticalOffset = canvasPos.Y;
-
-            var bg = (Brush)FindResource("CardBgBrush");
-            var fg = (Brush)FindResource("TextPrimaryBrush");
-            var borderBrush = (Brush)FindResource("CardBorderBrush");
-
-            var panel = new Border
+                int[] sizes = { 8, 10, 12, 14, 16, 18, 20, 24, 28, 32 };
+                foreach (var s in sizes)
+                    cbTextEditFontSize.Items.Add(new ComboBoxItem { Content = s.ToString(), Tag = s });
+                cbTextEditFontSize.SelectedIndex = 3; // 14
+            }
+            else if (cbTextEditFontSize.SelectedIndex < 0)
             {
-                Background = bg, BorderBrush = borderBrush, BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(6), Padding = new Thickness(10),
-                MinWidth = 200,
-            };
-            var stack = new StackPanel();
-            var title = new TextBlock { Text = "输入文字", FontSize = 12, FontWeight = FontWeights.SemiBold,
-                Foreground = fg, Margin = new Thickness(0, 0, 0, 6) };
-            stack.Children.Add(title);
+                cbTextEditFontSize.SelectedIndex = 3;
+            }
 
-            var textBox = new TextBox { Height = 28, Margin = new Thickness(0, 0, 0, 6) };
-            stack.Children.Add(textBox);
+            tbTextEditPos.Text = $"位置: ({(int)canvasPos.X}, {(int)canvasPos.Y})";
+            tbTextEditContent.Text = "";
+            textEditColorSwatch.Background = ParseColorBrush(_textEditColor) ?? Brushes.White;
 
-            var sizeStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
-            sizeStack.Children.Add(new TextBlock { Text = "字号:", FontSize = 12, Foreground = fg,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
-            var sizeBox = new TextBox { Text = "14", Width = 50, Height = 28 };
-            sizeStack.Children.Add(sizeBox);
-            stack.Children.Add(sizeStack);
+            // 切侧栏到编辑模式
+            rightOLEDSettings.Visibility = Visibility.Collapsed;
+            rightOLEDTextEditor.Visibility = Visibility.Visible;
+            tbSidePanelTitle.Text = "文字编辑";
 
-            var btnStack = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var cancelBtn = new Button { Content = "取消", Width = 60, Height = 26,
-                Style = (Style)FindResource("SecondaryButtonStyle") };
-            var okBtn = new Button { Content = "确定", Width = 60, Height = 26,
-                Style = (Style)FindResource("PrimaryButtonStyle"), Margin = new Thickness(6, 0, 0, 0) };
-            btnStack.Children.Add(cancelBtn);
-            btnStack.Children.Add(okBtn);
-            stack.Children.Add(btnStack);
+            // 画布上创建预览框 + 切箭头光标
+            oledCanvas.Cursor = Cursors.Arrow;
+            CreateTextPreview();
 
-            panel.Child = stack;
-            popup.Child = panel;
-            popup.IsOpen = true;
+            tbTextEditContent.Focus();
+            Keyboard.Focus(tbTextEditContent);
+        }
 
-            textBox.Focus();
+        private void ExitTextEditMode(bool save)
+        {
+            if (!_isEditingText) return;
 
-            // 关闭
-            void Close() { popup.IsOpen = false; }
-
-            okBtn.Click += (s, e) =>
+            if (save)
             {
-                string text = textBox.Text;
-                if (string.IsNullOrWhiteSpace(text)) { Close(); return; }
-                if (!int.TryParse(sizeBox.Text, out int fontSize) || fontSize < 8) fontSize = 14;
-                string color = _drawColor;
-
-                var displayArgs = new List<string> { ((int)canvasPos.X).ToString(),
-                    ((int)canvasPos.Y).ToString(), text, fontSize.ToString(), color };
-                Dispatcher.InvokeAsync(() => HandleDisplayMessage(
-                    (int)canvasPos.X, (int)canvasPos.Y, text, fontSize, color));
-
-                if (_session != null && _session.IsOpen)
+                string text = tbTextEditContent.Text;
+                _drawColor = _textEditColor; // 同步画笔颜色
+                if (!string.IsNullOrWhiteSpace(text))
                 {
-                    string cmd = string.Format("[display,{0},{1},{2},{3},{4}]",
-                        (int)canvasPos.X, (int)canvasPos.Y, text, fontSize, color);
-                    SendRaw(cmd, appendLineEnding: true);
+                    int fontSize = cbTextEditFontSize.SelectedItem is ComboBoxItem item && item.Tag is int fs ? fs : 14;
+                    string color = _textEditColor;
+
+                    HandleDisplayMessage((int)_textEditPos.X, (int)_textEditPos.Y, text, fontSize, color);
+
+                    if (_session != null && _session.IsOpen)
+                    {
+                        string cmd = string.Format("[display,{0},{1},{2},{3},{4}]",
+                            (int)_textEditPos.X, (int)_textEditPos.Y, text, fontSize, color);
+                        SendRaw(cmd, appendLineEnding: true);
+                    }
                 }
-                Close();
+            }
+
+            RemoveTextPreview();
+            _isEditingText = false;
+
+            // 恢复画布光标
+            oledCanvas.Cursor = (_drawTool == DrawTool.None || _drawTool == DrawTool.Select)
+                ? Cursors.Arrow : Cursors.Cross;
+
+            // 恢复侧栏
+            rightOLEDSettings.Visibility = Visibility.Visible;
+            rightOLEDTextEditor.Visibility = Visibility.Collapsed;
+            tbSidePanelTitle.Text = "OLED 设置";
+        }
+
+        private void CreateTextPreview()
+        {
+            RemoveTextPreview();
+            string text = tbTextEditContent?.Text ?? "";
+            int fontSize = cbTextEditFontSize?.SelectedItem is ComboBoxItem item && item.Tag is int fs ? fs : 14;
+            var colorBrush = ParseColorBrush(_textEditColor) ?? Brushes.White;
+
+            var tb = new TextBlock
+            {
+                Text = string.IsNullOrEmpty(text) ? " " : text,
+                FontSize = fontSize,
+                Foreground = colorBrush,
+                FontFamily = new FontFamily("Sarasa Mono SC, Consolas, Courier New"),
             };
-            cancelBtn.Click += (s, e) => Close();
+
+            var border = new Border
+            {
+                Child = tb,
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#42A5F5")),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(4, 2, 4, 2),
+                Background = new SolidColorBrush(Color.FromArgb(0x18, 0x42, 0xA5, 0xF5)),
+                IsHitTestVisible = false, // 不拦截点击，鼠标穿透到画布
+            };
+
+            Canvas.SetLeft(border, _textEditPos.X);
+            Canvas.SetTop(border, _textEditPos.Y);
+            Canvas.SetZIndex(border, 998);
+            oledCanvas.Children.Add(border);
+            _textPreview = border;
+        }
+
+        private void UpdateTextPreview()
+        {
+            if (_textPreview == null) return;
+            string text = tbTextEditContent?.Text ?? "";
+            int fontSize = cbTextEditFontSize?.SelectedItem is ComboBoxItem item && item.Tag is int fs ? fs : 14;
+            var colorBrush = ParseColorBrush(_textEditColor) ?? Brushes.White;
+
+            var tb = _textPreview.Child as TextBlock;
+            if (tb != null)
+            {
+                tb.Text = string.IsNullOrEmpty(text) ? " " : text;
+                tb.FontSize = fontSize;
+                tb.Foreground = colorBrush;
+            }
+        }
+
+        private void RemoveTextPreview()
+        {
+            if (_textPreview != null)
+            {
+                oledCanvas.Children.Remove(_textPreview);
+                _textPreview = null;
+            }
+        }
+
+        // ── 侧栏事件 ──
+
+        private void tbTextEditContent_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (!_isEditingText) return;
+            UpdateTextPreview();
+        }
+
+        private void cbTextEditFontSize_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_isEditingText) return;
+            UpdateTextPreview();
+        }
+
+        private void textEditColorSwatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_isEditingText) return;
+            ShowDrawColorPicker(textEditColorSwatch, hex =>
+            {
+                _textEditColor = hex;
+                var brush = ParseColorBrush(hex);
+                if (brush != null) textEditColorSwatch.Background = brush;
+                UpdateTextPreview();
+            });
+        }
+
+        private void btnTextEditConfirm_Click(object sender, RoutedEventArgs e)
+        {
+            ExitTextEditMode(save: true);
+        }
+
+        private void btnTextEditCancel_Click(object sender, RoutedEventArgs e)
+        {
+            ExitTextEditMode(save: false);
         }
 
         // ═══════════════════════════════════════
@@ -1578,53 +1718,59 @@ namespace 串口助手
 
         private void btnExportC_Click(object sender, RoutedEventArgs e)
         {
-            if (_displayVM == null) return;
-            int w = _displayVM.CanvasWidth, h = _displayVM.CanvasHeight;
-
-            // 光栅化画布
-            var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(oledCanvas);
-
-            int stride = w * 4;
-            byte[] pixels = new byte[stride * h];
-            rtb.CopyPixels(pixels, stride, 0);
-
-            // 转为灰度 → 二值化 → 打包为 8-bit 字节
-            var bits = new List<byte>();
-            for (int row = 0; row < h; row += 8)
+            try
             {
-                for (int col = 0; col < w; col++)
+                if (_displayVM == null) { LogSystem("⚠ 导出失败：画布未初始化"); return; }
+                int w = _displayVM.CanvasWidth, h = _displayVM.CanvasHeight;
+
+                // 强制刷新布局再光栅化
+                oledCanvas.UpdateLayout();
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(oledCanvas);
+
+                int stride = w * 4;
+                byte[] pixels = new byte[stride * h];
+                rtb.CopyPixels(pixels, stride, 0);
+
+                // 转为灰度 → 二值化 → 打包为 8-bit 字节
+                var bits = new List<byte>();
+                for (int row = 0; row < h; row += 8)
                 {
-                    byte b = 0;
-                    for (int bit = 0; bit < 8; bit++)
+                    for (int col = 0; col < w; col++)
                     {
-                        int py = row + bit;
-                        if (py >= h) break;
-                        int idx = py * stride + col * 4;
-                        // 亮度阈值：>128 算亮
-                        byte gray = (byte)((pixels[idx+1] + pixels[idx+2] + pixels[idx+3]) / 3);
-                        if (gray > 128) b |= (byte)(1 << bit);
+                        byte b = 0;
+                        for (int bit = 0; bit < 8; bit++)
+                        {
+                            int py = row + bit;
+                            if (py >= h) break;
+                            int idx = py * stride + col * 4;
+                            byte gray = (byte)((pixels[idx+1] + pixels[idx+2] + pixels[idx+3]) / 3);
+                            if (gray > 128) b |= (byte)(1 << bit);
+                        }
+                        bits.Add(b);
                     }
-                    bits.Add(b);
                 }
-            }
 
-            // 格式化为 C 数组字符串
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"// OLED 画布导出 — {w}×{h} 单色");
-            sb.AppendLine($"const uint8_t logo[{bits.Count}] = {{");
-            for (int i = 0; i < bits.Count; i++)
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"// OLED 画布导出 — {w}×{h} 单色");
+                sb.AppendLine($"const uint8_t logo[{bits.Count}] = {{");
+                for (int i = 0; i < bits.Count; i++)
+                {
+                    if (i % 16 == 0) sb.Append("    ");
+                    sb.Append($"0x{bits[i]:X2}");
+                    if (i < bits.Count - 1) sb.Append(",");
+                    if ((i + 1) % 16 == 0) sb.AppendLine();
+                }
+                sb.AppendLine();
+                sb.AppendLine("};");
+
+                Clipboard.SetText(sb.ToString());
+                LogSystem($"✓ 已导出 {w}×{h} 单色 C 数组到剪贴板（{bits.Count} 字节）");
+            }
+            catch (Exception ex)
             {
-                if (i % 16 == 0) sb.Append("    ");
-                sb.Append($"0x{bits[i]:X2}");
-                if (i < bits.Count - 1) sb.Append(",");
-                if ((i + 1) % 16 == 0) sb.AppendLine();
+                LogSystem($"✗ 导出 C 数组失败：{ex.Message}");
             }
-            sb.AppendLine();
-            sb.AppendLine("};");
-
-            Clipboard.SetText(sb.ToString());
-            LogSystem($"✓ 已导出 {w}×{h} 单色 C 数组到剪贴板（{bits.Count} 字节）");
         }
     }
 }

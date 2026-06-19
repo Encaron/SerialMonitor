@@ -2696,6 +2696,7 @@ namespace 串口助手
             if (_currentTab == "Sliders") RefreshSlidersSidePanel();
             if (_currentTab == "Sensors" && _sensorVM != null)
                 RefreshSensorSidePanel();
+            if (_currentTab == "OLED") ResetOLEDSidePanel();
         }
 
         /// <summary>
