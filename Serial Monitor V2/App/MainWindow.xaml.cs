@@ -702,6 +702,14 @@ namespace 串口助手
         /// </summary>
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Escape → 取消 OLED 画布选中图形（#7 Phase 3）
+            if (e.Key == Key.Escape && _selectedShape != null)
+            {
+                DeselectShape();
+                e.Handled = true;
+                return;
+            }
+
             // Ctrl+Enter → 打开/关闭串口
             if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
             {

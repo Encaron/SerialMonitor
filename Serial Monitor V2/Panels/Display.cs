@@ -19,7 +19,18 @@ namespace 串口助手
         private List<UIElement> _drawElements = new List<UIElement>();
 
         // ——— #7 PC 鼠标画板 ———
-        private enum DrawTool { None, Pencil, Line, Rect, Circle, Text, Eraser }
+        private enum DrawTool { None, Select, Pencil, Line, Rect, Circle, Text, Eraser }
+
+        /// <summary>
+        /// 控点角色。Phase 3 用 TopLeft~Center；Endpoint1~Vertex2 预留给线端点/三角顶点拖拽。
+        /// </summary>
+        private enum HandleRole
+        {
+            TopLeft, TopRight, BottomLeft, BottomRight, Center,
+            Endpoint1, Endpoint2,      // 预留：线端点独立拖拽
+            Vertex0, Vertex1, Vertex2   // 预留：三角形顶点独立拖拽
+        }
+
         private DrawTool _drawTool = DrawTool.None;
         private string _drawColor = "#FFFFFF";
         private int _drawLineWidth = 1;
@@ -31,6 +42,17 @@ namespace 串口助手
         private Point _lastSamplePoint;
         private DateTime _lastSampleTime;
         private readonly List<Button> _toolButtons = new List<Button>();
+
+        // ——— #7 Phase 3：选择 + 控点调整 ———
+        private UIElement _selectedShape = null;
+        private int _selectedIndex = -1;
+        private string _selectedShapeDrawType = null; // circle ↔ uniform scale
+        private readonly List<FrameworkElement> _controlPoints = new List<FrameworkElement>();
+        private HandleRole _activeHandle = HandleRole.Center;
+        private Point _selectDragOrigin;
+        private Rect _originalBounds;
+        private object _originalShapeState; // 拖拽前快照，防累积误差
+        private bool _hasMoved = false;
 
         // ——— 初始化 ———
         private void InitOLEDPanel()
@@ -74,6 +96,7 @@ namespace 串口助手
 
             // 工具按钮列表
             _toolButtons.Clear();
+            _toolButtons.Add(btnToolSelect);
             _toolButtons.Add(btnToolPencil);
             _toolButtons.Add(btnToolLine);
             _toolButtons.Add(btnToolRect);
@@ -95,6 +118,7 @@ namespace 串口助手
         private void RefreshOLEDUI()
         {
             if (_displayVM == null) return;
+            DeselectShape();
             int w = _displayVM.CanvasWidth, h = _displayVM.CanvasHeight;
             oledCanvas.Width = w; oledCanvas.Height = h;
             oledCanvas.Children.Clear(); _oledTexts.Clear();
@@ -167,6 +191,7 @@ namespace 串口助手
         private void btnOLEDClear_Click(object sender, RoutedEventArgs e)
         {
             if (_displayVM == null) return;
+            DeselectShape();
             _displayVM.ClearAll();
             _drawElements.Clear();
             RefreshOLEDUI();
@@ -411,6 +436,8 @@ namespace 串口助手
         {
             string color = args.Count >= 2 ? args[1] : "#111111";
 
+            DeselectShape();
+
             // 移除所有图形
             foreach (var shape in _drawElements)
                 oledCanvas.Children.Remove(shape);
@@ -456,13 +483,17 @@ namespace 串口助手
                 b.Style = (Style)FindResource("SecondaryButtonStyle");
             if (activeBtn != null)
                 activeBtn.Style = (Style)FindResource("PrimaryButtonStyle");
-            oledCanvas.Cursor = tool == DrawTool.None ? Cursors.Arrow : Cursors.Cross;
+            oledCanvas.Cursor = (tool == DrawTool.None || tool == DrawTool.Select) ? Cursors.Arrow : Cursors.Cross;
 
             // 橡皮擦光标
             if (tool == DrawTool.Eraser)
                 ShowEraserCursor();
             else
                 HideEraserCursor();
+
+            // 切换工具时取消选中
+            if (tool != DrawTool.Select && _selectedShape != null)
+                DeselectShape();
         }
 
         private void ShowEraserCursor()
@@ -505,6 +536,7 @@ namespace 串口助手
         private void btnToolCircle_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Circle,  btnToolCircle); }
         private void btnToolText_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Text,    btnToolText); }
         private void btnToolEraser_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Eraser,  btnToolEraser); }
+        private void btnToolSelect_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Select,  btnToolSelect); }
 
         // ── 锁定 / 解锁 ──
         private void btnLockCanvas_Click(object sender, RoutedEventArgs e)
@@ -515,6 +547,7 @@ namespace 串口助手
             if (_isLocked)
             {
                 btnLockCanvas.Foreground = (Brush)FindResource("PrimaryBrush");
+                DeselectShape();
                 SelectTool(DrawTool.None, null);
                 oledCanvas.Cursor = Cursors.Arrow;
             }
@@ -662,6 +695,59 @@ namespace 串口助手
             InitOLEDPanel();
             var pos = e.GetPosition(oledCanvas);
             _drawStart = pos;
+
+            // ——— Select 模式：选中 / 控点拖拽 ———
+            if (_drawTool == DrawTool.Select)
+            {
+                // ① 已选中 → 先检查控点
+                if (_selectedShape != null)
+                {
+                    var hitHandle = HitTestControlPoint(pos);
+                    if (hitHandle != null)
+                    {
+                        _activeHandle = (HandleRole)hitHandle.Tag;
+                        _selectDragOrigin = pos;
+                        _originalBounds = GetShapeBounds(_selectedShape);
+                        CaptureOriginalState(_selectedShape, out _originalShapeState);
+                        _isDrawing = true;
+                        _hasMoved = false;
+                        oledCanvas.CaptureMouse();
+                        return;
+                    }
+                }
+
+                // ② 点击图形（带线宽容差，倒序遍历优先上层）
+                int hitIndex;
+                var hitShape = HitTestShape(pos, out hitIndex);
+
+                if (hitShape != null)
+                {
+                    if (hitShape == _selectedShape)
+                    {
+                        // 点中已选图形 → 准备平移
+                        _activeHandle = HandleRole.Center;
+                        _selectDragOrigin = pos;
+                        _originalBounds = GetShapeBounds(_selectedShape);
+                        CaptureOriginalState(_selectedShape, out _originalShapeState);
+                        _isDrawing = true;
+                        _hasMoved = false;
+                        oledCanvas.CaptureMouse();
+                    }
+                    else
+                    {
+                        // 新图形 → 切换选中
+                        DeselectShape();
+                        SelectShape(hitShape, hitIndex);
+                    }
+                }
+                else
+                {
+                    // ③ 点空白 → 取消选中
+                    DeselectShape();
+                }
+                return;
+            }
+
             _isDrawing = true;
             oledCanvas.CaptureMouse();
 
@@ -706,6 +792,31 @@ namespace 串口助手
 
             if (!_isDrawing) return;
 
+            // ——— Select 模式：拖拽控点 / 平移 ———
+            if (_drawTool == DrawTool.Select && _selectedShape != null)
+            {
+                double dx = pos.X - _selectDragOrigin.X;
+                double dy = pos.Y - _selectDragOrigin.Y;
+                if (!_hasMoved && Math.Abs(dx) < 3 && Math.Abs(dy) < 3)
+                    return;
+                _hasMoved = true;
+
+                if (_activeHandle == HandleRole.Center)
+                {
+                    double totalDx = pos.X - _selectDragOrigin.X;
+                    double totalDy = pos.Y - _selectDragOrigin.Y;
+                    TranslateShapeFromOriginal(_selectedShape, totalDx, totalDy);
+                }
+                else
+                {
+                    Rect newBounds = CalculateResizeBounds(_activeHandle, _originalBounds, pos);
+                    if (newBounds.Width >= 3 && newBounds.Height >= 3)
+                        FitShapeToBounds(_selectedShape, newBounds, _originalBounds);
+                }
+                UpdateControlPoints(GetShapeBounds(_selectedShape));
+                return;
+            }
+
             switch (_drawTool)
             {
                 case DrawTool.Pencil:
@@ -746,6 +857,16 @@ namespace 串口助手
 
             var pos = e.GetPosition(oledCanvas);
 
+            // ——— Select 模式：确认调整 ———
+            if (_drawTool == DrawTool.Select && _selectedShape != null)
+            {
+                if (_hasMoved)
+                {
+                    FinalizeShapeModification();
+                }
+                return;
+            }
+
             switch (_drawTool)
             {
                 case DrawTool.Pencil:
@@ -782,6 +903,13 @@ namespace 串口助手
             {
                 oledCanvas.Children.Remove(_previewShape);
                 _previewShape = null;
+            }
+            // Select 模式鼠标移出 → 从快照恢复原始位置
+            if (_drawTool == DrawTool.Select && _selectedShape != null && _hasMoved)
+            {
+                RestoreOriginalState(_selectedShape, _originalShapeState);
+                UpdateControlPoints(GetShapeBounds(_selectedShape));
+                _hasMoved = false;
             }
         }
 
@@ -997,6 +1125,12 @@ namespace 串口助手
 
         private void btnSendCanvas_Click(object sender, RoutedEventArgs e)
         {
+            SyncAllShapesToDevice();
+        }
+
+        /// <summary>全量同步画布到设备（clear + 全部 display + 全部 draw）</summary>
+        private void SyncAllShapesToDevice()
+        {
             if (_session == null || !_session.IsOpen) return;
             if (_displayVM == null) return;
 
@@ -1017,6 +1151,425 @@ namespace 串口助手
                 string payload = "[draw," + string.Join(",", cmd.Args) + "]";
                 SendRaw(payload, appendLineEnding: true);
             }
+        }
+
+        // ═══════════════════════════════════════
+        //  #7 Phase 3：选择 + 控点调整
+        // ═══════════════════════════════════════
+
+        // ── 选中 / 取消 ──
+
+        private void SelectShape(UIElement shape, int index)
+        {
+            _selectedShape = shape;
+            _selectedIndex = index;
+            _selectedShapeDrawType = (index >= 0 && index < _displayVM.DrawCommands.Count)
+                ? _displayVM.DrawCommands[index].Type : null;
+            var bounds = GetShapeBounds(shape);
+            CreateControlPoints(bounds);
+        }
+
+        private void DeselectShape()
+        {
+            RemoveControlPoints();
+            _selectedShape = null;
+            _selectedIndex = -1;
+            _selectedShapeDrawType = null;
+            _originalShapeState = null;
+            _hasMoved = false;
+        }
+
+        // ── 包围盒 ──
+
+        private static Rect GetShapeBounds(UIElement shape)
+        {
+            if (shape is Line line)
+            {
+                double x = Math.Min(line.X1, line.X2);
+                double y = Math.Min(line.Y1, line.Y2);
+                double w = Math.Abs(line.X2 - line.X1);
+                double h = Math.Abs(line.Y2 - line.Y1);
+                return new Rect(x, y, w, h);
+            }
+            if (shape is Polygon tri)
+            {
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+                foreach (var p in tri.Points)
+                {
+                    if (p.X < minX) minX = p.X; if (p.Y < minY) minY = p.Y;
+                    if (p.X > maxX) maxX = p.X; if (p.Y > maxY) maxY = p.Y;
+                }
+                return new Rect(minX, minY, maxX - minX, maxY - minY);
+            }
+            // Rectangle / Ellipse（以及 1px point 矩形）
+            double left = Canvas.GetLeft(shape);
+            double top = Canvas.GetTop(shape);
+            double width = (shape as FrameworkElement)?.ActualWidth ?? 0;
+            double height = (shape as FrameworkElement)?.ActualHeight ?? 0;
+            if (width == 0 && shape is Rectangle r) { width = r.Width; height = r.Height; }
+            if (width == 0 && shape is Ellipse e) { width = e.Width; height = e.Height; }
+            return new Rect(left, top, width, height);
+        }
+
+        // ── 控点创建 / 更新 / 移除 ──
+
+        private void CreateControlPoints(Rect bounds)
+        {
+            RemoveControlPoints();
+            double size = 8;
+            var fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#42A5F5"));
+            var stroke = Brushes.White;
+
+            // 4 角控点
+            var corners = new (double X, double Y, HandleRole Role)[]
+            {
+                (bounds.Left - size/2, bounds.Top - size/2, HandleRole.TopLeft),
+                (bounds.Right - size/2, bounds.Top - size/2, HandleRole.TopRight),
+                (bounds.Left - size/2, bounds.Bottom - size/2, HandleRole.BottomLeft),
+                (bounds.Right - size/2, bounds.Bottom - size/2, HandleRole.BottomRight),
+            };
+
+            foreach (var c in corners)
+            {
+                var cursor = (c.Role == HandleRole.TopLeft || c.Role == HandleRole.BottomRight)
+                    ? Cursors.SizeNWSE : Cursors.SizeNESW;
+                var rect = new Rectangle
+                {
+                    Width = size, Height = size,
+                    Fill = fill, Stroke = stroke, StrokeThickness = 1,
+                    Tag = c.Role,
+                    Cursor = cursor,
+                };
+                Canvas.SetLeft(rect, c.X);
+                Canvas.SetTop(rect, c.Y);
+                Canvas.SetZIndex(rect, 1000);
+                oledCanvas.Children.Add(rect);
+                _controlPoints.Add(rect);
+            }
+
+            // 选中虚线框
+            var outline = new Rectangle
+            {
+                Width = bounds.Width, Height = bounds.Height,
+                Stroke = fill, StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 4, 2 },
+                IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(outline, bounds.Left);
+            Canvas.SetTop(outline, bounds.Top);
+            Canvas.SetZIndex(outline, 999);
+            oledCanvas.Children.Add(outline);
+            _controlPoints.Add(outline);
+        }
+
+        private void UpdateControlPoints(Rect bounds)
+        {
+            double size = 8;
+            // 4 角控点（索引 0-3）
+            var corners = new (double X, double Y)[]
+            {
+                (bounds.Left - size/2, bounds.Top - size/2),
+                (bounds.Right - size/2, bounds.Top - size/2),
+                (bounds.Left - size/2, bounds.Bottom - size/2),
+                (bounds.Right - size/2, bounds.Bottom - size/2),
+            };
+            for (int i = 0; i < 4 && i < _controlPoints.Count; i++)
+            {
+                Canvas.SetLeft(_controlPoints[i], corners[i].X);
+                Canvas.SetTop(_controlPoints[i], corners[i].Y);
+            }
+            // 虚线框（索引 4）
+            if (_controlPoints.Count >= 5 && _controlPoints[4] is Rectangle outline)
+            {
+                outline.Width = bounds.Width;
+                outline.Height = bounds.Height;
+                Canvas.SetLeft(outline, bounds.Left);
+                Canvas.SetTop(outline, bounds.Top);
+            }
+        }
+
+        private void RemoveControlPoints()
+        {
+            foreach (var cp in _controlPoints)
+                oledCanvas.Children.Remove(cp);
+            _controlPoints.Clear();
+        }
+
+        // ── 命中测试（带线宽容差）──
+
+        private FrameworkElement HitTestControlPoint(Point pos)
+        {
+            foreach (var cp in _controlPoints)
+            {
+                if (cp is Rectangle rect && cp.Tag is HandleRole)
+                {
+                    double x = Canvas.GetLeft(rect), y = Canvas.GetTop(rect);
+                    if (pos.X >= x - 3 && pos.X <= x + rect.Width + 3
+                     && pos.Y >= y - 3 && pos.Y <= y + rect.Height + 3)
+                        return cp;
+                }
+            }
+            return null;
+        }
+
+        private UIElement HitTestShape(Point pos, out int index)
+        {
+            // 倒序遍历（上层优先）
+            for (int i = _drawElements.Count - 1; i >= 0; i--)
+            {
+                var shape = _drawElements[i];
+                Rect bounds = GetShapeBounds(shape);
+                double tol = (shape is Line l && l.StrokeThickness < 6) ? 6 : 4;
+                bounds.Inflate(tol, tol);
+
+                if (!bounds.Contains(pos)) continue;
+
+                // 细线：检查到线段的距离
+                if (shape is Line line && line.StrokeThickness < tol)
+                {
+                    double dist = DistanceToLineSegment(pos,
+                        new Point(line.X1, line.Y1),
+                        new Point(line.X2, line.Y2));
+                    if (dist < tol) { index = i; return shape; }
+                    continue;
+                }
+
+                // 空心形状（矩形/椭圆/多边形）：在扩展包围盒内即命中
+                index = i;
+                return shape;
+            }
+            index = -1;
+            return null;
+        }
+
+        private static double DistanceToLineSegment(Point p, Point a, Point b)
+        {
+            double dx = b.X - a.X, dy = b.Y - a.Y;
+            double lenSq = dx * dx + dy * dy;
+            if (lenSq < 0.001)
+                return Math.Sqrt((p.X - a.X) * (p.X - a.X) + (p.Y - a.Y) * (p.Y - a.Y));
+            double t = Math.Max(0, Math.Min(1, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / lenSq));
+            double nearX = a.X + t * dx, nearY = a.Y + t * dy;
+            return Math.Sqrt((p.X - nearX) * (p.X - nearX) + (p.Y - nearY) * (p.Y - nearY));
+        }
+
+        // ── 原始状态快照（防累积误差）──
+
+        /// <summary>拖拽前保存图形原始参数，后续所有计算从原始值出，不累积。</summary>
+        private static void CaptureOriginalState(UIElement shape, out object state)
+        {
+            if (shape is Line line)
+                state = (line.X1, line.Y1, line.X2, line.Y2);
+            else if (shape is Polygon tri)
+                state = tri.Points.ToArray();
+            else // Rectangle / Ellipse
+                state = (Canvas.GetLeft(shape), Canvas.GetTop(shape),
+                    ((FrameworkElement)shape).Width, ((FrameworkElement)shape).Height);
+        }
+
+        /// <summary>从快照恢复图形到拖拽前状态。</summary>
+        private static void RestoreOriginalState(UIElement shape, object state)
+        {
+            if (state == null) return;
+            if (state is (double x1, double y1, double x2, double y2) && shape is Line line)
+            { line.X1 = x1; line.Y1 = y1; line.X2 = x2; line.Y2 = y2; }
+            else if (state is Point[] pts && shape is Polygon tri)
+            { tri.Points = new PointCollection(pts); }
+            else if (state is (double l, double t, double w, double h))
+            { Canvas.SetLeft(shape, l); Canvas.SetTop(shape, t); ((FrameworkElement)shape).Width = w; ((FrameworkElement)shape).Height = h; }
+        }
+
+        // ── 拖拽操作 ──
+
+        private Rect CalculateResizeBounds(HandleRole corner, Rect orig, Point mousePos)
+        {
+            double left = orig.Left, top = orig.Top, right = orig.Right, bottom = orig.Bottom;
+
+            switch (corner)
+            {
+                case HandleRole.TopLeft:
+                    left = Math.Min(mousePos.X, right - 3);
+                    top = Math.Min(mousePos.Y, bottom - 3);
+                    break;
+                case HandleRole.TopRight:
+                    right = Math.Max(mousePos.X, left + 3);
+                    top = Math.Min(mousePos.Y, bottom - 3);
+                    break;
+                case HandleRole.BottomLeft:
+                    left = Math.Min(mousePos.X, right - 3);
+                    bottom = Math.Max(mousePos.Y, top + 3);
+                    break;
+                case HandleRole.BottomRight:
+                    right = Math.Max(mousePos.X, left + 3);
+                    bottom = Math.Max(mousePos.Y, top + 3);
+                    break;
+            }
+            return new Rect(left, top, Math.Max(3, right - left), Math.Max(3, bottom - top));
+        }
+
+        /// <summary>从原始状态 + 新旧包围盒比值 计算图形新位置（不从当前值累乘，防累积误差）。</summary>
+        private void FitShapeToBounds(UIElement shape, Rect newBounds, Rect oldBounds)
+        {
+            if (_originalShapeState == null) return;
+            double nw = Math.Max(3, newBounds.Width), nh = Math.Max(3, newBounds.Height);
+            double ow = Math.Max(1, oldBounds.Width), oh = Math.Max(1, oldBounds.Height);
+            double scaleX = nw / ow, scaleY = nh / oh;
+
+            if (_originalShapeState is (double rx1, double ry1, double rx2, double ry2) && shape is Line line)
+            {
+                line.X1 = newBounds.Left + (rx1 - oldBounds.Left) * scaleX;
+                line.Y1 = newBounds.Top  + (ry1 - oldBounds.Top)  * scaleY;
+                line.X2 = newBounds.Left + (rx2 - oldBounds.Left) * scaleX;
+                line.Y2 = newBounds.Top  + (ry2 - oldBounds.Top)  * scaleY;
+            }
+            else if (_originalShapeState is Point[] pts && shape is Polygon tri)
+            {
+                var newPts = new PointCollection();
+                foreach (var p in pts)
+                    newPts.Add(new Point(
+                        newBounds.Left + (p.X - oldBounds.Left) * scaleX,
+                        newBounds.Top  + (p.Y - oldBounds.Top)  * scaleY));
+                tri.Points = newPts;
+            }
+            else if (_originalShapeState is (double ol, double ot, double ow2, double oh2) && _selectedShapeDrawType == "circle")
+            {
+                double cxNew = newBounds.Left + nw / 2, cyNew = newBounds.Top + nh / 2;
+                double rNew = Math.Min(nw, nh) / 2;
+                var fe = shape as FrameworkElement;
+                fe.Width = rNew * 2; fe.Height = rNew * 2;
+                Canvas.SetLeft(shape, cxNew - rNew); Canvas.SetTop(shape, cyNew - rNew);
+            }
+            else if (_originalShapeState is (double ol2, double ot2, double ow3, double oh3))
+            {
+                var fe = shape as FrameworkElement;
+                fe.Width  = ow3 * scaleX;
+                fe.Height = oh3 * scaleY;
+                Canvas.SetLeft(shape, newBounds.Left + (ol2 - oldBounds.Left) * scaleX);
+                Canvas.SetTop (shape, newBounds.Top  + (ot2 - oldBounds.Top)  * scaleY);
+            }
+        }
+
+        /// <summary>从原始状态 + 累计偏移量 平移图形（每帧重置再应用，避免增量浮点累积）。</summary>
+        private void TranslateShapeFromOriginal(UIElement shape, double totalDx, double totalDy)
+        {
+            RestoreOriginalState(shape, _originalShapeState);
+            if (_originalShapeState is (double x1, double y1, double x2, double y2) && shape is Line line)
+            { line.X1 = x1 + totalDx; line.Y1 = y1 + totalDy; line.X2 = x2 + totalDx; line.Y2 = y2 + totalDy; }
+            else if (_originalShapeState is Point[] pts && shape is Polygon tri)
+            {
+                var newPts = new PointCollection();
+                foreach (var p in pts) newPts.Add(new Point(p.X + totalDx, p.Y + totalDy));
+                tri.Points = newPts;
+            }
+            else if (_originalShapeState is (double l, double t, double w, double h))
+            { Canvas.SetLeft(shape, l + totalDx); Canvas.SetTop(shape, t + totalDy); }
+        }
+
+        // ── 修改确认：协议重编码 + 同步 ──
+
+        private void FinalizeShapeModification()
+        {
+            if (_selectedShape == null || _selectedIndex < 0) return;
+            if (_selectedIndex >= _displayVM.DrawCommands.Count) return;
+
+            var oldCmd = _displayVM.DrawCommands[_selectedIndex];
+            var newArgs = ShapeToProtocolArgs(_selectedShape, oldCmd);
+            if (newArgs == null) return;
+
+            // 就地更新 DrawCommand
+            _displayVM.DrawCommands[_selectedIndex] = new DrawCommand
+            {
+                Type = oldCmd.Type,
+                Args = newArgs,
+                Color = oldCmd.Color,
+            };
+
+            // 重建控点（位置可能已变）
+            RemoveControlPoints();
+            var bounds = GetShapeBounds(_selectedShape);
+            CreateControlPoints(bounds);
+
+            // Point 2 预留接口 —— 当前全量刷新，将来可切增量
+            SyncShapeAfterModification(_selectedIndex, newArgs);
+        }
+
+        /// <summary>
+        /// Point 2 预留接口：形状修改后同步到设备。
+        /// 当前实现：全量刷新（clear + 全部 draw）。将来可改为增量协议（[draw,remove,N] + [draw,insert,N,...] 或 ID 索引）。
+        /// </summary>
+        private void SyncShapeAfterModification(int index, List<string> newArgs)
+        {
+            SyncAllShapesToDevice();
+        }
+
+        /// <summary>
+        /// 从当前图形状态重生成协议参数。
+        /// 将来 Line/Triangle 覆写后可用多态分派。
+        /// </summary>
+        private static List<string> ShapeToProtocolArgs(UIElement shape, DrawCommand oldCmd)
+        {
+            string type = oldCmd.Type;
+            string color = oldCmd.Color;
+
+            switch (type)
+            {
+                case "point":
+                    return new List<string> { "point",
+                        ((int)Canvas.GetLeft(shape)).ToString(),
+                        ((int)Canvas.GetTop(shape)).ToString(), color };
+
+                case "line":
+                    var line = (Line)shape;
+                    var lineArgs = new List<string> { "line",
+                        ((int)line.X1).ToString(), ((int)line.Y1).ToString(),
+                        ((int)line.X2).ToString(), ((int)line.Y2).ToString(), color };
+                    if (line.StrokeThickness != 1) lineArgs.Add(((int)line.StrokeThickness).ToString());
+                    return lineArgs;
+
+                case "rect":
+                    var rect = (System.Windows.Shapes.Rectangle)shape;
+                    var rectArgs = new List<string> { "rect",
+                        ((int)Canvas.GetLeft(rect)).ToString(), ((int)Canvas.GetTop(rect)).ToString(),
+                        ((int)rect.Width).ToString(), ((int)rect.Height).ToString(), color };
+                    if (rect.StrokeThickness != 1) rectArgs.Add(((int)rect.StrokeThickness).ToString());
+                    return rectArgs;
+
+                case "fill":
+                    var fillRect = (System.Windows.Shapes.Rectangle)shape;
+                    return new List<string> { "fill",
+                        ((int)Canvas.GetLeft(fillRect)).ToString(), ((int)Canvas.GetTop(fillRect)).ToString(),
+                        ((int)fillRect.Width).ToString(), ((int)fillRect.Height).ToString(), color };
+
+                case "circle":
+                    var circle = (Ellipse)shape;
+                    int cx = (int)(Canvas.GetLeft(circle) + circle.Width / 2);
+                    int cy = (int)(Canvas.GetTop(circle) + circle.Height / 2);
+                    int r = (int)(Math.Max(circle.Width, circle.Height) / 2);
+                    var circArgs = new List<string> { "circle", cx.ToString(), cy.ToString(), r.ToString(), color };
+                    if (circle.Stroke != null && circle.StrokeThickness != 1) circArgs.Add(((int)circle.StrokeThickness).ToString());
+                    return circArgs;
+
+                case "ellipse":
+                    var ellipse = (Ellipse)shape;
+                    int ex = (int)(Canvas.GetLeft(ellipse) + ellipse.Width / 2);
+                    int ey = (int)(Canvas.GetTop(ellipse) + ellipse.Height / 2);
+                    int a = (int)(ellipse.Width / 2);
+                    int b = (int)(ellipse.Height / 2);
+                    var ellArgs = new List<string> { "ellipse", ex.ToString(), ey.ToString(), a.ToString(), b.ToString(), color };
+                    if (ellipse.Stroke != null && ellipse.StrokeThickness != 1) ellArgs.Add(((int)ellipse.StrokeThickness).ToString());
+                    return ellArgs;
+
+                case "triangle":
+                    var tri = (Polygon)shape;
+                    var triArgs = new List<string> { "triangle",
+                        ((int)tri.Points[0].X).ToString(), ((int)tri.Points[0].Y).ToString(),
+                        ((int)tri.Points[1].X).ToString(), ((int)tri.Points[1].Y).ToString(),
+                        ((int)tri.Points[2].X).ToString(), ((int)tri.Points[2].Y).ToString(), color };
+                    if (tri.StrokeThickness != 1) triArgs.Add(((int)tri.StrokeThickness).ToString());
+                    return triArgs;
+            }
+            return null;
         }
 
         // ═══════════════════════════════════════
