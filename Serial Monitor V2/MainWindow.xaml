@@ -1710,7 +1710,8 @@
                                 <!-- 文字编辑模式 -->
                                 <StackPanel x:Name="rightOLEDTextEditor" Visibility="Collapsed">
                                     <Grid Margin="0,0,0,8">
-                                        <TextBlock Text="文字编辑" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="文字编辑" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                         <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
                                                 Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
                                                 Click="btnTextEditCancel_Click" ToolTip="取消编辑"/>
@@ -1774,6 +1775,10 @@
                                         <Button Grid.Column="1" Content="选择颜色" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
                                                 Style="{DynamicResource SecondaryButtonStyle}" Click="textEditColorSwatch_Click"/>
                                     </Grid>
+                                    <!-- 锁定按钮（编辑已有文字时也可见） -->
+                                    <Button x:Name="btnTextLock" Content="🔓 锁定" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" MinWidth="0" Padding="6,0" Click="btnTextLock_Click"
+                                            ToolTip="锁定/解锁元素" Margin="0,0,0,8"/>
                                     <!-- 确定/取消（仅新建文字时显示） -->
                                     <Grid x:Name="textEditConfirmRow"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Button Grid.Column="0" Content="确定" Style="{DynamicResource PrimaryButtonStyle}"
@@ -1785,7 +1790,8 @@
                                 <!-- 形状属性编辑模式 -->
                                 <StackPanel x:Name="rightOLEDShapeEditor" Visibility="Collapsed">
                                     <Grid Margin="0,0,0,8">
-                                        <TextBlock x:Name="tbShapeEditTitle" Text="图形属性" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="tbShapeEditTitle" Text="图形属性" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                         <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
                                                 Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
                                                 Click="btnShapeEditCancel_Click" ToolTip="取消选中"/>
@@ -1822,8 +1828,12 @@
                                                 Style="{DynamicResource SecondaryButtonStyle}" Click="shapeEditColorSwatch_Click"/>
                                     </Grid>
                                     <!-- 操作按钮 -->
-                                    <Button Content="🗑 删除图形" Style="{DynamicResource SecondaryButtonStyle}"
-                                            Height="28" Click="btnShapeDelete_Click" Foreground="#E53935"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Content="🗑 删除图形" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="28" Click="btnShapeDelete_Click" Foreground="#E53935" Margin="0,0,4,0"/>
+                                        <Button x:Name="btnShapeLock" Grid.Column="1" Content="🔓 锁定" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="28" MinWidth="0" Padding="6,0" Click="btnShapeLock_Click" ToolTip="锁定/解锁元素"/>
+                                    </Grid>
                                 </StackPanel>
                                 <!-- 共享协议预览（选中任意控件时显示） -->
                                 <StackPanel x:Name="sharedProtocolPreview" Visibility="Collapsed">
@@ -2207,7 +2217,8 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="6,3">
                         <StackPanel Orientation="Horizontal">
                             <!-- 锁定 -->
-                            <Button x:Name="btnLockCanvas" Content="🔒" Width="22" Height="22" ToolTip="解锁画布（默认锁定，只看不画）"
+                            <Button x:Name="btnLockCanvas" Content="🔒" Width="34" Height="34" ToolTip="解锁画布（默认锁定，只看不画）"
+                                    FontSize="18"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="1,0"
                                     Click="btnLockCanvas_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
@@ -2222,15 +2233,32 @@
                             <Button x:Name="btnToolLine" Content="📏" Width="24" Height="24" ToolTip="直线"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolLine_Click"/>
-                            <Button x:Name="btnToolRect" Content="▭" Width="24" Height="24" ToolTip="矩形"
+                            <Button x:Name="btnToolRect" Content="▭▾" Width="42" Height="24" ToolTip="矩形 (左键选择，右键切换类型)"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
-                                    Click="btnToolRect_Click"/>
-                            <Button x:Name="btnToolCircle" Content="◯" Width="24" Height="24" ToolTip="圆"
+                                    Click="btnToolRect_Click">
+                                <Button.ContextMenu>
+                                    <ContextMenu Placement="Bottom">
+                                        <MenuItem Header="▭ 矩形" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolRect_Click"/>
+                                        <MenuItem Header="▢ 圆角矩形" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolRoundedRect_Click"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                            <Button x:Name="btnToolCircle" Content="◯▾" Width="42" Height="24" ToolTip="圆 (左键选择，右键切换类型)"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
-                                    Click="btnToolCircle_Click"/>
+                                    Click="btnToolCircle_Click">
+                                <Button.ContextMenu>
+                                    <ContextMenu Placement="Bottom">
+                                        <MenuItem Header="◯ 圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolCircle_Click"/>
+                                        <MenuItem Header="◭ 椭圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolEllipse_Click"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                             <Button x:Name="btnToolTriangle" Content="△" Width="24" Height="24" ToolTip="三角形"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolTriangle_Click"/>
+                            <Button x:Name="btnToolArc" Content="⌒" Width="24" Height="24" ToolTip="弧线"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
+                                    Click="btnToolArc_Click"/>
                             <Button x:Name="btnToolText" Content="T" Width="24" Height="24" ToolTip="文字"
                                     FontWeight="Bold"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"

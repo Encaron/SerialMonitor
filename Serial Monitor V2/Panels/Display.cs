@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
@@ -19,7 +20,7 @@ namespace 串口助手
         private List<UIElement> _drawElements = new List<UIElement>();
 
         // ——— #7 PC 鼠标画板 ———
-        private enum DrawTool { None, Select, Pencil, Line, Rect, Circle, Triangle, Text, Eraser }
+        private enum DrawTool { None, Select, Pencil, Line, Rect, RoundedRect, Circle, Ellipse, Triangle, Arc, Text, Eraser }
 
         /// <summary>
         /// 控点角色。Phase 3 用 TopLeft~Center；Endpoint1~Vertex2 预留给线端点/三角顶点拖拽。
@@ -32,8 +33,13 @@ namespace 串口助手
         }
 
         private DrawTool _drawTool = DrawTool.None;
+        private DrawTool _rectSubTool = DrawTool.Rect;        // 矩形按钮当前子工具
+        private DrawTool _circleSubTool = DrawTool.Circle;     // 圆形按钮当前子工具
         private string _drawColor = "#FFFFFF";
         private int _drawLineWidth = 1;
+        private int _roundedRectRadius = 8;  // 圆角矩形默认圆角
+        private int _arcStartAngle = 0;      // 弧线默认起始角（OLED坐标系：右=0°，顺时针为正）
+        private int _arcEndAngle = 180;      // 弧线默认终止角
         private bool _isLocked = true;
         private bool _isDrawing = false;
         private Ellipse _eraserCursor = null;
@@ -42,6 +48,7 @@ namespace 串口助手
         private Point _lastSamplePoint;
         private DateTime _lastSampleTime;
         private readonly List<Button> _toolButtons = new List<Button>();
+        private readonly HashSet<int> _lockedShapeIndices = new HashSet<int>(); // 单元素锁定
 
         // ——— 文字编辑（侧栏模式） ———
         private bool _isEditingText = false;
@@ -107,6 +114,7 @@ namespace 串口助手
             _toolButtons.Add(btnToolRect);
             _toolButtons.Add(btnToolCircle);
             _toolButtons.Add(btnToolTriangle);
+            _toolButtons.Add(btnToolArc);
             _toolButtons.Add(btnToolText);
             _toolButtons.Add(btnToolEraser);
 
@@ -325,10 +333,12 @@ namespace 串口助手
                         args.Add("fill");
                         HandleDrawRect(args);
                         break;
-                    case "circle":   HandleDrawCircle(args);   break;
-                    case "ellipse":  HandleDrawEllipse(args);  break;
-                    case "triangle": HandleDrawTriangle(args); break;
-                    case "clear":    HandleDrawClearCmd(args); break;
+                    case "circle":   HandleDrawCircle(args);      break;
+                    case "ellipse":  HandleDrawEllipse(args);     break;
+                    case "rrect":    HandleDrawRoundedRect(args);  break;
+                    case "arc":      HandleDrawArc(args);          break;
+                    case "triangle": HandleDrawTriangle(args);    break;
+                    case "clear":    HandleDrawClearCmd(args);    break;
                 }
             });
         }
@@ -481,29 +491,170 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 空心椭圆 [draw,ellipse,x,y,a,b,#RRGGBB,w] ──
+        // ── 椭圆 [draw,ellipse,cx,cy,a,b,#RRGGBB,w] 或 [draw,ellipse,cx,cy,a,b,#RRGGBB,w,fill] ──
         private void HandleDrawEllipse(List<string> args)
         {
             if (args.Count < 5) return;
-            if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)
+            if (!int.TryParse(args[1], out int cx) || !int.TryParse(args[2], out int cy)
              || !int.TryParse(args[3], out int a) || !int.TryParse(args[4], out int b)) return;
             string color = args.Count >= 6 ? args[5] : "#FFFFFF";
-            int lw = (args.Count >= 7 && int.TryParse(args[6], out int sw)) ? sw : 1;
+            bool isFilled = args.Count >= 7 && args[args.Count - 1] == "fill";
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var ellipse = new Ellipse
             {
                 Width = a * 2, Height = b * 2,
-                Stroke = brush, StrokeThickness = lw,
             };
+
+            if (isFilled)
+            {
+                ellipse.Fill = brush;
+            }
+            else
+            {
+                int lw = (args.Count >= 7 && int.TryParse(args[6], out int sw) && sw >= 1) ? sw : 1;
+                ellipse.Stroke = brush;
+                ellipse.StrokeThickness = lw;
+            }
+
             SnapShapeToPixel(ellipse);
-            Canvas.SetLeft(ellipse, x - a);
-            Canvas.SetTop(ellipse, y - b);
+            Canvas.SetLeft(ellipse, cx - a);
+            Canvas.SetTop(ellipse, cy - b);
 
             oledCanvas.Children.Add(ellipse);
             _drawElements.Add(ellipse);
             _displayVM.DrawCommands.Add(new DrawCommand { Type = "ellipse", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
+        }
+
+        // ── 圆角矩形 [draw,rrect,x,y,w,h,#RRGGBB,w,radius] 或 [draw,rrect,x,y,w,h,#RRGGBB,w,radius,fill] ──
+        private void HandleDrawRoundedRect(List<string> args)
+        {
+            if (args.Count < 5) return;
+            if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)
+             || !int.TryParse(args[3], out int w) || !int.TryParse(args[4], out int h)) return;
+            string color = args.Count >= 6 ? args[5] : "#FFFFFF";
+            int radius = 8;
+            int lw = 1;
+            bool isFilled = args.Count >= 8 && args[args.Count - 1] == "fill";
+
+            // 解析可选参数：先拿线宽（索引6），再拿圆角半径（索引7）
+            if (args.Count >= 7 && int.TryParse(args[6], out int sw) && sw >= 1) lw = sw;
+            if (args.Count >= 8)
+            {
+                // 倒数第一个可能是 "fill"，倒数第二个可能是 radius
+                int radiusIdx = isFilled ? args.Count - 2 : args.Count - 1;
+                if (radiusIdx >= 7 && int.TryParse(args[radiusIdx], out int rr) && rr >= 0)
+                    radius = rr;
+            }
+
+            var brush = ParseColorBrush(color) ?? Brushes.White;
+            var rrect = new Rectangle
+            {
+                Width = w, Height = h,
+                RadiusX = radius, RadiusY = radius,
+            };
+
+            if (isFilled)
+            {
+                rrect.Fill = brush;
+            }
+            else
+            {
+                rrect.Stroke = brush;
+                rrect.StrokeThickness = lw;
+            }
+
+            SnapShapeToPixel(rrect);
+            Canvas.SetLeft(rrect, x);
+            Canvas.SetTop(rrect, y);
+
+            oledCanvas.Children.Add(rrect);
+            _drawElements.Add(rrect);
+            _displayVM.DrawCommands.Add(new DrawCommand { Type = "rrect", Args = args, Color = color });
+            oledEmptyHint.Visibility = Visibility.Collapsed;
+        }
+
+        // ── 弧线 [draw,arc,cx,cy,r,startAngle,endAngle,#RRGGBB,w] 或 [draw,arc,cx,cy,r,startAngle,endAngle,#RRGGBB,w,fill] ──
+        private void HandleDrawArc(List<string> args)
+        {
+            if (args.Count < 6) return;
+            if (!int.TryParse(args[1], out int cx) || !int.TryParse(args[2], out int cy)
+             || !int.TryParse(args[3], out int r)) return;
+            if (!int.TryParse(args[4], out int startAngle) || !int.TryParse(args[5], out int endAngle)) return;
+            string color = args.Count >= 7 ? args[6] : "#FFFFFF";
+            bool isFilled = args.Count >= 8 && args[args.Count - 1] == "fill";
+            int lw = 1;
+            if (!isFilled && args.Count >= 8 && int.TryParse(args[7], out int sw) && sw >= 1) lw = sw;
+
+            var brush = ParseColorBrush(color) ?? Brushes.White;
+            var arcPath = BuildArcPath(cx, cy, r, startAngle, endAngle, brush, lw, isFilled, preview: false);
+            SnapShapeToPixel(arcPath);
+            // Path 定位：Data 几何含绝对坐标，Canvas 原点设 (0,0)
+            Canvas.SetLeft(arcPath, 0);
+            Canvas.SetTop(arcPath, 0);
+
+            oledCanvas.Children.Add(arcPath);
+            _drawElements.Add(arcPath);
+            _displayVM.DrawCommands.Add(new DrawCommand { Type = "arc", Args = args, Color = color });
+            oledEmptyHint.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>构建弧线 Path（OLED 坐标系：右=0°，顺时针为正，Y向下⟶WPF 坐标相同）</summary>
+        private static System.Windows.Shapes.Path BuildArcPath(double cx, double cy, double r,
+            double startAngle, double endAngle, Brush brush, double lw, bool filled, bool preview)
+        {
+            // OLED/WPF 共用坐标系：右=0°，顺时针为正（下=90°，左=±180°）
+            double sweep = ((endAngle - startAngle) % 360 + 360) % 360;
+            bool isLargeArc = sweep > 180;
+
+            double startRad = startAngle * Math.PI / 180.0;
+            double endRad = endAngle * Math.PI / 180.0;
+            double sx = cx + r * Math.Cos(startRad);
+            double sy = cy + r * Math.Sin(startRad);
+            double ex = cx + r * Math.Cos(endRad);
+            double ey = cy + r * Math.Sin(endRad);
+
+            var sweepDir = SweepDirection.Clockwise;
+
+            var geometry = new PathGeometry();
+
+            if (filled)
+            {
+                // 扇形：圆心 → 起始弧点 → 弧线到终止弧点 → 闭合回圆心
+                var fig = new PathFigure { StartPoint = new Point(cx, cy) };
+                fig.Segments.Add(new LineSegment(new Point(sx, sy), true));
+                fig.Segments.Add(new ArcSegment(new Point(ex, ey),
+                    new Size(r, r), 0, isLargeArc, sweepDir, true));
+                fig.IsClosed = true;
+                geometry.Figures.Add(fig);
+            }
+            else
+            {
+                // 弧线段
+                var fig = new PathFigure { StartPoint = new Point(sx, sy) };
+                fig.Segments.Add(new ArcSegment(new Point(ex, ey),
+                    new Size(r, r), 0, isLargeArc, sweepDir, true));
+                geometry.Figures.Add(fig);
+            }
+
+            var path = new System.Windows.Shapes.Path
+            {
+                Data = geometry,
+                Stroke = preview ? brush : null,
+                StrokeThickness = lw,
+                StrokeDashArray = preview ? new DoubleCollection { 4, 3 } : null,
+            };
+
+            if (!preview)
+            {
+                if (filled)
+                    path.Fill = brush;
+                else
+                    path.Stroke = brush;
+            }
+
+            return path;
         }
 
         // ── 空心三角形 [draw,triangle,x0,y0,x1,y1,x2,y2,#RRGGBB,w] ──
@@ -566,6 +717,9 @@ namespace 串口助手
                 oledCanvas.Children.Remove(shape);
             _drawElements.Clear();
 
+            // 清锁定索引
+            _lockedShapeIndices.Clear();
+
             // 清 VM
             _displayVM.ClearAll();
 
@@ -598,9 +752,35 @@ namespace 串口助手
         // ═══════════════════════════════════════
 
         // ── 工具切换 ──
+
+        /// <summary>纯抖动反馈（不带 toast），用于锁按钮等非复制场景</summary>
+        private static void ShakeButton(Button btn)
+        {
+            btn.RenderTransformOrigin = new Point(0.5, 0.5);
+            var st = new ScaleTransform(1, 1);
+            btn.RenderTransform = st;
+            var anim = new DoubleAnimationUsingKeyFrames { Duration = new Duration(TimeSpan.FromMilliseconds(150)) };
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(0))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.12, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(33))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(0.90, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(75))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.03, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(110))));
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1.0,  KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(140))));
+            btn.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
+                st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+            }));
+        }
+
         private void SelectTool(DrawTool tool, Button activeBtn)
         {
-            if (_isLocked) return;
+            if (_isLocked)
+            {
+                // 抖动锁按钮 → 视觉反馈（不带 toast）
+                if (btnLockCanvas != null)
+                    ShakeButton(btnLockCanvas);
+                return;
+            }
             _drawTool = tool;
             foreach (var b in _toolButtons)
                 b.Style = (Style)FindResource("SecondaryButtonStyle");
@@ -661,12 +841,73 @@ namespace 串口助手
 
         private void btnToolPencil_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Pencil,  btnToolPencil); }
         private void btnToolLine_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Line,    btnToolLine); }
-        private void btnToolRect_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Rect,    btnToolRect); }
-        private void btnToolCircle_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Circle,  btnToolCircle); }
+        private void btnToolRect_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isLocked) return;
+            // 左键：已激活→弹出下拉换类型，未激活→选中当前子工具
+            if (_drawTool == DrawTool.Rect || _drawTool == DrawTool.RoundedRect)
+            {
+                // 已激活 → 弹出下拉菜单
+                if (sender is Button btn && btn.ContextMenu != null)
+                {
+                    btn.ContextMenu.PlacementTarget = btn;
+                    btn.ContextMenu.Placement = PlacementMode.Bottom;
+                    btn.ContextMenu.IsOpen = true;
+                }
+            }
+            else
+            {
+                SelectTool(_rectSubTool, btnToolRect);
+            }
+        }
+        private void btnToolCircle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isLocked) return;
+            if (_drawTool == DrawTool.Circle || _drawTool == DrawTool.Ellipse)
+            {
+                if (sender is Button btn && btn.ContextMenu != null)
+                {
+                    btn.ContextMenu.PlacementTarget = btn;
+                    btn.ContextMenu.Placement = PlacementMode.Bottom;
+                    btn.ContextMenu.IsOpen = true;
+                }
+            }
+            else
+            {
+                SelectTool(_circleSubTool, btnToolCircle);
+            }
+        }
         private void btnToolTriangle_Click(object sender, RoutedEventArgs e){ SelectTool(DrawTool.Triangle,btnToolTriangle); }
+        private void btnToolArc_Click(object sender, RoutedEventArgs e)      { SelectTool(DrawTool.Arc,     btnToolArc); }
         private void btnToolText_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Text,    btnToolText); }
         private void btnToolEraser_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Eraser,  btnToolEraser); }
         private void btnToolSelect_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Select,  btnToolSelect); }
+
+        // ── 矩形/圆形 子工具下拉菜单 ──
+        private void SubToolRect_Click(object sender, RoutedEventArgs e)
+        {
+            _rectSubTool = DrawTool.Rect;
+            btnToolRect.Content = "▭▾";
+            SelectTool(DrawTool.Rect, btnToolRect);
+        }
+        private void SubToolRoundedRect_Click(object sender, RoutedEventArgs e)
+        {
+            _rectSubTool = DrawTool.RoundedRect;
+            btnToolRect.Content = "▢▾";
+            SelectTool(DrawTool.RoundedRect, btnToolRect);
+        }
+        private void SubToolCircle_Click(object sender, RoutedEventArgs e)
+        {
+            _circleSubTool = DrawTool.Circle;
+            btnToolCircle.Content = "◯▾";
+            SelectTool(DrawTool.Circle, btnToolCircle);
+        }
+        private void SubToolEllipse_Click(object sender, RoutedEventArgs e)
+        {
+            _circleSubTool = DrawTool.Ellipse;
+            btnToolCircle.Content = "◭▾";
+            SelectTool(DrawTool.Ellipse, btnToolCircle);
+        }
 
         // ── 锁定 / 解锁 ──
         private void btnLockCanvas_Click(object sender, RoutedEventArgs e)
@@ -809,7 +1050,8 @@ namespace 串口助手
                 if (_selectedShape != null)
                 {
                     var hitHandle = HitTestControlPoint(pos);
-                    if (hitHandle != null)
+                    // text 只支持平移，不响应角控点 resize
+                    if (hitHandle != null && !(_selectedShape is TextBlock))
                     {
                         _activeHandle = (HandleRole)hitHandle.Tag;
                         _selectDragOrigin = pos;
@@ -879,8 +1121,11 @@ namespace 串口助手
 
                 case DrawTool.Line:
                 case DrawTool.Rect:
+                case DrawTool.RoundedRect:
                 case DrawTool.Circle:
+                case DrawTool.Ellipse:
                 case DrawTool.Triangle:
+                case DrawTool.Arc:
                     _isDrawing = true;
                     oledCanvas.CaptureMouse();
                     // 创建虚线预览
@@ -910,6 +1155,7 @@ namespace 串口助手
             // ——— Select 模式：拖拽控点 / 平移 ———
             if (_drawTool == DrawTool.Select && _selectedShape != null)
             {
+                if (IsElementLocked()) return; // 锁定元素禁止拖拽
                 double dx = pos.X - _selectDragOrigin.X;
                 double dy = pos.Y - _selectDragOrigin.Y;
                 if (!_hasMoved && Math.Abs(dx) < 3 && Math.Abs(dy) < 3)
@@ -959,8 +1205,11 @@ namespace 串口助手
 
                 case DrawTool.Line:
                 case DrawTool.Rect:
+                case DrawTool.RoundedRect:
                 case DrawTool.Circle:
+                case DrawTool.Ellipse:
                 case DrawTool.Triangle:
+                case DrawTool.Arc:
                     UpdatePreviewShape(_previewShape, _drawTool, _drawStart, pos);
                     break;
             }
@@ -993,19 +1242,26 @@ namespace 串口助手
 
                 case DrawTool.Line:
                 case DrawTool.Rect:
+                case DrawTool.RoundedRect:
                 case DrawTool.Circle:
+                case DrawTool.Ellipse:
                 case DrawTool.Triangle:
+                case DrawTool.Arc:
                     // 删预览 → 建正式图形 → 发协议
                     if (_previewShape != null)
                     {
                         oledCanvas.Children.Remove(_previewShape);
                         _previewShape = null;
                     }
-                    // 最小尺寸过滤（拖太短算取消）
+                    // 最小尺寸过滤
                     double w = Math.Abs(pos.X - _drawStart.X);
                     double h = Math.Abs(pos.Y - _drawStart.Y);
+                    // 弧线：半径过小取消
+                    if (_drawTool == DrawTool.Arc && Math.Max(w, h) < 5) return;
+                    // 直线：长度过短取消
                     if (_drawTool == DrawTool.Line && Math.Sqrt(w * w + h * h) < 3) return;
-                    if (_drawTool != DrawTool.Line && (w < 3 || h < 3)) return;
+                    // 其他：拖太短取消
+                    if (_drawTool != DrawTool.Line && _drawTool != DrawTool.Arc && (w < 3 || h < 3)) return;
                     FinalizeShape(_drawTool, _drawStart, pos);
                     break;
             }
@@ -1085,6 +1341,33 @@ namespace 串口助手
                     SnapShapeToPixel(shape);
                     break;
                 }
+                case DrawTool.RoundedRect:
+                    shape = new Rectangle { Width = w, Height = h,
+                        RadiusX = _roundedRectRadius, RadiusY = _roundedRectRadius,
+                        Stroke = brush, StrokeThickness = _drawLineWidth,
+                        StrokeDashArray = new DoubleCollection { 4, 3 } };
+                    SnapShapeToPixel(shape);
+                    Canvas.SetLeft(shape, x); Canvas.SetTop(shape, y);
+                    break;
+                case DrawTool.Ellipse:
+                {
+                    double ecx = (p1.X + p2.X) / 2, ecy = (p1.Y + p2.Y) / 2;
+                    double erx = Math.Abs(p2.X - p1.X) / 2, ery = Math.Abs(p2.Y - p1.Y) / 2;
+                    shape = new Ellipse { Width = erx * 2, Height = ery * 2,
+                        Stroke = brush, StrokeThickness = _drawLineWidth,
+                        StrokeDashArray = new DoubleCollection { 4, 3 } };
+                    SnapShapeToPixel(shape);
+                    Canvas.SetLeft(shape, ecx - erx); Canvas.SetTop(shape, ecy - ery);
+                    break;
+                }
+                case DrawTool.Arc:
+                    // 预览：半透明虚线弧 + 圆心十字
+                    double ar = Math.Max(w, h) / 2;
+                    double acx = (p1.X + p2.X) / 2, acy = (p1.Y + p2.Y) / 2;
+                    shape = BuildArcPath(acx, acy, ar, _arcStartAngle, _arcEndAngle,
+                        brush, _drawLineWidth, filled: false, preview: true);
+                    SnapShapeToPixel(shape);
+                    break;
             }
             return shape;
         }
@@ -1120,6 +1403,32 @@ namespace 串口助手
                         new Point(x, y + h),
                         new Point(x + w, y + h),
                     };
+                    break;
+                }
+                case DrawTool.RoundedRect when element is Rectangle rrect2:
+                    rrect2.Width = w; rrect2.Height = h;
+                    Canvas.SetLeft(rrect2, x); Canvas.SetTop(rrect2, y);
+                    break;
+                case DrawTool.Ellipse when element is Ellipse ell2:
+                {
+                    double ecx = (p1.X + p2.X) / 2, ecy = (p1.Y + p2.Y) / 2;
+                    double erx = Math.Abs(p2.X - p1.X) / 2, ery = Math.Abs(p2.Y - p1.Y) / 2;
+                    ell2.Width = erx * 2; ell2.Height = ery * 2;
+                    Canvas.SetLeft(ell2, ecx - erx); Canvas.SetTop(ell2, ecy - ery);
+                    break;
+                }
+                case DrawTool.Arc when element is Path arcPath:
+                {
+                    double ar = Math.Max(w, h) / 2;
+                    double acx = (p1.X + p2.X) / 2, acy = (p1.Y + p2.Y) / 2;
+                    var ab = ParseColorBrush(_drawColor) ?? Brushes.White;
+                    ab = ab.Clone(); ab.Opacity = 0.45;
+                    var newPath = BuildArcPath(acx, acy, ar, _arcStartAngle, _arcEndAngle,
+                        ab, _drawLineWidth, filled: false, preview: true);
+                    arcPath.Data = newPath.Data;
+                    arcPath.Stroke = newPath.Stroke;
+                    arcPath.StrokeThickness = newPath.StrokeThickness;
+                    arcPath.StrokeDashArray = newPath.StrokeDashArray;
                     break;
                 }
             }
@@ -1169,19 +1478,53 @@ namespace 串口助手
                         (x + w).ToString(), (y + h).ToString(), color };     // 右下
                     break;
                 }
+                case DrawTool.RoundedRect:
+                {
+                    int x = (int)Math.Min(p1.X, p2.X), y = (int)Math.Min(p1.Y, p2.Y);
+                    int w = (int)Math.Abs(p2.X - p1.X), h = (int)Math.Abs(p2.Y - p1.Y);
+                    type = "rrect";
+                    args = new List<string> { "rrect", x.ToString(), y.ToString(), w.ToString(), h.ToString(), color };
+                    break;
+                }
+                case DrawTool.Ellipse:
+                {
+                    int ecx = (int)((p1.X + p2.X) / 2), ecy = (int)((p1.Y + p2.Y) / 2);
+                    int a = (int)Math.Abs(p2.X - p1.X) / 2, b = (int)Math.Abs(p2.Y - p1.Y) / 2;
+                    type = "ellipse";
+                    args = new List<string> { "ellipse", ecx.ToString(), ecy.ToString(), a.ToString(), b.ToString(), color };
+                    break;
+                }
+                case DrawTool.Arc:
+                {
+                    int acx = (int)((p1.X + p2.X) / 2), acy = (int)((p1.Y + p2.Y) / 2);
+                    int ar = (int)(Math.Max(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y)) / 2);
+                    type = "arc";
+                    args = new List<string> { "arc", acx.ToString(), acy.ToString(), ar.ToString(),
+                        _arcStartAngle.ToString(), _arcEndAngle.ToString(), color };
+                    break;
+                }
                 default: return;
             }
 
             // 线宽写入协议
-            if (_drawLineWidth != 1) args.Add(_drawLineWidth.ToString());
+            if (_drawLineWidth != 1 && tool != DrawTool.RoundedRect) args.Add(_drawLineWidth.ToString());
+            // 圆角矩形：始终输出 lw + radius（保证协议固定格式，避免 radius 被误读为 lw）
+            if (tool == DrawTool.RoundedRect)
+            {
+                args.Add(_drawLineWidth.ToString());
+                args.Add(_roundedRectRadius.ToString());
+            }
 
             // 渲染到画布
             switch (tool)
             {
-                case DrawTool.Line:     HandleDrawLine(args);     break;
-                case DrawTool.Rect:     HandleDrawRect(args);     break;
-                case DrawTool.Circle:   HandleDrawCircle(args);   break;
-                case DrawTool.Triangle: HandleDrawTriangle(args); break;
+                case DrawTool.Line:        HandleDrawLine(args);        break;
+                case DrawTool.Rect:        HandleDrawRect(args);        break;
+                case DrawTool.RoundedRect: HandleDrawRoundedRect(args); break;
+                case DrawTool.Circle:      HandleDrawCircle(args);      break;
+                case DrawTool.Ellipse:     HandleDrawEllipse(args);     break;
+                case DrawTool.Triangle:    HandleDrawTriangle(args);    break;
+                case DrawTool.Arc:         HandleDrawArc(args);         break;
             }
             // 发串口
             SendDrawCmd(type, args);
@@ -1297,9 +1640,10 @@ namespace 串口助手
             tbTextEditContent.Text = "";
             textEditColorSwatch.Background = ParseColorBrush(_textEditColor) ?? Brushes.White;
 
-            // 新建文字 → 显示确定/取消，隐藏协议预览
+            // 新建文字 → 显示确定/取消，隐藏协议预览 + 锁按钮
             textEditConfirmRow.Visibility = Visibility.Visible;
             sharedProtocolPreview.Visibility = Visibility.Collapsed;
+            if (btnTextLock != null) btnTextLock.Visibility = Visibility.Collapsed;
 
             // 切侧栏到编辑模式
             rightOLEDSettings.Visibility = Visibility.Collapsed;
@@ -1642,14 +1986,25 @@ namespace 串口助手
                 }
                 return new Rect(minX, minY, maxX - minX, maxY - minY);
             }
-            // Rectangle / Ellipse（以及 1px point 矩形）
+            // Rectangle / Ellipse / Path（以及 1px point 矩形）
             double left = Canvas.GetLeft(shape);
             double top = Canvas.GetTop(shape);
             double width = (shape as FrameworkElement)?.ActualWidth ?? 0;
             double height = (shape as FrameworkElement)?.ActualHeight ?? 0;
-            if (width == 0 && shape is Rectangle r) { width = r.Width; height = r.Height; }
-            if (width == 0 && shape is Ellipse e) { width = e.Width; height = e.Height; }
-            if (width == 0 && shape is TextBlock tb) { width = 20; height = tb.FontSize + 4; }
+
+            // Path 优先：几何含绝对坐标，必须从 Data.Bounds 推算（ActualWidth 非零会导致跳过）
+            if (shape is System.Windows.Shapes.Path arcPath2 && arcPath2.Data?.Bounds != null)
+            {
+                var geoBounds = arcPath2.Data.Bounds;
+                left = double.IsNaN(left) ? geoBounds.Left : left + geoBounds.Left;
+                top = double.IsNaN(top) ? geoBounds.Top : top + geoBounds.Top;
+                width = geoBounds.Width;
+                height = geoBounds.Height;
+            }
+            else if (width == 0 && shape is Rectangle r) { width = r.Width; height = r.Height; }
+            else if (width == 0 && shape is Ellipse e) { width = e.Width; height = e.Height; }
+            else if (width == 0 && shape is TextBlock tb) { width = 20; height = tb.FontSize + 4; }
+            if (width <= 0) { width = 40; height = 40; }
             return new Rect(left, top, width, height);
         }
 
@@ -1659,8 +2014,9 @@ namespace 串口助手
         {
             RemoveControlPoints();
             double size = 8;
-            var fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#42A5F5"));
-            var stroke = Brushes.White;
+            bool locked = IsElementLocked();
+            var fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(locked ? "#888888" : "#42A5F5"));
+            var stroke = locked ? Brushes.Gray : Brushes.White;
 
             // 4 角控点
             var corners = new (double X, double Y, HandleRole Role)[]
@@ -1827,6 +2183,15 @@ namespace 串口助手
                 state = (line.X1, line.Y1, line.X2, line.Y2);
             else if (shape is Polygon tri)
                 state = tri.Points.ToArray();
+            else if (shape is System.Windows.Shapes.Path arcPath)
+            {
+                // 弧线：保存位置、默认尺寸、画刷颜色
+                string arcColor = (arcPath.Stroke as SolidColorBrush ?? arcPath.Fill as SolidColorBrush)
+                    ?.Color.ToString() ?? "#FFFFFF";
+                if (!arcColor.StartsWith("#")) arcColor = "#" + arcColor;
+                state = (Canvas.GetLeft(arcPath), Canvas.GetTop(arcPath),
+                    40.0, 40.0, arcColor, arcPath.StrokeThickness);
+            }
             else if (shape is TextBlock tb)
                 state = (Canvas.GetLeft(tb), Canvas.GetTop(tb), tb.Text, tb.FontSize,
                     (tb.Foreground as SolidColorBrush)?.Color.ToString() ?? "#FFFFFF");
@@ -1845,13 +2210,25 @@ namespace 串口助手
             { tri.Points = new PointCollection(pts); }
             else if (state is ValueTuple<double, double, string, double, string> textState && shape is TextBlock tb)
             {
-                var (l, t, txt, fs, clr) = textState;
-                Canvas.SetLeft(tb, l); Canvas.SetTop(tb, t);
+                var (tl, tt, txt, fs, clr) = textState;
+                Canvas.SetLeft(tb, tl); Canvas.SetTop(tb, tt);
                 tb.Text = txt; tb.FontSize = fs;
                 try { tb.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(clr)); } catch { }
             }
-            else if (state is (double l, double t, double w, double h))
-            { Canvas.SetLeft(shape, l); Canvas.SetTop(shape, t); ((FrameworkElement)shape).Width = w; ((FrameworkElement)shape).Height = h; }
+            else if (state is (double al, double at, double aw, double ah, string arcClr, double arcLw) && shape is System.Windows.Shapes.Path arcPath2)
+            {
+                Canvas.SetLeft(arcPath2, al); Canvas.SetTop(arcPath2, at);
+                try
+                {
+                    var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(arcClr));
+                    if (arcPath2.Fill != null) arcPath2.Fill = b;
+                    else arcPath2.Stroke = b;
+                    arcPath2.StrokeThickness = arcLw;
+                }
+                catch { }
+            }
+            else if (state is (double sl, double st, double sw, double sh))
+            { Canvas.SetLeft(shape, sl); Canvas.SetTop(shape, st); ((FrameworkElement)shape).Width = sw; ((FrameworkElement)shape).Height = sh; }
         }
 
         // ── 拖拽操作 ──
@@ -1914,6 +2291,39 @@ namespace 串口助手
                 fe.Width = rNew * 2; fe.Height = rNew * 2;
                 Canvas.SetLeft(shape, cxNew - rNew); Canvas.SetTop(shape, cyNew - rNew);
             }
+            else if (_originalShapeState is (double al, double at, double aw, double ah, string arcClr, double arcLw) && shape is System.Windows.Shapes.Path arcP4)
+            {
+                // 弧线 resize：重算半径 + 重建几何（Path 不响应 Width/Height 缩放）
+                int newR = (int)(Math.Max(aw, ah) * Math.Max(scaleX, scaleY) / 2);
+                if (newR < 3) newR = 3;
+                int newCx = (int)(newBounds.Left + newBounds.Width / 2);
+                int newCy = (int)(newBounds.Top + newBounds.Height / 2);
+
+                // 从 DrawCommand 取角度
+                int sa = _arcStartAngle, ea = _arcEndAngle;
+                if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                {
+                    var cmd = _displayVM.DrawCommands[_selectedIndex];
+                    if (cmd.Args != null && cmd.Args.Count >= 6)
+                    {
+                        int.TryParse(cmd.Args[4], out sa);
+                        int.TryParse(cmd.Args[5], out ea);
+                    }
+                }
+
+                bool filledArc = arcP4.Fill != null && arcP4.Stroke == null;
+                try
+                {
+                    var nb = new SolidColorBrush((Color)ColorConverter.ConvertFromString(arcClr));
+                    var rebuilt = BuildArcPath(newCx, newCy, newR, sa, ea, nb, (int)arcLw, filledArc, preview: false);
+                    arcP4.Data = rebuilt.Data;
+                    if (filledArc) { arcP4.Fill = nb; arcP4.Stroke = null; }
+                    else { arcP4.Stroke = nb; arcP4.StrokeThickness = arcLw; arcP4.Fill = null; }
+                    Canvas.SetLeft(arcP4, 0);
+                    Canvas.SetTop(arcP4, 0);
+                }
+                catch { }
+            }
             else if (_originalShapeState is (double ol2, double ot2, double ow3, double oh3))
             {
                 var fe = shape as FrameworkElement;
@@ -1936,6 +2346,8 @@ namespace 串口助手
                 foreach (var p in pts) newPts.Add(new Point(p.X + totalDx, p.Y + totalDy));
                 tri.Points = newPts;
             }
+            else if (_originalShapeState is (double al, double at, double aw, double ah, string _, double _) && shape is System.Windows.Shapes.Path)
+            { Canvas.SetLeft(shape, al + totalDx); Canvas.SetTop(shape, at + totalDy); }
             else if (_originalShapeState is (double l, double t, double w, double h))
             { Canvas.SetLeft(shape, l + totalDx); Canvas.SetTop(shape, t + totalDy); }
             else if (_originalShapeState is ValueTuple<double, double, string, double, string> txtState && shape is TextBlock)
@@ -1953,6 +2365,20 @@ namespace 串口助手
             if (_selectedIndex >= _displayVM.DrawCommands.Count) return;
 
             var oldCmd = _displayVM.DrawCommands[_selectedIndex];
+
+            // 弧线：Canvas 偏移后 cmd.Args 含过时坐标 → 先修正再给 ShapeToProtocolArgs
+            if (_selectedShapeDrawType == "arc" && _selectedShape is System.Windows.Shapes.Path arcP2
+                && oldCmd.Args != null && oldCmd.Args.Count >= 6)
+            {
+                int canvasDx = (int)Canvas.GetLeft(arcP2);
+                int canvasDy = (int)Canvas.GetTop(arcP2);
+                if (canvasDx != 0 || canvasDy != 0)
+                {
+                    oldCmd.Args[1] = (int.Parse(oldCmd.Args[1]) + canvasDx).ToString();
+                    oldCmd.Args[2] = (int.Parse(oldCmd.Args[2]) + canvasDy).ToString();
+                }
+            }
+
             var newArgs = ShapeToProtocolArgs(_selectedShape, oldCmd);
             if (newArgs == null) return;
 
@@ -1963,6 +2389,22 @@ namespace 串口助手
                 Args = newArgs,
                 Color = _shapeEditColor, // 使用编辑器中的实际颜色
             };
+
+            // 弧线：用新协议参数重建几何，Canvas 归零（防下次拖拽累积误差）
+            if (_selectedShapeDrawType == "arc" && _selectedShape is System.Windows.Shapes.Path arcP3
+                && newArgs.Count >= 6)
+            {
+                int newCx = int.Parse(newArgs[1]), newCy = int.Parse(newArgs[2]);
+                int newR = int.Parse(newArgs[3]), newSa = int.Parse(newArgs[4]), newEa = int.Parse(newArgs[5]);
+                bool newFilled = newArgs.Count > 6 && newArgs[newArgs.Count - 1] == "fill";
+                int newLw = GetShapeEditorLineWidth();
+                var rebuilt = BuildArcPath(newCx, newCy, newR, newSa, newEa,
+                    ParseColorBrush(_shapeEditColor) ?? Brushes.White, newLw, newFilled, preview: false);
+                arcP3.Data = rebuilt.Data;
+                if (newFilled) { arcP3.Fill = ParseColorBrush(_shapeEditColor) ?? Brushes.White; arcP3.Stroke = null; }
+                else { arcP3.Stroke = ParseColorBrush(_shapeEditColor) ?? Brushes.White; arcP3.StrokeThickness = newLw; arcP3.Fill = null; }
+                Canvas.SetLeft(arcP3, 0); Canvas.SetTop(arcP3, 0);
+            }
 
             // 重建控点（位置可能已变）
             RemoveControlPoints();
@@ -2090,6 +2532,35 @@ namespace 串口助手
                     if (!triFilled && tri.StrokeThickness != 1) triArgs.Add(((int)tri.StrokeThickness).ToString());
                     if (triFilled) triArgs.Add("fill");
                     return triArgs;
+
+                case "rrect":
+                    var rrect2 = (System.Windows.Shapes.Rectangle)shape;
+                    bool rrFilled = rrect2.Fill != null && rrect2.Stroke == null;
+                    int rrLw = (int)rrect2.StrokeThickness;
+                    var rrArgs = new List<string> { "rrect",
+                        ((int)Canvas.GetLeft(rrect2)).ToString(), ((int)Canvas.GetTop(rrect2)).ToString(),
+                        ((int)rrect2.Width).ToString(), ((int)rrect2.Height).ToString(), color,
+                        rrLw.ToString(), ((int)rrect2.RadiusX).ToString() };
+                    if (rrFilled) rrArgs.Add("fill");
+                    return rrArgs;
+
+                case "arc":
+                    if (shape is System.Windows.Shapes.Path arcPath)
+                    {
+                        // 从 DrawCommand.Args 读取圆心/半径/角度（Path 难以反向解析几何参数）
+                        if (oldCmd.Args != null && oldCmd.Args.Count >= 6)
+                        {
+                            var arcArgs = new List<string> { "arc",
+                                oldCmd.Args[1], oldCmd.Args[2], oldCmd.Args[3],
+                                oldCmd.Args[4], oldCmd.Args[5], color };
+                            bool arcFilled = arcPath.Fill != null && arcPath.Stroke == null;
+                            if (!arcFilled && arcPath.Stroke is SolidColorBrush asb2 && arcPath.StrokeThickness != 1)
+                                arcArgs.Add(((int)arcPath.StrokeThickness).ToString());
+                            if (arcFilled) arcArgs.Add("fill");
+                            return arcArgs;
+                        }
+                    }
+                    return null;
             }
             return null;
         }
@@ -2101,6 +2572,8 @@ namespace 串口助手
         private void EnterShapeEditMode()
         {
             if (_selectedShape == null || _selectedIndex < 0) return;
+            // 锁定时禁止进入编辑模式
+            if (_isLocked) return;
 
             // 保存原始状态（取消时恢复）
             CaptureOriginalState(_selectedShape, out _originalShapeState);
@@ -2143,9 +2616,22 @@ namespace 串口助手
                 rightOLEDTextEditor.Visibility = Visibility.Visible;
                 tbSidePanelTitle.Text = "文字编辑";
 
+                // 锁定状态同步
+                bool txtLocked = IsElementLocked();
+                if (btnTextLock != null) btnTextLock.Visibility = Visibility.Visible;
+                btnTextLock.Content = txtLocked ? "🔒 解锁" : "🔓 锁定";
+                tbTextEditX.IsEnabled = !txtLocked;
+                tbTextEditY.IsEnabled = !txtLocked;
+                tbTextEditContent.IsEnabled = !txtLocked;
+                cbTextEditFontSize.IsEnabled = !txtLocked;
+
                 // 不建预览，保留原文 + 控点（可拖拽中心移动）
                 return;
             }
+
+            // 锁定状态同步
+            bool shapeLocked = IsElementLocked();
+            btnShapeLock.Content = shapeLocked ? "🔒 解锁" : "🔓 锁定";
 
             // 初始化线宽下拉（只一次）
             if (cbShapeLineWidth.Items.Count == 0)
@@ -2280,8 +2766,8 @@ namespace 串口助手
             _shapeEditColor = color;
 
             // 标题
-            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill" };
-            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形" };
+            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc" };
+            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线" };
             int ti = Array.IndexOf(typeNames, type);
             string typeLabel = ti >= 0 ? typeLabels[ti] : type;
             tbShapeEditTitle.Text = $"图形属性 — {typeLabel}";
@@ -2344,6 +2830,46 @@ namespace 串口助手
                     add("右底角 ↘", "X", "Y", ((int)tri.Points[2].X).ToString(), ((int)tri.Points[2].Y).ToString());
                     cbShapeFill.Visibility = Visibility.Visible;
                     break;
+
+                case "rrect":
+                    var rr = (System.Windows.Shapes.Rectangle)_selectedShape;
+                    add("位置", "X", "Y", ((int)Canvas.GetLeft(rr)).ToString(), ((int)Canvas.GetTop(rr)).ToString());
+                    add("尺寸", "宽", "高", ((int)rr.Width).ToString(), ((int)rr.Height).ToString());
+                    addSingle("圆角", "R", ((int)rr.RadiusX).ToString());
+                    cbShapeFill.Visibility = Visibility.Visible;
+                    break;
+
+                case "arc":
+                    // 从 DrawCommand 读取几何参数（Path 难反向解析）
+                    var arcCmd = _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count
+                        ? _displayVM.DrawCommands[_selectedIndex] : null;
+                    string arCx = "0", arCy = "0", arR = "10", arSa = "0", arEa = "180";
+                    if (arcCmd?.Args != null && arcCmd.Args.Count >= 6)
+                    {
+                        arCx = arcCmd.Args[1]; arCy = arcCmd.Args[2]; arR = arcCmd.Args[3];
+                        arSa = arcCmd.Args[4]; arEa = arcCmd.Args[5];
+                    }
+                    add("圆心", "CX", "CY", arCx, arCy);
+                    addSingle("半径", "R", arR);
+                    add("角度 (°)", "起始", "终止", arSa, arEa);
+                    cbShapeFill.Visibility = Visibility.Visible;
+                    break;
+            }
+
+            // 线宽面板 / 圆角半径面板显隐
+            bool isArc = type == "arc";
+            if (isArc)
+            {
+                // 弧线：角度行中不显示圆角（复用 extras 区加说明）
+                shapeExtrasContainer.Children.Clear();
+                var note = new TextBlock
+                {
+                    Text = "角度：右=0°，顺时针为正（下=90°）",
+                    FontSize = 10,
+                    Foreground = (Brush)FindResource("TextMutedBrush"),
+                    Margin = new Thickness(0, 2, 0, 4)
+                };
+                shapeExtrasContainer.Children.Add(note);
             }
 
             // 填充复选框
@@ -2364,6 +2890,16 @@ namespace 串口助手
             var brush = ParseColorBrush(color) ?? Brushes.White;
             shapeEditColorSwatch.Background = brush;
 
+            // 锁定态：禁用所有字段
+            if (IsElementLocked())
+            {
+                foreach (var tb in _shapeFieldTextBoxes)
+                    tb.IsEnabled = false;
+                cbShapeFill.IsEnabled = false;
+                cbShapeLineWidth.IsEnabled = false;
+                // 删除按钮无 x:Name，在 btnShapeDelete_Click 里守卫
+            }
+
             UpdateSharedProtocolPreview();
             _populatingShapeEditor = false;
         }
@@ -2371,7 +2907,8 @@ namespace 串口助手
         /// <summary>侧栏字段变更 → 实时更新画布图形</summary>
         private void ShapeField_Changed(object sender, RoutedEventArgs e)
         {
-            if (_populatingShapeEditor || _selectedShape == null) return;
+            if (_isLocked || _populatingShapeEditor || _selectedShape == null) return;
+            if (IsElementLocked()) return;
             ApplyEditorToShape();
         }
 
@@ -2442,6 +2979,44 @@ namespace 串口助手
                     if (isFilled) { tri.Fill = brush; tri.Stroke = null; }
                     else { tri.Stroke = brush; tri.StrokeThickness = lw; tri.Fill = null; }
                     break;
+
+                case "rrect":
+                    var rrect2 = (System.Windows.Shapes.Rectangle)_selectedShape;
+                    rrect2.Width = Math.Max(1, f3);
+                    rrect2.Height = Math.Max(1, f4);
+                    rrect2.RadiusX = f5; rrect2.RadiusY = f5;
+                    Canvas.SetLeft(rrect2, f1);
+                    Canvas.SetTop(rrect2, f2);
+                    if (isFilled) { rrect2.Fill = brush; rrect2.Stroke = null; }
+                    else { rrect2.Stroke = brush; rrect2.StrokeThickness = lw; rrect2.Fill = null; }
+                    break;
+
+                case "arc":
+                    // 更新弧线 Path：重建几何
+                    if (_selectedShape is System.Windows.Shapes.Path arcP)
+                    {
+                        int arCr = Math.Max(1, f3);
+                        var newArcPath = BuildArcPath(f1, f2, arCr, f4, f5, brush, lw, isFilled, preview: false);
+                        arcP.Data = newArcPath.Data;
+                        if (isFilled) { arcP.Fill = brush; arcP.Stroke = null; }
+                        else { arcP.Stroke = brush; arcP.StrokeThickness = lw; arcP.Fill = null; }
+                        // 几何含绝对坐标，Canvas 归零
+                        Canvas.SetLeft(arcP, 0); Canvas.SetTop(arcP, 0);
+                        // 更新 DrawCommand 参数
+                        if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                        {
+                            var cmd = _displayVM.DrawCommands[_selectedIndex];
+                            if (cmd.Args != null && cmd.Args.Count >= 6)
+                            {
+                                cmd.Args[1] = f1.ToString();
+                                cmd.Args[2] = f2.ToString();
+                                cmd.Args[3] = arCr.ToString();
+                                cmd.Args[4] = f4.ToString();
+                                cmd.Args[5] = f5.ToString();
+                            }
+                        }
+                    }
+                    break;
             }
 
             // 同步默认画笔颜色/线宽
@@ -2457,8 +3032,8 @@ namespace 串口助手
             CreateControlPoints(bounds);
 
             // 更新类型标签
-            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill" };
-            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形" };
+            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc" };
+            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线" };
             int ti = Array.IndexOf(typeNames, type);
             tbShapeEditType.Text = isFilled ? $"类型: {(ti >= 0 ? typeLabels[ti] : type)}（实心）" : $"类型: {(ti >= 0 ? typeLabels[ti] : type)}";
 
@@ -2479,6 +3054,53 @@ namespace 串口助手
             return 1;
         }
 
+        // ── 单元素锁定 ──
+        private bool IsElementLocked()
+        {
+            return _selectedIndex >= 0 && _lockedShapeIndices.Contains(_selectedIndex);
+        }
+
+        private void SetElementLock(bool locked)
+        {
+            if (_selectedIndex < 0) return;
+            if (locked) _lockedShapeIndices.Add(_selectedIndex);
+            else _lockedShapeIndices.Remove(_selectedIndex);
+
+            // 更新 UI
+            string lockLabel = locked ? "🔒 解锁" : "🔓 锁定";
+            if (btnShapeLock != null) btnShapeLock.Content = lockLabel;
+            if (btnTextLock != null) btnTextLock.Content = lockLabel;
+
+            // 锁定态：禁用所有字段 + 重建控点为灰色
+            bool isLocked = locked;
+            foreach (var tb in _shapeFieldTextBoxes)
+                tb.IsEnabled = !isLocked;
+            cbShapeFill.IsEnabled = !isLocked;
+            cbShapeLineWidth.IsEnabled = !isLocked;
+            tbTextEditX.IsEnabled = !isLocked;
+            tbTextEditY.IsEnabled = !isLocked;
+            tbTextEditContent.IsEnabled = !isLocked;
+            cbTextEditFontSize.IsEnabled = !isLocked;
+            // btnShapeDelete 无 x:Name，在 Click handler 里判断
+
+            // 重建控点为灰色
+            RemoveControlPoints();
+            var bounds = GetShapeBounds(_selectedShape);
+            CreateControlPoints(bounds);
+        }
+
+        private void btnShapeLock_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedIndex < 0) return;
+            SetElementLock(!IsElementLocked());
+        }
+
+        private void btnTextLock_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedIndex < 0) return;
+            SetElementLock(!IsElementLocked());
+        }
+
         private void btnShapeEditCancel_Click(object sender, RoutedEventArgs e)
         {
             // ✕ = 取消编辑：恢复原始状态，取消选中，侧栏回设置
@@ -2495,6 +3117,7 @@ namespace 串口助手
         private void btnShapeDelete_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedShape == null) return;
+            if (IsElementLocked()) return; // 锁定元素不可删除
             int idx = _selectedIndex;
 
             // 从画布移除
@@ -2504,6 +3127,11 @@ namespace 串口助手
             // 从协议列表移除
             if (idx >= 0 && idx < _displayVM.DrawCommands.Count)
                 _displayVM.DrawCommands.RemoveAt(idx);
+
+            // 维护锁定索引（删除后后续索引前移）
+            _lockedShapeIndices.Remove(idx);
+            var shifted = _lockedShapeIndices.Where(i => i > idx).ToList();
+            foreach (var i in shifted) { _lockedShapeIndices.Remove(i); _lockedShapeIndices.Add(i - 1); }
 
             // 如果设备已连，同步删除
             if (_session != null && _session.IsOpen)
