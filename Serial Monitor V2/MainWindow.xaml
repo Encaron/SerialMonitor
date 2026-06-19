@@ -1715,10 +1715,39 @@
                                                 Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
                                                 Click="btnTextEditCancel_Click" ToolTip="取消编辑"/>
                                     </Grid>
-                                    <TextBlock x:Name="tbTextEditPos" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
-                                               Text="位置: —" Margin="0,0,0,8"/>
-                                    <TextBlock Text="内容" FontSize="11" FontWeight="SemiBold"
+                                    <!-- 位置 -->
+                                    <TextBlock Text="位置" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,3,0">
+                                            <TextBlock Text="X" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,2"/>
+                                            <TextBox x:Name="tbTextEditX" Height="28"
+                                                     FontFamily="Microsoft YaHei" FontSize="12"
+                                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                                     Background="{DynamicResource CardBgBrush}"
+                                                     BorderBrush="{DynamicResource InputBorderBrush}"
+                                                     BorderThickness="1" Padding="6,2"
+                                                     TextChanged="TextEditField_Changed"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="3,0,0,0">
+                                            <TextBlock Text="Y" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,2"/>
+                                            <TextBox x:Name="tbTextEditY" Height="28"
+                                                     FontFamily="Microsoft YaHei" FontSize="12"
+                                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                                     Background="{DynamicResource CardBgBrush}"
+                                                     BorderBrush="{DynamicResource InputBorderBrush}"
+                                                     BorderThickness="1" Padding="6,2"
+                                                     TextChanged="TextEditField_Changed"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <!-- 内容 -->
+                                    <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="内容" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="22" MinWidth="0" Padding="6,0" FontSize="10"
+                                                Click="btnCopyTextContent_Click" ToolTip="复制文字内容"/>
+                                    </Grid>
                                     <TextBox x:Name="tbTextEditContent" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -1726,6 +1755,7 @@
                                              BorderBrush="{DynamicResource InputBorderBrush}"
                                              BorderThickness="1" Padding="6,2" Margin="0,0,0,8"
                                              TextChanged="tbTextEditContent_Changed"/>
+                                    <!-- 字号 -->
                                     <TextBlock Text="字号" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="cbTextEditFontSize" Height="28" Margin="0,0,0,8"
@@ -1734,21 +1764,85 @@
                                               Background="{DynamicResource CardBgBrush}"
                                               BorderBrush="{DynamicResource InputBorderBrush}"
                                               SelectionChanged="cbTextEditFontSize_Changed"/>
+                                    <!-- 颜色 -->
                                     <TextBlock Text="颜色" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <Border x:Name="textEditColorSwatch" Grid.Column="0" Height="28" CornerRadius="4"
+                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border x:Name="textEditColorSwatch" Grid.Column="0" Width="32" Height="28" CornerRadius="4"
                                                 Background="#FFFFFF" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
                                                 MouseLeftButtonDown="textEditColorSwatch_Click" Cursor="Hand"/>
                                         <Button Grid.Column="1" Content="选择颜色" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
                                                 Style="{DynamicResource SecondaryButtonStyle}" Click="textEditColorSwatch_Click"/>
                                     </Grid>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <!-- 确定/取消（仅新建文字时显示） -->
+                                    <Grid x:Name="textEditConfirmRow"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Button Grid.Column="0" Content="确定" Style="{DynamicResource PrimaryButtonStyle}"
                                                 Height="28" Margin="0,0,4,0" Click="btnTextEditConfirm_Click"/>
                                         <Button Grid.Column="1" Content="取消" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="28" Click="btnTextEditCancel_Click"/>
                                     </Grid>
+                                </StackPanel>
+                                <!-- 形状属性编辑模式 -->
+                                <StackPanel x:Name="rightOLEDShapeEditor" Visibility="Collapsed">
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock x:Name="tbShapeEditTitle" Text="图形属性" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"/>
+                                        <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
+                                                Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
+                                                Click="btnShapeEditCancel_Click" ToolTip="取消选中"/>
+                                    </Grid>
+                                    <TextBlock x:Name="tbShapeEditType" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                                               Text="类型: —" Margin="0,0,0,8"/>
+                                    <!-- 动态字段容器（C# 按类型生成行） -->
+                                    <StackPanel x:Name="shapeFieldsContainer"/>
+                                    <!-- 类型专属扩展容器（圆角矩形半径等未来控件使用） -->
+                                    <StackPanel x:Name="shapeExtrasContainer"/>
+                                    <!-- 填充复选框 -->
+                                    <CheckBox x:Name="cbShapeFill" Content="实心填充" Margin="0,0,0,6"
+                                              FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                              Click="ShapeField_Changed"/>
+                                    <!-- 线宽（填充时隐藏） -->
+                                    <StackPanel x:Name="shapeLineWidthPanel" Margin="0,0,0,6">
+                                        <TextBlock Text="线宽" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                        <ComboBox x:Name="cbShapeLineWidth" Height="28"
+                                                  FontFamily="Microsoft YaHei" FontSize="12"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Background="{DynamicResource CardBgBrush}"
+                                                  BorderBrush="{DynamicResource InputBorderBrush}"
+                                                  SelectionChanged="ShapeField_Changed"/>
+                                    </StackPanel>
+                                    <!-- 颜色 -->
+                                    <TextBlock Text="颜色" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border x:Name="shapeEditColorSwatch" Grid.Column="0" Width="32" Height="28" CornerRadius="4"
+                                                Background="#FFFFFF" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
+                                                MouseLeftButtonDown="shapeEditColorSwatch_Click" Cursor="Hand"/>
+                                        <Button Grid.Column="1" Content="选择颜色" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
+                                                Style="{DynamicResource SecondaryButtonStyle}" Click="shapeEditColorSwatch_Click"/>
+                                    </Grid>
+                                    <!-- 操作按钮 -->
+                                    <Button Content="🗑 删除图形" Style="{DynamicResource SecondaryButtonStyle}"
+                                            Height="28" Click="btnShapeDelete_Click" Foreground="#E53935"/>
+                                </StackPanel>
+                                <!-- 共享协议预览（选中任意控件时显示） -->
+                                <StackPanel x:Name="sharedProtocolPreview" Visibility="Collapsed">
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="协议预览" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="24" MinWidth="0" Padding="6,0" FontSize="11"
+                                                Click="btnCopyProtocol_Click" ToolTip="复制协议到剪贴板"/>
+                                    </Grid>
+                                    <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBox x:Name="tbProtocolPreview" FontSize="12"
+                                                 FontFamily="Consolas, Courier New" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                 Text="—" TextWrapping="Wrap"
+                                                 Background="Transparent" BorderThickness="0" IsReadOnly="True"
+                                                 IsReadOnlyCaretVisible="False" Padding="0"
+                                                 VerticalAlignment="Center"/>
+                                    </Border>
                                 </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
@@ -2134,14 +2228,14 @@
                             <Button x:Name="btnToolCircle" Content="◯" Width="24" Height="24" ToolTip="圆"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolCircle_Click"/>
+                            <Button x:Name="btnToolTriangle" Content="△" Width="24" Height="24" ToolTip="三角形"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
+                                    Click="btnToolTriangle_Click"/>
                             <Button x:Name="btnToolText" Content="T" Width="24" Height="24" ToolTip="文字"
                                     FontWeight="Bold"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolText_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
-                            <!-- 线宽 -->
-                            <ComboBox x:Name="cbLineWidth" Width="44" Height="26"
-                                      SelectionChanged="cbLineWidth_Changed" ToolTip="线宽"/>
                             <!-- 橡皮擦 -->
                             <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="橡皮擦"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"

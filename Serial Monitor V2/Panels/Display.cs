@@ -19,7 +19,7 @@ namespace 串口助手
         private List<UIElement> _drawElements = new List<UIElement>();
 
         // ——— #7 PC 鼠标画板 ———
-        private enum DrawTool { None, Select, Pencil, Line, Rect, Circle, Text, Eraser }
+        private enum DrawTool { None, Select, Pencil, Line, Rect, Circle, Triangle, Text, Eraser }
 
         /// <summary>
         /// 控点角色。Phase 3 用 TopLeft~Center；Endpoint1~Vertex2 预留给线端点/三角顶点拖拽。
@@ -48,6 +48,7 @@ namespace 串口助手
         private Point _textEditPos;
         private string _textEditColor = "#FFFFFF";
         private Border _textPreview = null;
+        private string _editingTextOriginalKey = null; // 通过选择编辑已有文字时的原始 key
 
         // ——— #7 Phase 3：选择 + 控点调整 ———
         private UIElement _selectedShape = null;
@@ -59,6 +60,11 @@ namespace 串口助手
         private Rect _originalBounds;
         private object _originalShapeState; // 拖拽前快照，防累积误差
         private bool _hasMoved = false;
+
+        // ——— F1 形状属性面板 ———
+        private bool _populatingShapeEditor = false;
+        private string _shapeEditColor = "#FFFFFF";
+        private readonly List<TextBox> _shapeFieldTextBoxes = new List<TextBox>(); // 动态字段 TextBox 列表
 
         // ——— 初始化 ———
         private void InitOLEDPanel()
@@ -93,13 +99,6 @@ namespace 串口助手
             RefreshOLEDUI();
 
             // ——— #7 工具栏初始化 ———
-            // 线宽下拉
-            cbLineWidth.Items.Clear();
-            int[] widths = { 1, 2, 3, 5, 8 };
-            foreach (var lw in widths)
-                cbLineWidth.Items.Add(new ComboBoxItem { Content = lw.ToString(), Tag = lw });
-            cbLineWidth.SelectedIndex = 0;
-
             // 工具按钮列表
             _toolButtons.Clear();
             _toolButtons.Add(btnToolSelect);
@@ -107,6 +106,7 @@ namespace 串口助手
             _toolButtons.Add(btnToolLine);
             _toolButtons.Add(btnToolRect);
             _toolButtons.Add(btnToolCircle);
+            _toolButtons.Add(btnToolTriangle);
             _toolButtons.Add(btnToolText);
             _toolButtons.Add(btnToolEraser);
 
@@ -168,9 +168,23 @@ namespace 串口助手
                 oledYAxis.Children.Add(yH);
             }
 
-            // ── 用户数据文本 ──
+            // ── 收集 _drawElements 中已有的文字位置 ──
+            var drawTextKeys = new HashSet<string>();
+            foreach (var shape in _drawElements)
+            {
+                if (shape is TextBlock dtb)
+                {
+                    int dx = (int)Canvas.GetLeft(dtb), dy = (int)Canvas.GetTop(dtb);
+                    drawTextKeys.Add($"{dx},{dy}");
+                }
+            }
+
+            // ── 用户数据文本（跳过 _drawElements 中已有的文字）──
             foreach (var item in _displayVM.Items)
             {
+                string key = $"{item.X},{item.Y}";
+                if (drawTextKeys.Contains(key)) continue; // 已由 _drawElements 管理
+
                 Brush textBrush = ParseColorBrush(item.Color) ?? Brushes.White;
                 var tb = new TextBlock {
                     Text = item.Text, FontSize = item.FontSize,
@@ -182,7 +196,7 @@ namespace 串口助手
                 _oledTexts[item.X + "," + item.Y] = tb;
             }
 
-            // ── 重绘图形（放在文本之上）──
+            // ── 重绘图形（含新格式文字 TextBlock）──
             foreach (var shape in _drawElements)
                 oledCanvas.Children.Add(shape);
 
@@ -257,8 +271,23 @@ namespace 串口助手
         private void HandleDisplayMessage(int x, int y, string text, int fontSize, string color = null)
         {
             InitOLEDPanel();
-            _displayVM.SetText(x, y, text, fontSize, color);
-            Dispatcher.InvokeAsync(() => { RefreshOLEDUI(); });
+            // 若同位置已有文字 → 从 _drawElements 移除旧项
+            var oldKey = $"{x},{y}";
+            for (int i = _drawElements.Count - 1; i >= 0; i--)
+            {
+                if (_drawElements[i] is TextBlock tb2 && (int)Canvas.GetLeft(tb2) == x && (int)Canvas.GetTop(tb2) == y)
+                {
+                    oledCanvas.Children.Remove(tb2);
+                    _drawElements.RemoveAt(i);
+                    if (i < _displayVM.DrawCommands.Count) _displayVM.DrawCommands.RemoveAt(i);
+                    break;
+                }
+            }
+            _oledTexts.Remove(oldKey);
+            _displayVM.SetText(x, y, text, fontSize, color); // 保持 Items 同步（向后兼容）
+            // 同时走 [draw,text] 新格式
+            var args = new List<string> { "text", x.ToString(), y.ToString(), text, fontSize.ToString(), color ?? "#FFFFFF" };
+            Dispatcher.InvokeAsync(() => { HandleDrawText(args); });
         }
 
         private void HandleDisplayClear()
@@ -266,6 +295,7 @@ namespace 串口助手
             InitOLEDPanel();
             _displayVM.ClearAll();
             _drawElements.Clear();
+            _oledTexts.Clear();
             Dispatcher.InvokeAsync(() => { RefreshOLEDUI(); });
         }
 
@@ -284,10 +314,17 @@ namespace 串口助手
             {
                 switch (subType)
                 {
+                    case "text":     HandleDrawText(args);     break;
                     case "point":    HandleDrawPoint(args);    break;
                     case "line":     HandleDrawLine(args);     break;
                     case "rect":     HandleDrawRect(args);     break;
-                    case "fill":     HandleDrawFill(args);     break;
+                    case "fill":
+                        // 兼容旧协议 [draw,fill,x,y,w,h,#color] → 转为新格式 [draw,rect,x,y,w,h,#color,1,fill]
+                        args[0] = "rect";
+                        if (args.Count < 6) break;
+                        args.Add("fill");
+                        HandleDrawRect(args);
+                        break;
                     case "circle":   HandleDrawCircle(args);   break;
                     case "ellipse":  HandleDrawEllipse(args);  break;
                     case "triangle": HandleDrawTriangle(args); break;
@@ -301,6 +338,32 @@ namespace 串口助手
         {
             shape.SnapsToDevicePixels = true;
             RenderOptions.SetEdgeMode(shape, EdgeMode.Aliased);
+        }
+
+        // ── 文字 [draw,text,x,y,content,fontSize,#RRGGBB] ──
+        private void HandleDrawText(List<string> args)
+        {
+            if (args.Count < 5) return;
+            if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)) return;
+            string content = args[3];
+            if (!int.TryParse(args[4], out int fontSize)) return;
+            string color = args.Count >= 6 ? args[5] : "#FFFFFF";
+
+            var brush = ParseColorBrush(color) ?? Brushes.White;
+            var tb = new TextBlock
+            {
+                Text = content,
+                FontSize = fontSize,
+                FontFamily = new FontFamily("Sarasa Mono SC, Consolas, Courier New"),
+                Foreground = brush,
+            };
+            Canvas.SetLeft(tb, x);
+            Canvas.SetTop(tb, y);
+
+            oledCanvas.Children.Add(tb);
+            _drawElements.Add(tb);
+            _displayVM.DrawCommands.Add(new DrawCommand { Type = "text", Args = args, Color = color });
+            oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
         // ── 画点 [draw,point,x,y,#RRGGBB] ──
@@ -352,14 +415,25 @@ namespace 串口助手
             if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)
              || !int.TryParse(args[3], out int w) || !int.TryParse(args[4], out int h)) return;
             string color = args.Count >= 6 ? args[5] : "#FFFFFF";
-            int lw = (args.Count >= 7 && int.TryParse(args[6], out int sw)) ? sw : 1;
+            bool isFilled = args.Count >= 7 && args[args.Count - 1] == "fill";
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var rect = new Rectangle
             {
                 Width = w, Height = h,
-                Stroke = brush, StrokeThickness = lw,
             };
+
+            if (isFilled)
+            {
+                rect.Fill = brush;
+            }
+            else
+            {
+                int lw = (args.Count >= 7 && int.TryParse(args[6], out int sw) && sw >= 1) ? sw : 1;
+                rect.Stroke = brush;
+                rect.StrokeThickness = lw;
+            }
+
             SnapShapeToPixel(rect);
             Canvas.SetLeft(rect, x);
             Canvas.SetTop(rect, y);
@@ -371,44 +445,32 @@ namespace 串口助手
         }
 
         // ── 实心填充 [draw,fill,x,y,w,h,#RRGGBB] ──
-        private void HandleDrawFill(List<string> args)
-        {
-            if (args.Count < 5) return;
-            if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)
-             || !int.TryParse(args[3], out int w) || !int.TryParse(args[4], out int h)) return;
-            string color = args.Count >= 6 ? args[5] : "#FFFFFF";
-
-            var brush = ParseColorBrush(color) ?? Brushes.White;
-            var rect = new Rectangle
-            {
-                Width = w, Height = h,
-                Fill = brush,
-            };
-            SnapShapeToPixel(rect);
-            Canvas.SetLeft(rect, x);
-            Canvas.SetTop(rect, y);
-
-            oledCanvas.Children.Add(rect);
-            _drawElements.Add(rect);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "fill", Args = args, Color = color });
-            oledEmptyHint.Visibility = Visibility.Collapsed;
-        }
-
-        // ── 空心圆 [draw,circle,cx,cy,r,#RRGGBB,w] ──
+        // ── 圆 [draw,circle,cx,cy,r,#RRGGBB,w] 或 [draw,circle,cx,cy,r,#RRGGBB,w,fill] ──
         private void HandleDrawCircle(List<string> args)
         {
             if (args.Count < 4) return;
             if (!int.TryParse(args[1], out int cx) || !int.TryParse(args[2], out int cy)
              || !int.TryParse(args[3], out int r)) return;
             string color = args.Count >= 5 ? args[4] : "#FFFFFF";
-            int lw = (args.Count >= 6 && int.TryParse(args[5], out int sw)) ? sw : 1;
+            bool isFilled = args.Count >= 6 && args[args.Count - 1] == "fill";
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var circle = new Ellipse
             {
                 Width = r * 2, Height = r * 2,
-                Stroke = brush, StrokeThickness = lw,
             };
+
+            if (isFilled)
+            {
+                circle.Fill = brush;
+            }
+            else
+            {
+                int lw = (args.Count >= 6 && int.TryParse(args[5], out int sw) && sw >= 1) ? sw : 1;
+                circle.Stroke = brush;
+                circle.StrokeThickness = lw;
+            }
+
             SnapShapeToPixel(circle);
             Canvas.SetLeft(circle, cx - r);
             Canvas.SetTop(circle, cy - r);
@@ -452,14 +514,25 @@ namespace 串口助手
              || !int.TryParse(args[3], out int x1) || !int.TryParse(args[4], out int y1)
              || !int.TryParse(args[5], out int x2) || !int.TryParse(args[6], out int y2)) return;
             string color = args.Count >= 8 ? args[7] : "#FFFFFF";
-            int lw = (args.Count >= 9 && int.TryParse(args[8], out int sw)) ? sw : 1;
+            bool isFilled = args.Count >= 9 && args[args.Count - 1] == "fill";
 
             var brush = ParseColorBrush(color) ?? Brushes.White;
             var triangle = new Polygon
             {
                 Points = new PointCollection { new Point(x0, y0), new Point(x1, y1), new Point(x2, y2) },
-                Stroke = brush, StrokeThickness = lw,
             };
+
+            if (isFilled)
+            {
+                triangle.Fill = brush;
+            }
+            else
+            {
+                int lw = (args.Count >= 9 && int.TryParse(args[8], out int sw) && sw >= 1) ? sw : 1;
+                triangle.Stroke = brush;
+                triangle.StrokeThickness = lw;
+            }
+
             SnapShapeToPixel(triangle);
 
             oledCanvas.Children.Add(triangle);
@@ -473,7 +546,20 @@ namespace 串口助手
         {
             string color = args.Count >= 2 ? args[1] : "#111111";
 
-            DeselectShape();
+            // 静默清理选中态（不保存、不同步——设备已清屏，回推图形会矛盾）
+            RemoveControlPoints();
+            _selectedShape = null;
+            _selectedIndex = -1;
+            _selectedShapeDrawType = null;
+            _originalShapeState = null;
+            _hasMoved = false;
+            // 恢复侧栏
+            if (rightOLEDShapeEditor.Visibility == Visibility.Visible)
+            {
+                rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
+                rightOLEDSettings.Visibility = Visibility.Visible;
+                tbSidePanelTitle.Text = "OLED 设置";
+            }
 
             // 移除所有图形
             foreach (var shape in _drawElements)
@@ -533,7 +619,7 @@ namespace 串口助手
                 DeselectShape();
             // 离开 Text 工具时退出文字编辑
             if (tool != DrawTool.Text && _isEditingText)
-                ExitTextEditMode(save: false);
+                ExitTextEditMode(save: _editingTextOriginalKey != null); // 编辑已有文字 → 保存；新文字 → 丢弃
         }
 
         /// <summary>橡皮擦实际线宽（比绘制线宽粗，等于视觉光标半径）</summary>
@@ -577,6 +663,7 @@ namespace 串口助手
         private void btnToolLine_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Line,    btnToolLine); }
         private void btnToolRect_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Rect,    btnToolRect); }
         private void btnToolCircle_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Circle,  btnToolCircle); }
+        private void btnToolTriangle_Click(object sender, RoutedEventArgs e){ SelectTool(DrawTool.Triangle,btnToolTriangle); }
         private void btnToolText_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Text,    btnToolText); }
         private void btnToolEraser_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Eraser,  btnToolEraser); }
         private void btnToolSelect_Click(object sender, RoutedEventArgs e)  { SelectTool(DrawTool.Select,  btnToolSelect); }
@@ -598,22 +685,6 @@ namespace 串口助手
             {
                 btnLockCanvas.Foreground = (Brush)FindResource("PrimaryBrush");
                 oledCanvas.Cursor = Cursors.Cross;
-            }
-        }
-
-        // ── 线宽 ──
-        private void cbLineWidth_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            if (cbLineWidth.SelectedItem is ComboBoxItem item && item.Tag is int w)
-            {
-                _drawLineWidth = w;
-                // 橡皮擦光标同步大小
-                if (_eraserCursor != null)
-                {
-                    int r = EraserLineWidth / 2 + 1;
-                    _eraserCursor.Width = r * 2;
-                    _eraserCursor.Height = r * 2;
-                }
             }
         }
 
@@ -779,6 +850,11 @@ namespace 串口助手
                 {
                     // ③ 点空白 → 取消选中
                     DeselectShape();
+                    // 文字编辑中？点空白保存退出
+                    if (_isEditingText && _editingTextOriginalKey == null)
+                        ExitTextEditMode(save: false);
+                    else if (_isEditingText)
+                        ExitTextEditMode(save: true);
                 }
                 return;
             }
@@ -804,6 +880,7 @@ namespace 串口助手
                 case DrawTool.Line:
                 case DrawTool.Rect:
                 case DrawTool.Circle:
+                case DrawTool.Triangle:
                     _isDrawing = true;
                     oledCanvas.CaptureMouse();
                     // 创建虚线预览
@@ -883,6 +960,7 @@ namespace 串口助手
                 case DrawTool.Line:
                 case DrawTool.Rect:
                 case DrawTool.Circle:
+                case DrawTool.Triangle:
                     UpdatePreviewShape(_previewShape, _drawTool, _drawStart, pos);
                     break;
             }
@@ -916,6 +994,7 @@ namespace 串口助手
                 case DrawTool.Line:
                 case DrawTool.Rect:
                 case DrawTool.Circle:
+                case DrawTool.Triangle:
                     // 删预览 → 建正式图形 → 发协议
                     if (_previewShape != null)
                     {
@@ -991,6 +1070,21 @@ namespace 串口助手
                     Canvas.SetLeft(shape, cx - rx); Canvas.SetTop(shape, cy - ry);
                     break;
                 }
+                case DrawTool.Triangle:
+                {
+                    // 等腰三角：顶点在包围盒上边中点，底边在下
+                    var pts = new PointCollection
+                    {
+                        new Point(x + w / 2, y),           // 顶点
+                        new Point(x, y + h),               // 左下
+                        new Point(x + w, y + h),           // 右下
+                    };
+                    shape = new Polygon { Points = pts,
+                        Stroke = brush, StrokeThickness = _drawLineWidth,
+                        StrokeDashArray = new DoubleCollection { 4, 3 } };
+                    SnapShapeToPixel(shape);
+                    break;
+                }
             }
             return shape;
         }
@@ -1016,6 +1110,16 @@ namespace 串口助手
                     double rx = Math.Abs(p2.X - p1.X) / 2, ry = Math.Abs(p2.Y - p1.Y) / 2;
                     ellipse.Width = rx * 2; ellipse.Height = ry * 2;
                     Canvas.SetLeft(ellipse, cx - rx); Canvas.SetTop(ellipse, cy - ry);
+                    break;
+                }
+                case DrawTool.Triangle when element is Polygon poly:
+                {
+                    poly.Points = new PointCollection
+                    {
+                        new Point(x + w / 2, y),
+                        new Point(x, y + h),
+                        new Point(x + w, y + h),
+                    };
                     break;
                 }
             }
@@ -1054,6 +1158,17 @@ namespace 串口助手
                     args = new List<string> { "circle", cx.ToString(), cy.ToString(), r.ToString(), color };
                     break;
                 }
+                case DrawTool.Triangle:
+                {
+                    int x = (int)Math.Min(p1.X, p2.X), y = (int)Math.Min(p1.Y, p2.Y);
+                    int w = (int)Math.Abs(p2.X - p1.X), h = (int)Math.Abs(p2.Y - p1.Y);
+                    type = "triangle";
+                    args = new List<string> { "triangle",
+                        (x + w / 2).ToString(), y.ToString(),               // 顶点
+                        x.ToString(), (y + h).ToString(),                    // 左下
+                        (x + w).ToString(), (y + h).ToString(), color };     // 右下
+                    break;
+                }
                 default: return;
             }
 
@@ -1063,9 +1178,10 @@ namespace 串口助手
             // 渲染到画布
             switch (tool)
             {
-                case DrawTool.Line:    HandleDrawLine(args);    break;
-                case DrawTool.Rect:    HandleDrawRect(args);    break;
-                case DrawTool.Circle:  HandleDrawCircle(args);  break;
+                case DrawTool.Line:     HandleDrawLine(args);     break;
+                case DrawTool.Rect:     HandleDrawRect(args);     break;
+                case DrawTool.Circle:   HandleDrawCircle(args);   break;
+                case DrawTool.Triangle: HandleDrawTriangle(args); break;
             }
             // 发串口
             SendDrawCmd(type, args);
@@ -1083,13 +1199,76 @@ namespace 串口助手
         //  文字编辑（侧栏模式）
         // ═══════════════════════════════════════
 
+        /// <summary>Select 模式下点击已有文字 → 进入编辑</summary>
+        private void SelectText(string key, TextBlock tb, Point pos)
+        {
+            // 查找对应的 DisplayItem
+            var parts = key.Split(',');
+            if (parts.Length != 2) return;
+            if (!int.TryParse(parts[0], out int x) || !int.TryParse(parts[1], out int y)) return;
+
+            DisplayItem existingItem = null;
+            foreach (var item in _displayVM.Items)
+            {
+                if (item.X == x && item.Y == y) { existingItem = item; break; }
+            }
+            if (existingItem == null) return;
+
+            // 记住原始 key（若编辑后位置改变，需要清理旧项）
+            _editingTextOriginalKey = key;
+
+            // 进入编辑模式，预填内容
+            _isEditingText = true;
+            _textEditPos = new Point(x, y);
+            _textEditColor = existingItem.Color ?? "#FFFFFF";
+
+            // 初始化字号下拉
+            if (cbTextEditFontSize.Items.Count == 0)
+            {
+                int[] sizes = { 8, 10, 12, 14, 16, 18, 20, 24, 28, 32 };
+                foreach (var s in sizes)
+                    cbTextEditFontSize.Items.Add(new ComboBoxItem { Content = s.ToString(), Tag = s });
+            }
+
+            // 选中已有字号
+            for (int i = 0; i < cbTextEditFontSize.Items.Count; i++)
+            {
+                if (cbTextEditFontSize.Items[i] is ComboBoxItem ci && ci.Tag is int fs && fs == existingItem.FontSize)
+                { cbTextEditFontSize.SelectedIndex = i; break; }
+            }
+
+            tbTextEditX.Text = x.ToString();
+            tbTextEditY.Text = y.ToString();
+            tbTextEditContent.Text = existingItem.Text;
+            textEditColorSwatch.Background = ParseColorBrush(_textEditColor) ?? Brushes.White;
+
+            // 从画布移除旧 TextBlock（预览会替代它）
+            oledCanvas.Children.Remove(tb);
+            _oledTexts.Remove(key);
+
+            // 切侧栏到文字编辑
+            rightOLEDSettings.Visibility = Visibility.Collapsed;
+            rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
+            rightOLEDTextEditor.Visibility = Visibility.Visible;
+            tbSidePanelTitle.Text = "文字编辑";
+
+            oledCanvas.Cursor = Cursors.Arrow;
+            CreateTextPreview();
+
+            tbTextEditContent.Focus();
+            Keyboard.Focus(tbTextEditContent);
+        }
+
         /// <summary>切回 OLED 标签页时重置侧栏到设置视图</summary>
         private void ResetOLEDSidePanel()
         {
             if (_isEditingText)
-                ExitTextEditMode(save: false);
+                ExitTextEditMode(save: _editingTextOriginalKey != null);
+            if (_selectedShape != null)
+                ExitShapeEditMode(save: true);
             rightOLEDSettings.Visibility = Visibility.Visible;
             rightOLEDTextEditor.Visibility = Visibility.Collapsed;
+            rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
             tbSidePanelTitle.Text = "OLED 设置";
         }
 
@@ -1098,6 +1277,7 @@ namespace 串口助手
             _isEditingText = true;
             _textEditPos = canvasPos;
             _textEditColor = _drawColor;
+            _editingTextOriginalKey = null; // 新文字，非编辑已有
 
             // 初始填充字号下拉
             if (cbTextEditFontSize.Items.Count == 0)
@@ -1112,12 +1292,18 @@ namespace 串口助手
                 cbTextEditFontSize.SelectedIndex = 3;
             }
 
-            tbTextEditPos.Text = $"位置: ({(int)canvasPos.X}, {(int)canvasPos.Y})";
+            tbTextEditX.Text = ((int)canvasPos.X).ToString();
+            tbTextEditY.Text = ((int)canvasPos.Y).ToString();
             tbTextEditContent.Text = "";
             textEditColorSwatch.Background = ParseColorBrush(_textEditColor) ?? Brushes.White;
 
+            // 新建文字 → 显示确定/取消，隐藏协议预览
+            textEditConfirmRow.Visibility = Visibility.Visible;
+            sharedProtocolPreview.Visibility = Visibility.Collapsed;
+
             // 切侧栏到编辑模式
             rightOLEDSettings.Visibility = Visibility.Collapsed;
+            rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
             rightOLEDTextEditor.Visibility = Visibility.Visible;
             tbSidePanelTitle.Text = "文字编辑";
 
@@ -1136,25 +1322,62 @@ namespace 串口助手
             if (save)
             {
                 string text = tbTextEditContent.Text;
-                _drawColor = _textEditColor; // 同步画笔颜色
-                if (!string.IsNullOrWhiteSpace(text))
+                _drawColor = _textEditColor;
+                int fontSize = cbTextEditFontSize.SelectedItem is ComboBoxItem item && item.Tag is int fs ? fs : 14;
+                string color = _textEditColor;
+
+                if (_editingTextOriginalKey != null)
                 {
-                    int fontSize = cbTextEditFontSize.SelectedItem is ComboBoxItem item && item.Tag is int fs ? fs : 14;
-                    string color = _textEditColor;
-
-                    HandleDisplayMessage((int)_textEditPos.X, (int)_textEditPos.Y, text, fontSize, color);
-
-                    if (_session != null && _session.IsOpen)
+                    // 编辑已有文字 → 直接更新画布 TextBlock + DrawCommand
+                    if (_selectedShape is TextBlock tb)
                     {
-                        string cmd = string.Format("[display,{0},{1},{2},{3},{4}]",
-                            (int)_textEditPos.X, (int)_textEditPos.Y, text, fontSize, color);
-                        SendRaw(cmd, appendLineEnding: true);
+                        int newX = int.TryParse(tbTextEditX.Text, out int px) ? px : (int)Canvas.GetLeft(tb);
+                        int newY = int.TryParse(tbTextEditY.Text, out int py) ? py : (int)Canvas.GetTop(tb);
+                        tb.Text = text;
+                        tb.FontSize = fontSize;
+                        tb.Foreground = ParseColorBrush(color) ?? Brushes.White;
+                        Canvas.SetLeft(tb, newX); Canvas.SetTop(tb, newY);
+
+                        // 更新 DrawCommand
+                        if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                        {
+                            var newArgs = new List<string> { "text", newX.ToString(), newY.ToString(), text, fontSize.ToString(), color };
+                            _displayVM.DrawCommands[_selectedIndex] = new DrawCommand
+                                { Type = "text", Args = newArgs, Color = color };
+                            SyncShapeAfterModification(_selectedIndex, newArgs);
+                        }
                     }
+                    // 清理旧的 _oledTexts / Items（向后兼容）
+                    var oldParts = _editingTextOriginalKey.Split(',');
+                    if (oldParts.Length == 2 && int.TryParse(oldParts[0], out int ox) && int.TryParse(oldParts[1], out int oy))
+                    {
+                        _oledTexts.Remove(_editingTextOriginalKey);
+                        _displayVM.Items.RemoveAll(it => it.X == ox && it.Y == oy);
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(text))
+                {
+                    // 新建文字 → 走 [draw,text,...]
+                    int newX = int.TryParse(tbTextEditX.Text, out int px) ? px : (int)_textEditPos.X;
+                    int newY = int.TryParse(tbTextEditY.Text, out int py) ? py : (int)_textEditPos.Y;
+                    var args = new List<string> { "text", newX.ToString(), newY.ToString(), text, fontSize.ToString(), color };
+                    HandleDrawText(args);
+                    if (_session != null && _session.IsOpen)
+                        SendDrawCmd("text", args);
+                }
+            }
+            else
+            {
+                // 取消编辑已有文字 → 从 _originalShapeState 恢复（TextBlock 一直在画布上）
+                if (_editingTextOriginalKey != null && _originalShapeState != null)
+                {
+                    RestoreOriginalState(_selectedShape, _originalShapeState);
                 }
             }
 
             RemoveTextPreview();
             _isEditingText = false;
+            _editingTextOriginalKey = null;
 
             // 恢复画布光标
             oledCanvas.Cursor = (_drawTool == DrawTool.None || _drawTool == DrawTool.Select)
@@ -1163,6 +1386,7 @@ namespace 串口助手
             // 恢复侧栏
             rightOLEDSettings.Visibility = Visibility.Visible;
             rightOLEDTextEditor.Visibility = Visibility.Collapsed;
+            sharedProtocolPreview.Visibility = Visibility.Collapsed;
             tbSidePanelTitle.Text = "OLED 设置";
         }
 
@@ -1228,13 +1452,81 @@ namespace 串口助手
         private void tbTextEditContent_Changed(object sender, TextChangedEventArgs e)
         {
             if (!_isEditingText) return;
-            UpdateTextPreview();
+            if (_editingTextOriginalKey != null)
+                ApplyTextEditToCanvas(); // 编辑已有 → 直接改原文
+            else
+                UpdateTextPreview();
         }
 
         private void cbTextEditFontSize_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (!_isEditingText) return;
-            UpdateTextPreview();
+            if (_editingTextOriginalKey != null)
+                ApplyTextEditToCanvas();
+            else
+                UpdateTextPreview();
+        }
+
+        private void TextEditField_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (!_isEditingText) return;
+            if (_editingTextOriginalKey != null)
+                ApplyTextEditToCanvas();
+        }
+
+        /// <summary>编辑已有文字时，侧栏字段 → 直接更新画布 TextBlock</summary>
+        private void ApplyTextEditToCanvas()
+        {
+            if (_selectedShape is TextBlock tb)
+            {
+                int x = int.TryParse(tbTextEditX.Text, out int px) ? px : (int)Canvas.GetLeft(tb);
+                int y = int.TryParse(tbTextEditY.Text, out int py) ? py : (int)Canvas.GetTop(tb);
+                Canvas.SetLeft(tb, x); Canvas.SetTop(tb, y);
+                tb.Text = tbTextEditContent.Text;
+                int fontSize = cbTextEditFontSize.SelectedItem is ComboBoxItem item && item.Tag is int fs ? fs : 14;
+                tb.FontSize = fontSize;
+                tb.Foreground = ParseColorBrush(_textEditColor) ?? Brushes.White;
+
+                // 更新控点
+                RemoveControlPoints();
+                var bounds = GetShapeBounds(tb);
+                CreateControlPoints(bounds);
+
+                // 更新协议预览
+                UpdateSharedProtocolPreview();
+            }
+        }
+
+        private void btnCopyTextContent_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(tbTextEditContent.Text)) return;
+            SafeSetClipboard(tbTextEditContent.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        /// <summary>更新共享协议预览（图形+文字通用）</summary>
+        private void UpdateSharedProtocolPreview()
+        {
+            if (_selectedShape == null || _selectedIndex < 0) { tbProtocolPreview.Text = "—"; return; }
+
+            if (_selectedShape is TextBlock tb)
+            {
+                int x = (int)Canvas.GetLeft(tb), y = (int)Canvas.GetTop(tb);
+                string color = "#FFFFFF";
+                if (tb.Foreground is SolidColorBrush scb)
+                    color = $"#{scb.Color.R:X2}{scb.Color.G:X2}{scb.Color.B:X2}";
+                tbProtocolPreview.Text = $"[draw,text,{x},{y},{tb.Text},{(int)tb.FontSize},{color}]";
+                return;
+            }
+
+            if (_selectedIndex < _displayVM.DrawCommands.Count)
+            {
+                var args = ShapeToProtocolArgs(_selectedShape, _displayVM.DrawCommands[_selectedIndex]);
+                if (args != null)
+                    tbProtocolPreview.Text = "[draw," + string.Join(",", args) + "]";
+                else
+                    tbProtocolPreview.Text = "—";
+            }
         }
 
         private void textEditColorSwatch_Click(object sender, RoutedEventArgs e)
@@ -1245,7 +1537,10 @@ namespace 串口助手
                 _textEditColor = hex;
                 var brush = ParseColorBrush(hex);
                 if (brush != null) textEditColorSwatch.Background = brush;
-                UpdateTextPreview();
+                if (_editingTextOriginalKey != null)
+                    ApplyTextEditToCanvas();
+                else
+                    UpdateTextPreview();
             });
         }
 
@@ -1277,15 +1572,17 @@ namespace 串口助手
             // 先清屏
             SendRaw("[draw,clear," + _displayVM.CanvasBackground + "]", appendLineEnding: true);
 
-            // 重发文本
+            // 重发文本（向后兼容——同时发 [display] 旧格式和 [draw,text] 新格式）
+            var syncedTextKeys = new HashSet<string>();
             foreach (var item in _displayVM.Items)
             {
                 string cmd = string.Format("[display,{0},{1},{2},{3},{4}]",
                     item.X, item.Y, item.Text, item.FontSize, item.Color ?? "#FFFFFF");
                 SendRaw(cmd, appendLineEnding: true);
+                syncedTextKeys.Add($"{item.X},{item.Y}");
             }
 
-            // 重发图形
+            // 重发图形 + 新格式文字
             foreach (var cmd in _displayVM.DrawCommands)
             {
                 string payload = "[draw," + string.Join(",", cmd.Args) + "]";
@@ -1307,10 +1604,13 @@ namespace 串口助手
                 ? _displayVM.DrawCommands[index].Type : null;
             var bounds = GetShapeBounds(shape);
             CreateControlPoints(bounds);
+            EnterShapeEditMode();
         }
 
         private void DeselectShape()
         {
+            if (_selectedShape != null)
+                ExitShapeEditMode(save: true);
             RemoveControlPoints();
             _selectedShape = null;
             _selectedIndex = -1;
@@ -1349,6 +1649,7 @@ namespace 串口助手
             double height = (shape as FrameworkElement)?.ActualHeight ?? 0;
             if (width == 0 && shape is Rectangle r) { width = r.Width; height = r.Height; }
             if (width == 0 && shape is Ellipse e) { width = e.Width; height = e.Height; }
+            if (width == 0 && shape is TextBlock tb) { width = 20; height = tb.FontSize + 4; }
             return new Rect(left, top, width, height);
         }
 
@@ -1483,6 +1784,29 @@ namespace 串口助手
             return null;
         }
 
+        /// <summary>命中测试文字（Select 模式下点击文字 → 进入编辑）</summary>
+        private TextBlock HitTestText(Point pos, out string key)
+        {
+            // 倒序遍历（后添加的在上面）
+            var keys = _oledTexts.Keys.ToArray();
+            for (int i = keys.Length - 1; i >= 0; i--)
+            {
+                key = keys[i];
+                var tb = _oledTexts[key];
+                double left = Canvas.GetLeft(tb);
+                double top = Canvas.GetTop(tb);
+                double w = tb.ActualWidth;
+                double h = tb.ActualHeight;
+                if (w <= 0) w = 20; // 空文本或未布局，给个最小宽度
+                if (h <= 0) h = 14;
+                var bounds = new Rect(left - 2, top - 2, w + 4, h + 4);
+                if (bounds.Contains(pos))
+                    return tb;
+            }
+            key = null;
+            return null;
+        }
+
         private static double DistanceToLineSegment(Point p, Point a, Point b)
         {
             double dx = b.X - a.X, dy = b.Y - a.Y;
@@ -1503,6 +1827,9 @@ namespace 串口助手
                 state = (line.X1, line.Y1, line.X2, line.Y2);
             else if (shape is Polygon tri)
                 state = tri.Points.ToArray();
+            else if (shape is TextBlock tb)
+                state = (Canvas.GetLeft(tb), Canvas.GetTop(tb), tb.Text, tb.FontSize,
+                    (tb.Foreground as SolidColorBrush)?.Color.ToString() ?? "#FFFFFF");
             else // Rectangle / Ellipse
                 state = (Canvas.GetLeft(shape), Canvas.GetTop(shape),
                     ((FrameworkElement)shape).Width, ((FrameworkElement)shape).Height);
@@ -1516,6 +1843,13 @@ namespace 串口助手
             { line.X1 = x1; line.Y1 = y1; line.X2 = x2; line.Y2 = y2; }
             else if (state is Point[] pts && shape is Polygon tri)
             { tri.Points = new PointCollection(pts); }
+            else if (state is ValueTuple<double, double, string, double, string> textState && shape is TextBlock tb)
+            {
+                var (l, t, txt, fs, clr) = textState;
+                Canvas.SetLeft(tb, l); Canvas.SetTop(tb, t);
+                tb.Text = txt; tb.FontSize = fs;
+                try { tb.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(clr)); } catch { }
+            }
             else if (state is (double l, double t, double w, double h))
             { Canvas.SetLeft(shape, l); Canvas.SetTop(shape, t); ((FrameworkElement)shape).Width = w; ((FrameworkElement)shape).Height = h; }
         }
@@ -1604,6 +1938,11 @@ namespace 串口助手
             }
             else if (_originalShapeState is (double l, double t, double w, double h))
             { Canvas.SetLeft(shape, l + totalDx); Canvas.SetTop(shape, t + totalDy); }
+            else if (_originalShapeState is ValueTuple<double, double, string, double, string> txtState && shape is TextBlock)
+            {
+                Canvas.SetLeft(shape, txtState.Item1 + totalDx);
+                Canvas.SetTop(shape, txtState.Item2 + totalDy);
+            }
         }
 
         // ── 修改确认：协议重编码 + 同步 ──
@@ -1622,7 +1961,7 @@ namespace 串口助手
             {
                 Type = oldCmd.Type,
                 Args = newArgs,
-                Color = oldCmd.Color,
+                Color = _shapeEditColor, // 使用编辑器中的实际颜色
             };
 
             // 重建控点（位置可能已变）
@@ -1630,8 +1969,21 @@ namespace 串口助手
             var bounds = GetShapeBounds(_selectedShape);
             CreateControlPoints(bounds);
 
+            // 刷新侧栏字段（拖拽后数字同步）
+            if (rightOLEDShapeEditor.Visibility == Visibility.Visible)
+                PopulateShapeEditorFields();
+            else if (rightOLEDTextEditor.Visibility == Visibility.Visible && _selectedShape is TextBlock tb)
+            {
+                tbTextEditX.Text = ((int)Canvas.GetLeft(tb)).ToString();
+                tbTextEditY.Text = ((int)Canvas.GetTop(tb)).ToString();
+                UpdateSharedProtocolPreview();
+            }
+
             // Point 2 预留接口 —— 当前全量刷新，将来可切增量
             SyncShapeAfterModification(_selectedIndex, newArgs);
+
+            // 更新快照，防止后续取消回退到拖拽前状态
+            CaptureOriginalState(_selectedShape, out _originalShapeState);
         }
 
         /// <summary>
@@ -1650,10 +2002,31 @@ namespace 串口助手
         private static List<string> ShapeToProtocolArgs(UIElement shape, DrawCommand oldCmd)
         {
             string type = oldCmd.Type;
-            string color = oldCmd.Color;
+
+            // 从实际画刷取颜色（不依赖 oldCmd.Color）
+            string color = oldCmd.Color ?? "#FFFFFF";
+            if (shape is Shape sh)
+            {
+                bool filled = sh.Fill != null && sh.Stroke == null;
+                var brush = (filled ? sh.Fill : sh.Stroke) as SolidColorBrush;
+                if (brush != null)
+                    color = $"#{brush.Color.R:X2}{brush.Color.G:X2}{brush.Color.B:X2}";
+            }
+            else if (shape is TextBlock tb && tb.Foreground is SolidColorBrush tbr)
+            {
+                color = $"#{tbr.Color.R:X2}{tbr.Color.G:X2}{tbr.Color.B:X2}";
+            }
 
             switch (type)
             {
+                case "text":
+                    var textTb = (TextBlock)shape;
+                    return new List<string> { "text",
+                        ((int)Canvas.GetLeft(textTb)).ToString(),
+                        ((int)Canvas.GetTop(textTb)).ToString(),
+                        textTb.Text,
+                        ((int)textTb.FontSize).ToString(), color };
+
                 case "point":
                     return new List<string> { "point",
                         ((int)Canvas.GetLeft(shape)).ToString(),
@@ -1669,47 +2042,498 @@ namespace 串口助手
 
                 case "rect":
                     var rect = (System.Windows.Shapes.Rectangle)shape;
+                    bool rectFilled = rect.Fill != null && rect.Stroke == null;
                     var rectArgs = new List<string> { "rect",
                         ((int)Canvas.GetLeft(rect)).ToString(), ((int)Canvas.GetTop(rect)).ToString(),
                         ((int)rect.Width).ToString(), ((int)rect.Height).ToString(), color };
-                    if (rect.StrokeThickness != 1) rectArgs.Add(((int)rect.StrokeThickness).ToString());
+                    if (!rectFilled && rect.StrokeThickness != 1) rectArgs.Add(((int)rect.StrokeThickness).ToString());
+                    if (rectFilled) rectArgs.Add("fill");
                     return rectArgs;
 
                 case "fill":
-                    var fillRect = (System.Windows.Shapes.Rectangle)shape;
-                    return new List<string> { "fill",
-                        ((int)Canvas.GetLeft(fillRect)).ToString(), ((int)Canvas.GetTop(fillRect)).ToString(),
-                        ((int)fillRect.Width).ToString(), ((int)fillRect.Height).ToString(), color };
+                    // 兼容旧 DrawCommand.Type=="fill"（旧协议升级后统一转 rect+fill）
+                    var oldFillRect = (System.Windows.Shapes.Rectangle)shape;
+                    return new List<string> { "rect",
+                        ((int)Canvas.GetLeft(oldFillRect)).ToString(), ((int)Canvas.GetTop(oldFillRect)).ToString(),
+                        ((int)oldFillRect.Width).ToString(), ((int)oldFillRect.Height).ToString(), color, "fill" };
 
                 case "circle":
                     var circle = (Ellipse)shape;
+                    bool circFilled = circle.Fill != null && circle.Stroke == null;
                     int cx = (int)(Canvas.GetLeft(circle) + circle.Width / 2);
                     int cy = (int)(Canvas.GetTop(circle) + circle.Height / 2);
                     int r = (int)(Math.Max(circle.Width, circle.Height) / 2);
                     var circArgs = new List<string> { "circle", cx.ToString(), cy.ToString(), r.ToString(), color };
-                    if (circle.Stroke != null && circle.StrokeThickness != 1) circArgs.Add(((int)circle.StrokeThickness).ToString());
+                    if (!circFilled && circle.Stroke != null && circle.StrokeThickness != 1) circArgs.Add(((int)circle.StrokeThickness).ToString());
+                    if (circFilled) circArgs.Add("fill");
                     return circArgs;
 
                 case "ellipse":
                     var ellipse = (Ellipse)shape;
+                    bool ellFilled = ellipse.Fill != null && ellipse.Stroke == null;
                     int ex = (int)(Canvas.GetLeft(ellipse) + ellipse.Width / 2);
                     int ey = (int)(Canvas.GetTop(ellipse) + ellipse.Height / 2);
                     int a = (int)(ellipse.Width / 2);
                     int b = (int)(ellipse.Height / 2);
                     var ellArgs = new List<string> { "ellipse", ex.ToString(), ey.ToString(), a.ToString(), b.ToString(), color };
-                    if (ellipse.Stroke != null && ellipse.StrokeThickness != 1) ellArgs.Add(((int)ellipse.StrokeThickness).ToString());
+                    if (!ellFilled && ellipse.Stroke != null && ellipse.StrokeThickness != 1) ellArgs.Add(((int)ellipse.StrokeThickness).ToString());
+                    if (ellFilled) ellArgs.Add("fill");
                     return ellArgs;
 
                 case "triangle":
                     var tri = (Polygon)shape;
+                    bool triFilled = tri.Fill != null && tri.Stroke == null;
                     var triArgs = new List<string> { "triangle",
                         ((int)tri.Points[0].X).ToString(), ((int)tri.Points[0].Y).ToString(),
                         ((int)tri.Points[1].X).ToString(), ((int)tri.Points[1].Y).ToString(),
                         ((int)tri.Points[2].X).ToString(), ((int)tri.Points[2].Y).ToString(), color };
-                    if (tri.StrokeThickness != 1) triArgs.Add(((int)tri.StrokeThickness).ToString());
+                    if (!triFilled && tri.StrokeThickness != 1) triArgs.Add(((int)tri.StrokeThickness).ToString());
+                    if (triFilled) triArgs.Add("fill");
                     return triArgs;
             }
             return null;
+        }
+
+        // ═══════════════════════════════════════
+        //  F1 形状属性面板（侧栏编辑）
+        // ═══════════════════════════════════════
+
+        private void EnterShapeEditMode()
+        {
+            if (_selectedShape == null || _selectedIndex < 0) return;
+
+            // 保存原始状态（取消时恢复）
+            CaptureOriginalState(_selectedShape, out _originalShapeState);
+
+            // text 类型 → 走文字编辑面板（保留原文在画布，可拖拽移动）
+            if (_selectedShapeDrawType == "text" && _selectedShape is TextBlock tb)
+            {
+                _isEditingText = true;
+                _textEditPos = new Point(Canvas.GetLeft(tb), Canvas.GetTop(tb));
+                _textEditColor = (tb.Foreground as SolidColorBrush)?.Color.ToString() ?? "#FFFFFF";
+                if (!_textEditColor.StartsWith("#")) _textEditColor = "#" + _textEditColor;
+                _editingTextOriginalKey = $"{(int)_textEditPos.X},{(int)_textEditPos.Y}";
+
+                // 初始化字号下拉
+                if (cbTextEditFontSize.Items.Count == 0)
+                {
+                    int[] sizes = { 8, 10, 12, 14, 16, 18, 20, 24, 28, 32 };
+                    foreach (var s in sizes)
+                        cbTextEditFontSize.Items.Add(new ComboBoxItem { Content = s.ToString(), Tag = s });
+                }
+                for (int i = 0; i < cbTextEditFontSize.Items.Count; i++)
+                {
+                    if (cbTextEditFontSize.Items[i] is ComboBoxItem ci && ci.Tag is int fs && fs == (int)tb.FontSize)
+                    { cbTextEditFontSize.SelectedIndex = i; break; }
+                }
+
+                tbTextEditX.Text = ((int)_textEditPos.X).ToString();
+                tbTextEditY.Text = ((int)_textEditPos.Y).ToString();
+                tbTextEditContent.Text = tb.Text;
+                textEditColorSwatch.Background = ParseColorBrush(_textEditColor) ?? Brushes.White;
+
+                // 编辑已有文字 → 隐藏确定/取消，显示协议预览
+                textEditConfirmRow.Visibility = Visibility.Collapsed;
+                sharedProtocolPreview.Visibility = Visibility.Visible;
+                UpdateSharedProtocolPreview();
+
+                // 切换侧栏到文字编辑
+                rightOLEDSettings.Visibility = Visibility.Collapsed;
+                rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
+                rightOLEDTextEditor.Visibility = Visibility.Visible;
+                tbSidePanelTitle.Text = "文字编辑";
+
+                // 不建预览，保留原文 + 控点（可拖拽中心移动）
+                return;
+            }
+
+            // 初始化线宽下拉（只一次）
+            if (cbShapeLineWidth.Items.Count == 0)
+            {
+                int[] widths = { 1, 2, 3, 5, 8 };
+                foreach (var lw in widths)
+                    cbShapeLineWidth.Items.Add(new ComboBoxItem { Content = lw.ToString(), Tag = lw });
+            }
+
+            PopulateShapeEditorFields();
+
+            // 切换侧栏
+            rightOLEDSettings.Visibility = Visibility.Collapsed;
+            rightOLEDTextEditor.Visibility = Visibility.Collapsed;
+            rightOLEDShapeEditor.Visibility = Visibility.Visible;
+            sharedProtocolPreview.Visibility = Visibility.Visible;
+            tbSidePanelTitle.Text = "图形属性";
+        }
+
+        private void ExitShapeEditMode(bool save)
+        {
+            if (_selectedShape == null) return;
+
+            // text 类型 → 委托给文字编辑退出
+            if (_selectedShapeDrawType == "text")
+            {
+                ExitTextEditMode(save);
+                return;
+            }
+
+            if (!save)
+            {
+                // 恢复原始状态
+                RestoreOriginalState(_selectedShape, _originalShapeState);
+                RemoveControlPoints();
+                var bounds = GetShapeBounds(_selectedShape);
+                CreateControlPoints(bounds);
+            }
+            else
+            {
+                // 保存到 DrawCommand + 同步设备
+                if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                {
+                    var oldCmd = _displayVM.DrawCommands[_selectedIndex];
+                    var newArgs = ShapeToProtocolArgs(_selectedShape, oldCmd);
+                    if (newArgs != null)
+                    {
+                        _displayVM.DrawCommands[_selectedIndex] = new DrawCommand
+                        {
+                            Type = oldCmd.Type,
+                            Args = newArgs,
+                            Color = _shapeEditColor, // 使用编辑器中的实际颜色
+                        };
+                        SyncShapeAfterModification(_selectedIndex, newArgs);
+                    }
+                }
+            }
+
+            _originalShapeState = null;
+
+            // 恢复侧栏
+            rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
+            rightOLEDSettings.Visibility = Visibility.Visible;
+            sharedProtocolPreview.Visibility = Visibility.Collapsed;
+            tbSidePanelTitle.Text = "OLED 设置";
+        }
+
+        /// <summary>动态添加一行字段。subB 为空时只创建单列。</summary>
+        private (TextBox a, TextBox b) AddFieldRow(string label, string subA, string subB, string valA, string valB)
+        {
+            var row = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
+            row.Children.Add(new TextBlock { Text = label, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"), Margin = new Thickness(0, 0, 0, 4) });
+
+            var grid = new Grid();
+            bool single = string.IsNullOrEmpty(subB);
+            grid.ColumnDefinitions.Add(new ColumnDefinition());
+            if (!single) grid.ColumnDefinitions.Add(new ColumnDefinition());
+
+            TextBox mkCol(string sub, string val, int col, Thickness margin)
+            {
+                var sp = new StackPanel { Margin = margin };
+                sp.Children.Add(new TextBlock { Text = sub, FontSize = 10,
+                    Foreground = (Brush)FindResource("TextMutedBrush"), Margin = new Thickness(0, 0, 0, 2) });
+                var tb = new TextBox { Text = val, Height = 28, FontFamily = new FontFamily("Microsoft YaHei"),
+                    FontSize = 12, Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    Background = (Brush)FindResource("CardBgBrush"),
+                    BorderBrush = (Brush)FindResource("InputBorderBrush"),
+                    BorderThickness = new Thickness(1), Padding = new Thickness(6, 2, 6, 2) };
+                tb.TextChanged += ShapeField_Changed;
+                sp.Children.Add(tb);
+                Grid.SetColumn(sp, col);
+                grid.Children.Add(sp);
+                return tb;
+            }
+
+            var tbA = mkCol(subA, valA, 0, new Thickness(0));
+            TextBox tbB = null;
+            if (!single)
+                tbB = mkCol(subB, valB, 1, new Thickness(3, 0, 0, 0));
+
+            row.Children.Add(grid);
+            shapeFieldsContainer.Children.Add(row);
+            return (tbA, tbB);
+        }
+
+        /// <summary>将选中图形的当前参数填入编辑器字段</summary>
+        private void PopulateShapeEditorFields()
+        {
+            if (_selectedShape == null) return;
+            _populatingShapeEditor = true;
+
+            // 清空旧字段
+            shapeFieldsContainer.Children.Clear();
+            shapeExtrasContainer.Children.Clear();
+            _shapeFieldTextBoxes.Clear();
+
+            string type = _selectedShapeDrawType ?? "rect";
+            bool isFilled = false;
+            string color = "#FFFFFF";
+            int lw = 1;
+
+            // 从 Shape 实际画刷取颜色
+            if (_selectedShape is Shape sh)
+            {
+                isFilled = sh.Fill != null && sh.Stroke == null;
+                var scb = (isFilled ? sh.Fill : sh.Stroke) as SolidColorBrush;
+                if (scb != null) color = $"#{scb.Color.R:X2}{scb.Color.G:X2}{scb.Color.B:X2}";
+                if (sh.Stroke != null) lw = (int)sh.StrokeThickness;
+            }
+
+            _shapeEditColor = color;
+
+            // 标题
+            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill" };
+            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形" };
+            int ti = Array.IndexOf(typeNames, type);
+            string typeLabel = ti >= 0 ? typeLabels[ti] : type;
+            tbShapeEditTitle.Text = $"图形属性 — {typeLabel}";
+            tbShapeEditType.Text = isFilled ? $"类型: {typeLabel}（实心）" : $"类型: {typeLabel}";
+
+            // 默认隐藏（各 case 按需打开）
+            cbShapeFill.Visibility = Visibility.Collapsed;
+
+            // 按类型动态生成字段行
+            void add(string label, string a, string b, string va, string vb)
+            { var (t1, t2) = AddFieldRow(label, a, b, va, vb); _shapeFieldTextBoxes.Add(t1); _shapeFieldTextBoxes.Add(t2); }
+            void addSingle(string label, string a, string va)
+            { var (t1, _) = AddFieldRow(label, a, "", va, ""); _shapeFieldTextBoxes.Add(t1); }
+
+            switch (type)
+            {
+                case "point":
+                    var ptRect = (System.Windows.Shapes.Rectangle)_selectedShape;
+                    add("位置", "X", "Y", ((int)Canvas.GetLeft(ptRect)).ToString(), ((int)Canvas.GetTop(ptRect)).ToString());
+                    isFilled = true;
+                    break;
+
+                case "rect":
+                case "fill":
+                    var rect = (System.Windows.Shapes.Rectangle)_selectedShape;
+                    add("位置", "X", "Y", ((int)Canvas.GetLeft(rect)).ToString(), ((int)Canvas.GetTop(rect)).ToString());
+                    add("尺寸", "宽", "高", ((int)rect.Width).ToString(), ((int)rect.Height).ToString());
+                    cbShapeFill.Visibility = Visibility.Visible;
+                    break;
+
+                case "circle":
+                    var circle = (Ellipse)_selectedShape;
+                    int cx = (int)(Canvas.GetLeft(circle) + circle.Width / 2);
+                    int cy = (int)(Canvas.GetTop(circle) + circle.Height / 2);
+                    int r = (int)(Math.Max(circle.Width, circle.Height) / 2);
+                    add("圆心", "CX", "CY", cx.ToString(), cy.ToString());
+                    addSingle("半径", "R", r.ToString());
+                    cbShapeFill.Visibility = Visibility.Visible;
+                    break;
+
+                case "ellipse":
+                    var ell = (Ellipse)_selectedShape;
+                    int ecx = (int)(Canvas.GetLeft(ell) + ell.Width / 2);
+                    int ecy = (int)(Canvas.GetTop(ell) + ell.Height / 2);
+                    add("圆心", "CX", "CY", ecx.ToString(), ecy.ToString());
+                    add("半轴", "A", "B", ((int)(ell.Width / 2)).ToString(), ((int)(ell.Height / 2)).ToString());
+                    cbShapeFill.Visibility = Visibility.Visible;
+                    break;
+
+                case "line":
+                    var line = (Line)_selectedShape;
+                    add("起点", "X1", "Y1", ((int)line.X1).ToString(), ((int)line.Y1).ToString());
+                    add("终点", "X2", "Y2", ((int)line.X2).ToString(), ((int)line.Y2).ToString());
+                    break;
+
+                case "triangle":
+                    var tri = (Polygon)_selectedShape;
+                    add("上顶点 ▲", "X", "Y", ((int)tri.Points[0].X).ToString(), ((int)tri.Points[0].Y).ToString());
+                    add("左底角 ↙", "X", "Y", ((int)tri.Points[1].X).ToString(), ((int)tri.Points[1].Y).ToString());
+                    add("右底角 ↘", "X", "Y", ((int)tri.Points[2].X).ToString(), ((int)tri.Points[2].Y).ToString());
+                    cbShapeFill.Visibility = Visibility.Visible;
+                    break;
+            }
+
+            // 填充复选框
+            cbShapeFill.IsChecked = isFilled;
+
+            // 线宽
+            shapeLineWidthPanel.Visibility = isFilled ? Visibility.Collapsed : Visibility.Visible;
+            if (!isFilled)
+            {
+                for (int i = 0; i < cbShapeLineWidth.Items.Count; i++)
+                {
+                    if (cbShapeLineWidth.Items[i] is ComboBoxItem ci && ci.Tag is int w && w == lw)
+                    { cbShapeLineWidth.SelectedIndex = i; break; }
+                }
+            }
+
+            // 颜色
+            var brush = ParseColorBrush(color) ?? Brushes.White;
+            shapeEditColorSwatch.Background = brush;
+
+            UpdateSharedProtocolPreview();
+            _populatingShapeEditor = false;
+        }
+
+        /// <summary>侧栏字段变更 → 实时更新画布图形</summary>
+        private void ShapeField_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_populatingShapeEditor || _selectedShape == null) return;
+            ApplyEditorToShape();
+        }
+
+        /// <summary>从编辑器读取所有字段，应用到选中图形</summary>
+        private void ApplyEditorToShape()
+        {
+            if (_selectedShape == null) return;
+
+            string type = _selectedShapeDrawType ?? "rect";
+            bool isFilled = cbShapeFill.IsChecked == true;
+            string color = _shapeEditColor;
+            var brush = ParseColorBrush(color) ?? Brushes.White;
+            int lw = GetShapeEditorLineWidth();
+
+            // 从动态字段列表读值
+            int F(int i) => i < _shapeFieldTextBoxes.Count && int.TryParse(_shapeFieldTextBoxes[i].Text, out int v) ? v : 0;
+            int f1 = F(0), f2 = F(1), f3 = F(2), f4 = F(3), f5 = F(4), f6 = F(5);
+
+            switch (type)
+            {
+                case "point":
+                    var pt = (System.Windows.Shapes.Rectangle)_selectedShape;
+                    Canvas.SetLeft(pt, f1);
+                    Canvas.SetTop(pt, f2);
+                    pt.Fill = brush;
+                    break;
+
+                case "rect":
+                case "fill":
+                    var rect = (System.Windows.Shapes.Rectangle)_selectedShape;
+                    rect.Width = Math.Max(1, f3);
+                    rect.Height = Math.Max(1, f4);
+                    Canvas.SetLeft(rect, f1);
+                    Canvas.SetTop(rect, f2);
+                    if (isFilled) { rect.Fill = brush; rect.Stroke = null; }
+                    else { rect.Stroke = brush; rect.StrokeThickness = lw; rect.Fill = null; }
+                    break;
+
+                case "circle":
+                    var circle = (Ellipse)_selectedShape;
+                    int cr = Math.Max(1, f3);
+                    circle.Width = cr * 2; circle.Height = cr * 2;
+                    Canvas.SetLeft(circle, f1 - cr);
+                    Canvas.SetTop(circle, f2 - cr);
+                    if (isFilled) { circle.Fill = brush; circle.Stroke = null; }
+                    else { circle.Stroke = brush; circle.StrokeThickness = lw; circle.Fill = null; }
+                    break;
+
+                case "ellipse":
+                    var ellipse = (Ellipse)_selectedShape;
+                    int ea = Math.Max(1, f3), eb = Math.Max(1, f4);
+                    ellipse.Width = ea * 2; ellipse.Height = eb * 2;
+                    Canvas.SetLeft(ellipse, f1 - ea);
+                    Canvas.SetTop(ellipse, f2 - eb);
+                    if (isFilled) { ellipse.Fill = brush; ellipse.Stroke = null; }
+                    else { ellipse.Stroke = brush; ellipse.StrokeThickness = lw; ellipse.Fill = null; }
+                    break;
+
+                case "line":
+                    var line = (Line)_selectedShape;
+                    line.X1 = f1; line.Y1 = f2; line.X2 = f3; line.Y2 = f4;
+                    line.Stroke = brush; line.StrokeThickness = lw;
+                    break;
+
+                case "triangle":
+                    var tri = (Polygon)_selectedShape;
+                    tri.Points = new PointCollection { new Point(f1, f2), new Point(f3, f4), new Point(f5, f6) };
+                    if (isFilled) { tri.Fill = brush; tri.Stroke = null; }
+                    else { tri.Stroke = brush; tri.StrokeThickness = lw; tri.Fill = null; }
+                    break;
+            }
+
+            // 同步默认画笔颜色/线宽
+            _drawColor = color;
+            if (!isFilled) _drawLineWidth = lw;
+
+            // 线宽面板显隐
+            shapeLineWidthPanel.Visibility = isFilled ? Visibility.Collapsed : Visibility.Visible;
+
+            // 更新选择框和控点
+            RemoveControlPoints();
+            var bounds = GetShapeBounds(_selectedShape);
+            CreateControlPoints(bounds);
+
+            // 更新类型标签
+            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill" };
+            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形" };
+            int ti = Array.IndexOf(typeNames, type);
+            tbShapeEditType.Text = isFilled ? $"类型: {(ti >= 0 ? typeLabels[ti] : type)}（实心）" : $"类型: {(ti >= 0 ? typeLabels[ti] : type)}";
+
+            UpdateSharedProtocolPreview();
+        }
+
+        private void btnCopyProtocol_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(tbProtocolPreview.Text) || tbProtocolPreview.Text == "—") return;
+            SafeSetClipboard(tbProtocolPreview.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        private int GetShapeEditorLineWidth()
+        {
+            if (cbShapeLineWidth.SelectedItem is ComboBoxItem item && item.Tag is int w)
+                return w;
+            return 1;
+        }
+
+        private void btnShapeEditCancel_Click(object sender, RoutedEventArgs e)
+        {
+            // ✕ = 取消编辑：恢复原始状态，取消选中，侧栏回设置
+            if (_selectedShape != null)
+                ExitShapeEditMode(save: false);
+            RemoveControlPoints();
+            _selectedShape = null;
+            _selectedIndex = -1;
+            _selectedShapeDrawType = null;
+            _originalShapeState = null;
+            _hasMoved = false;
+        }
+
+        private void btnShapeDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedShape == null) return;
+            int idx = _selectedIndex;
+
+            // 从画布移除
+            oledCanvas.Children.Remove(_selectedShape);
+            _drawElements.Remove(_selectedShape);
+
+            // 从协议列表移除
+            if (idx >= 0 && idx < _displayVM.DrawCommands.Count)
+                _displayVM.DrawCommands.RemoveAt(idx);
+
+            // 如果设备已连，同步删除
+            if (_session != null && _session.IsOpen)
+                SyncAllShapesToDevice();
+
+            // 清除选中态 + 恢复侧栏
+            RemoveControlPoints();
+            _selectedShape = null;
+            _selectedIndex = -1;
+            _selectedShapeDrawType = null;
+            _originalShapeState = null;
+            _hasMoved = false;
+
+            rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
+            rightOLEDSettings.Visibility = Visibility.Visible;
+            tbSidePanelTitle.Text = "OLED 设置";
+        }
+
+        private void shapeEditColorSwatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedShape == null) return;
+            ShowDrawColorPicker(shapeEditColorSwatch, hex => shapeEditColorApply(hex));
+        }
+
+        private void shapeEditColorApply(string hex)
+        {
+            _shapeEditColor = hex;
+            var brush = ParseColorBrush(hex);
+            if (brush != null) shapeEditColorSwatch.Background = brush;
+            ApplyEditorToShape();
         }
 
         // ═══════════════════════════════════════

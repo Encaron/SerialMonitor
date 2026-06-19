@@ -1854,6 +1854,12 @@ namespace 串口助手
                 slidersToolbarNormal.Visibility = Visibility.Visible; slidersToolbarEdit.Visibility = Visibility.Collapsed;
                 RefreshSlidersUI(); RefreshSlidersSidePanel();
             }
+            else if (_currentTab == "OLED")
+            {
+                if (_isEditingText) ExitTextEditMode(save: _editingTextOriginalKey != null);
+                if (_selectedShape != null) DeselectShape();
+                ResetOLEDSidePanel();
+            }
 
             _currentSettingsPage = null; // 离开设置子页面
             if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
