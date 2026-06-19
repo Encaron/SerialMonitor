@@ -2261,7 +2261,7 @@
                                 <Button.ContextMenu>
                                     <ContextMenu Placement="Bottom">
                                         <MenuItem Header="◯ 圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolCircle_Click"/>
-                                        <MenuItem Header="◭ 椭圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolEllipse_Click"/>
+                                        <MenuItem Header="⬭ 椭圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolEllipse_Click"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
