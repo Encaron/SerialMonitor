@@ -221,7 +221,7 @@ namespace 串口助手
             };
 
             // 图标栏二次点击抖动：handledEventsToo=true 确保 ButtonBase 不吞事件
-            var icons = new RadioButton[] { tabReceive, tabPlot, tabKeys, tabSliders, tabOLED, tabJoystick, tabSettings };
+            var icons = new RadioButton[] { tabReceive, tabPlot, tabKeys, tabSliders, tabOLED, tabJoystick, tabSensors, tabSettings };
             foreach (var icon in icons)
                 icon.AddHandler(PreviewMouseLeftButtonDownEvent,
                     new MouseButtonEventHandler(IconBarIcon_Click), handledEventsToo: true);
@@ -2620,6 +2620,7 @@ namespace 串口助手
             else if (sender == tabSliders) clicked = "Sliders";
             else if (sender == tabOLED) clicked = "OLED";
             else if (sender == tabJoystick) clicked = "Joystick";
+            else if (sender == tabSensors) clicked = "Sensors";
             else if (sender == tabSettings) clicked = "Settings";
             else return;
 

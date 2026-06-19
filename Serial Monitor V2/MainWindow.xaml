@@ -1683,6 +1683,18 @@
                                               SelectionChanged="cbOLEDPreset_Changed"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <TextBlock Text="橡皮擦大小" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
+                                    <Slider x:Name="sliderEraserWidth" Grid.Column="0" Minimum="3" Maximum="20"
+                                            Value="5" IsSnapToTickEnabled="True" TickFrequency="1"
+                                            VerticalAlignment="Center"
+                                            ValueChanged="sliderEraserWidth_Changed"/>
+                                    <TextBlock x:Name="tbEraserWidthValue" Grid.Column="1" Text="5 px"
+                                               FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Button Content="🗑 清屏" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnOLEDClear_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
@@ -2263,6 +2275,9 @@
                                     FontWeight="Bold"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolText_Click"/>
+                            <Button x:Name="btnToolImage" Content="🖼" Width="24" Height="24" ToolTip="导入图片"
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
+                                    Click="btnToolImage_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 橡皮擦 -->
                             <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="橡皮擦"
@@ -2273,9 +2288,20 @@
                             <Button x:Name="btnSendCanvas" Content="发送" Height="26" MinWidth="0" Padding="8,0"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Click="btnSendCanvas_Click" ToolTip="重发全部图形到串口"/>
-                            <Button x:Name="btnExportC" Content="导出C" Height="26" MinWidth="0" Padding="8,0"
+                            <Button x:Name="btnExportC" Content="导出C ▾" Height="26" MinWidth="0" Padding="8,0"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Click="btnExportC_Click" ToolTip="导出画布为 C 数组"/>
+                                    Click="btnExportC_Click" ToolTip="导出画布为 C 数组">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="单色 C 数组 (uint8_t)" Tag="mono"
+                                                  Style="{DynamicResource ContextMenuMenuItemStyle}"
+                                                  Click="ExportCFormat_Click"/>
+                                        <MenuItem Header="RGB565 C 数组 (uint16_t)" Tag="rgb565"
+                                                  Style="{DynamicResource ContextMenuMenuItemStyle}"
+                                                  Click="ExportCFormat_Click"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 清屏 -->
                             <Button x:Name="btnOLEDClear" Content="🗑 清屏"
