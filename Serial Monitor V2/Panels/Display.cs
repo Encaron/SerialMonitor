@@ -249,7 +249,7 @@ namespace 串口助手
             _imagePixels.Clear();
             RefreshOLEDUI();
             if (_session != null && _session.IsOpen)
-                SendRaw("[display-clear]", appendLineEnding: true);
+                SendRaw("[draw,clear]", appendLineEnding: true);
         }
 
         private void cbOLEDPreset_Changed(object sender, SelectionChangedEventArgs e)
@@ -995,7 +995,7 @@ namespace 串口助手
         private void SubToolEllipse_Click(object sender, RoutedEventArgs e)
         {
             _circleSubTool = DrawTool.Ellipse;
-            btnToolCircle.Content = "◭▾";
+            btnToolCircle.Content = "⬭▾";
             SelectTool(DrawTool.Ellipse, btnToolCircle);
         }
 
