@@ -1179,6 +1179,46 @@ namespace 串口助手
                     double totalDy = pos.Y - _selectDragOrigin.Y;
                     TranslateShapeFromOriginal(_selectedShape, totalDx, totalDy);
                 }
+                else if (_activeHandle == HandleRole.Endpoint1 && _selectedShape is Line line1)
+                {
+                    double totalDx = pos.X - _selectDragOrigin.X;
+                    double totalDy = pos.Y - _selectDragOrigin.Y;
+                    RestoreOriginalState(_selectedShape, _originalShapeState);
+                    if (_originalShapeState is (double x1, double y1, double x2, double y2))
+                    { line1.X1 = x1 + totalDx; line1.Y1 = y1 + totalDy; }
+                }
+                else if (_activeHandle == HandleRole.Endpoint2 && _selectedShape is Line line2)
+                {
+                    double totalDx = pos.X - _selectDragOrigin.X;
+                    double totalDy = pos.Y - _selectDragOrigin.Y;
+                    RestoreOriginalState(_selectedShape, _originalShapeState);
+                    if (_originalShapeState is (double x1, double y1, double x2, double y2))
+                    { line2.X2 = x2 + totalDx; line2.Y2 = y2 + totalDy; }
+                }
+                else if (_activeHandle == HandleRole.Vertex0 && _selectedShape is Polygon tri0)
+                {
+                    double totalDx = pos.X - _selectDragOrigin.X;
+                    double totalDy = pos.Y - _selectDragOrigin.Y;
+                    RestoreOriginalState(_selectedShape, _originalShapeState);
+                    if (_originalShapeState is Point[] orig)
+                    { tri0.Points = new PointCollection { new Point(orig[0].X + totalDx, orig[0].Y + totalDy), orig[1], orig[2] }; }
+                }
+                else if (_activeHandle == HandleRole.Vertex1 && _selectedShape is Polygon tri1)
+                {
+                    double totalDx = pos.X - _selectDragOrigin.X;
+                    double totalDy = pos.Y - _selectDragOrigin.Y;
+                    RestoreOriginalState(_selectedShape, _originalShapeState);
+                    if (_originalShapeState is Point[] orig)
+                    { tri1.Points = new PointCollection { orig[0], new Point(orig[1].X + totalDx, orig[1].Y + totalDy), orig[2] }; }
+                }
+                else if (_activeHandle == HandleRole.Vertex2 && _selectedShape is Polygon tri2)
+                {
+                    double totalDx = pos.X - _selectDragOrigin.X;
+                    double totalDy = pos.Y - _selectDragOrigin.Y;
+                    RestoreOriginalState(_selectedShape, _originalShapeState);
+                    if (_originalShapeState is Point[] orig)
+                    { tri2.Points = new PointCollection { orig[0], orig[1], new Point(orig[2].X + totalDx, orig[2].Y + totalDy) }; }
+                }
                 else
                 {
                     Rect newBounds = CalculateResizeBounds(_activeHandle, _originalBounds, pos);
@@ -2029,7 +2069,84 @@ namespace 串口助手
             var fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(locked ? "#888888" : "#42A5F5"));
             var stroke = locked ? Brushes.Gray : Brushes.White;
 
-            // 4 角控点
+            // ── 直线：2 端点控点 + 中心控点 + 虚线框（F2 线端点独立拖拽） ──
+            if (_selectedShape is Line line)
+            {
+                var handles = new (double X, double Y, HandleRole Role, Cursor Cursor)[]
+                {
+                    (line.X1 - size/2, line.Y1 - size/2, HandleRole.Endpoint1, Cursors.Hand),
+                    (line.X2 - size/2, line.Y2 - size/2, HandleRole.Endpoint2, Cursors.Hand),
+                    ((line.X1 + line.X2)/2 - size/2, (line.Y1 + line.Y2)/2 - size/2, HandleRole.Center, Cursors.SizeAll),
+                };
+                foreach (var h in handles)
+                {
+                    var rect = new Rectangle
+                    {
+                        Width = size, Height = size,
+                        Fill = fill, Stroke = stroke, StrokeThickness = 1,
+                        Tag = h.Role, Cursor = h.Cursor,
+                    };
+                    Canvas.SetLeft(rect, h.X); Canvas.SetTop(rect, h.Y);
+                    Canvas.SetZIndex(rect, 1000);
+                    oledCanvas.Children.Add(rect);
+                    _controlPoints.Add(rect);
+                }
+                // 虚线框
+                var outline = new Rectangle
+                {
+                    Width = bounds.Width, Height = bounds.Height,
+                    Stroke = fill, StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 4, 2 },
+                    IsHitTestVisible = false,
+                };
+                Canvas.SetLeft(outline, bounds.Left); Canvas.SetTop(outline, bounds.Top);
+                Canvas.SetZIndex(outline, 999);
+                oledCanvas.Children.Add(outline);
+                _controlPoints.Add(outline);
+                return;
+            }
+
+            // ── 三角形：3 顶点控点 + 中心控点 + 虚线框（F3 三角形顶点独立拖拽） ──
+            if (_selectedShape is Polygon tri)
+            {
+                var pts = tri.Points;
+                double cx = (pts[0].X + pts[1].X + pts[2].X) / 3;
+                double cy = (pts[0].Y + pts[1].Y + pts[2].Y) / 3;
+                var handles = new (double X, double Y, HandleRole Role, Cursor Cursor)[]
+                {
+                    (pts[0].X - size/2, pts[0].Y - size/2, HandleRole.Vertex0, Cursors.Hand),
+                    (pts[1].X - size/2, pts[1].Y - size/2, HandleRole.Vertex1, Cursors.Hand),
+                    (pts[2].X - size/2, pts[2].Y - size/2, HandleRole.Vertex2, Cursors.Hand),
+                    (cx - size/2, cy - size/2, HandleRole.Center, Cursors.SizeAll),
+                };
+                foreach (var h in handles)
+                {
+                    var rect = new Rectangle
+                    {
+                        Width = size, Height = size,
+                        Fill = fill, Stroke = stroke, StrokeThickness = 1,
+                        Tag = h.Role, Cursor = h.Cursor,
+                    };
+                    Canvas.SetLeft(rect, h.X); Canvas.SetTop(rect, h.Y);
+                    Canvas.SetZIndex(rect, 1000);
+                    oledCanvas.Children.Add(rect);
+                    _controlPoints.Add(rect);
+                }
+                var triOutline = new Rectangle
+                {
+                    Width = bounds.Width, Height = bounds.Height,
+                    Stroke = fill, StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 4, 2 },
+                    IsHitTestVisible = false,
+                };
+                Canvas.SetLeft(triOutline, bounds.Left); Canvas.SetTop(triOutline, bounds.Top);
+                Canvas.SetZIndex(triOutline, 999);
+                oledCanvas.Children.Add(triOutline);
+                _controlPoints.Add(triOutline);
+                return;
+            }
+
+            // ── 其他图形：4 角控点 ──
             var corners = new (double X, double Y, HandleRole Role)[]
             {
                 (bounds.Left - size/2, bounds.Top - size/2, HandleRole.TopLeft),
@@ -2057,24 +2174,64 @@ namespace 串口助手
             }
 
             // 选中虚线框
-            var outline = new Rectangle
+            var outline2 = new Rectangle
             {
                 Width = bounds.Width, Height = bounds.Height,
                 Stroke = fill, StrokeThickness = 1,
                 StrokeDashArray = new DoubleCollection { 4, 2 },
                 IsHitTestVisible = false,
             };
-            Canvas.SetLeft(outline, bounds.Left);
-            Canvas.SetTop(outline, bounds.Top);
-            Canvas.SetZIndex(outline, 999);
-            oledCanvas.Children.Add(outline);
-            _controlPoints.Add(outline);
+            Canvas.SetLeft(outline2, bounds.Left);
+            Canvas.SetTop(outline2, bounds.Top);
+            Canvas.SetZIndex(outline2, 999);
+            oledCanvas.Children.Add(outline2);
+            _controlPoints.Add(outline2);
         }
 
         private void UpdateControlPoints(Rect bounds)
         {
             double size = 8;
-            // 4 角控点（索引 0-3）
+
+            // ── 直线：更新端点 + 中心 + 虚线框 ──
+            if (_selectedShape is Line line && _controlPoints.Count >= 4)
+            {
+                Canvas.SetLeft(_controlPoints[0], line.X1 - size/2);
+                Canvas.SetTop (_controlPoints[0], line.Y1 - size/2);
+                Canvas.SetLeft(_controlPoints[1], line.X2 - size/2);
+                Canvas.SetTop (_controlPoints[1], line.Y2 - size/2);
+                Canvas.SetLeft(_controlPoints[2], (line.X1 + line.X2)/2 - size/2);
+                Canvas.SetTop (_controlPoints[2], (line.Y1 + line.Y2)/2 - size/2);
+                if (_controlPoints[3] is Rectangle lineOutline)
+                {
+                    lineOutline.Width = bounds.Width; lineOutline.Height = bounds.Height;
+                    Canvas.SetLeft(lineOutline, bounds.Left); Canvas.SetTop(lineOutline, bounds.Top);
+                }
+                return;
+            }
+
+            // ── 三角形：更新 3 顶点 + 中心 + 虚线框 ──
+            if (_selectedShape is Polygon tri && _controlPoints.Count >= 5)
+            {
+                var pts = tri.Points;
+                Canvas.SetLeft(_controlPoints[0], pts[0].X - size/2);
+                Canvas.SetTop (_controlPoints[0], pts[0].Y - size/2);
+                Canvas.SetLeft(_controlPoints[1], pts[1].X - size/2);
+                Canvas.SetTop (_controlPoints[1], pts[1].Y - size/2);
+                Canvas.SetLeft(_controlPoints[2], pts[2].X - size/2);
+                Canvas.SetTop (_controlPoints[2], pts[2].Y - size/2);
+                double cx = (pts[0].X + pts[1].X + pts[2].X) / 3;
+                double cy = (pts[0].Y + pts[1].Y + pts[2].Y) / 3;
+                Canvas.SetLeft(_controlPoints[3], cx - size/2);
+                Canvas.SetTop (_controlPoints[3], cy - size/2);
+                if (_controlPoints[4] is Rectangle triOutline)
+                {
+                    triOutline.Width = bounds.Width; triOutline.Height = bounds.Height;
+                    Canvas.SetLeft(triOutline, bounds.Left); Canvas.SetTop(triOutline, bounds.Top);
+                }
+                return;
+            }
+
+            // ── 其他图形：4 角控点（索引 0-3）──
             var corners = new (double X, double Y)[]
             {
                 (bounds.Left - size/2, bounds.Top - size/2),
