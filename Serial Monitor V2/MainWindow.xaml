@@ -2300,11 +2300,9 @@
                             <Grid x:Name="oledYAxis" Grid.Row="1" Grid.Column="0" Width="34" Margin="0,0,2,0"/>
                             <!-- 画布 Viewbox（NearestNeighbor = 清晰像素） -->
                             <Viewbox Grid.Row="1" Grid.Column="1" Stretch="Uniform">
-                                <Border x:Name="oledCanvasBorder" Background="#111111" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-                                        RenderOptions.EdgeMode="Aliased">
+                                <Border x:Name="oledCanvasBorder" Background="#111111" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
                                     <Canvas x:Name="oledCanvas" Width="640" Height="320" ClipToBounds="True"
                                             Background="Transparent"
-                                            RenderOptions.EdgeMode="Aliased"
                                             TextOptions.TextRenderingMode="Aliased"/>
                                 </Border>
                             </Viewbox>

@@ -346,6 +346,14 @@ namespace 串口助手
         /// <summary>像素对齐渲染：防 1px 描边被 ClipToBounds 切掉半边</summary>
         private static void SnapShapeToPixel(Shape shape)
         {
+            // 直线：只用 SnapsToDevicePixels 对齐像素中心（不加 Aliased，防零高包围盒塌缩）
+            //   SnapsToDevicePixels 会把 lw=1 的水平线自动偏移到 Y+0.5，1px 描边恰好填一整行像素
+            if (shape is Line)
+            {
+                shape.SnapsToDevicePixels = true;
+                return;
+            }
+            // 封闭图形（矩形/圆等）：SnapsToDevicePixels + Aliased（D15 防 1px 边被裁）
             shape.SnapsToDevicePixels = true;
             RenderOptions.SetEdgeMode(shape, EdgeMode.Aliased);
         }
@@ -843,7 +851,7 @@ namespace 串口助手
         private void btnToolLine_Click(object sender, RoutedEventArgs e)    { SelectTool(DrawTool.Line,    btnToolLine); }
         private void btnToolRect_Click(object sender, RoutedEventArgs e)
         {
-            if (_isLocked) return;
+            if (_isLocked) { if (btnLockCanvas != null) ShakeButton(btnLockCanvas); return; }
             // 左键：已激活→弹出下拉换类型，未激活→选中当前子工具
             if (_drawTool == DrawTool.Rect || _drawTool == DrawTool.RoundedRect)
             {
@@ -862,7 +870,7 @@ namespace 串口助手
         }
         private void btnToolCircle_Click(object sender, RoutedEventArgs e)
         {
-            if (_isLocked) return;
+            if (_isLocked) { if (btnLockCanvas != null) ShakeButton(btnLockCanvas); return; }
             if (_drawTool == DrawTool.Circle || _drawTool == DrawTool.Ellipse)
             {
                 if (sender is Button btn && btn.ContextMenu != null)
@@ -919,7 +927,10 @@ namespace 串口助手
             {
                 btnLockCanvas.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E53935"));
                 DeselectShape();
-                SelectTool(DrawTool.None, null);
+                // 重置所有工具栏按钮为未选中样式（不走 SelectTool——它被 _isLocked 拦截）
+                _drawTool = DrawTool.None;
+                foreach (var b in _toolButtons)
+                    b.Style = (Style)FindResource("SecondaryButtonStyle");
                 oledCanvas.Cursor = Cursors.Arrow;
             }
             else
@@ -2177,7 +2188,7 @@ namespace 串口助手
         // ── 原始状态快照（防累积误差）──
 
         /// <summary>拖拽前保存图形原始参数，后续所有计算从原始值出，不累积。</summary>
-        private static void CaptureOriginalState(UIElement shape, out object state)
+        private void CaptureOriginalState(UIElement shape, out object state)
         {
             if (shape is Line line)
                 state = (line.X1, line.Y1, line.X2, line.Y2);
@@ -2185,12 +2196,27 @@ namespace 串口助手
                 state = tri.Points.ToArray();
             else if (shape is System.Windows.Shapes.Path arcPath)
             {
-                // 弧线：保存位置、默认尺寸、画刷颜色
+                // 弧线：保存圆心+半径（非宽高！弧线不填满包围盒，圆心不在包围盒中心）
                 string arcColor = (arcPath.Stroke as SolidColorBrush ?? arcPath.Fill as SolidColorBrush)
                     ?.Color.ToString() ?? "#FFFFFF";
                 if (!arcColor.StartsWith("#")) arcColor = "#" + arcColor;
+                // 从 DrawCommand 读圆心/半径（不从几何反推——ArcSegment 解析极难）
+                double acx = 0, acy = 0, ar = 40;
+                if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                {
+                    var cmd = _displayVM.DrawCommands[_selectedIndex];
+                    if (cmd.Args != null && cmd.Args.Count >= 6)
+                    {
+                        double.TryParse(cmd.Args[1], out acx);
+                        double.TryParse(cmd.Args[2], out acy);
+                        double.TryParse(cmd.Args[3], out ar);
+                    }
+                }
+                // 存储画布空间坐标（几何中心 + Canvas 偏移）
+                double canvasCx = acx + Canvas.GetLeft(arcPath);
+                double canvasCy = acy + Canvas.GetTop(arcPath);
                 state = (Canvas.GetLeft(arcPath), Canvas.GetTop(arcPath),
-                    40.0, 40.0, arcColor, arcPath.StrokeThickness);
+                    canvasCx, canvasCy, ar, arcColor, arcPath.StrokeThickness);
             }
             else if (shape is TextBlock tb)
                 state = (Canvas.GetLeft(tb), Canvas.GetTop(tb), tb.Text, tb.FontSize,
@@ -2215,7 +2241,7 @@ namespace 串口助手
                 tb.Text = txt; tb.FontSize = fs;
                 try { tb.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(clr)); } catch { }
             }
-            else if (state is (double al, double at, double aw, double ah, string arcClr, double arcLw) && shape is System.Windows.Shapes.Path arcPath2)
+            else if (state is (double al, double at, double acx, double acy, double ar, string arcClr, double arcLw) && shape is System.Windows.Shapes.Path arcPath2)
             {
                 Canvas.SetLeft(arcPath2, al); Canvas.SetTop(arcPath2, at);
                 try
@@ -2291,15 +2317,16 @@ namespace 串口助手
                 fe.Width = rNew * 2; fe.Height = rNew * 2;
                 Canvas.SetLeft(shape, cxNew - rNew); Canvas.SetTop(shape, cyNew - rNew);
             }
-            else if (_originalShapeState is (double al, double at, double aw, double ah, string arcClr, double arcLw) && shape is System.Windows.Shapes.Path arcP4)
+            else if (_originalShapeState is (double al, double at, double acx, double acy, double ar, string arcClr, double arcLw) && shape is System.Windows.Shapes.Path arcP4)
             {
-                // 弧线 resize：重算半径 + 重建几何（Path 不响应 Width/Height 缩放）
-                int newR = (int)(Math.Max(aw, ah) * Math.Max(scaleX, scaleY) / 2);
+                // 弧线 resize：圆心在包围盒内按比例位移 + 半径等比缩放
+                //   (弧线不填满包围盒，不能把圆心硬塞到新包围盒中心——否则弧线视觉飞走)
+                int newR = (int)(ar * Math.Max(scaleX, scaleY));
                 if (newR < 3) newR = 3;
-                int newCx = (int)(newBounds.Left + newBounds.Width / 2);
-                int newCy = (int)(newBounds.Top + newBounds.Height / 2);
+                int newCx = (int)(newBounds.Left + (acx - oldBounds.Left) * scaleX);
+                int newCy = (int)(newBounds.Top  + (acy - oldBounds.Top)  * scaleY);
 
-                // 从 DrawCommand 取角度
+                // 从 DrawCommand 取角度（resize 不改角度）
                 int sa = _arcStartAngle, ea = _arcEndAngle;
                 if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
                 {
@@ -2321,6 +2348,17 @@ namespace 串口助手
                     else { arcP4.Stroke = nb; arcP4.StrokeThickness = arcLw; arcP4.Fill = null; }
                     Canvas.SetLeft(arcP4, 0);
                     Canvas.SetTop(arcP4, 0);
+                    // 同步更新 DrawCommand（避免 FinalizeShapeModification 从几何反推圆心出错）
+                    if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+                    {
+                        var cmd2 = _displayVM.DrawCommands[_selectedIndex];
+                        if (cmd2.Args != null && cmd2.Args.Count >= 6)
+                        {
+                            cmd2.Args[1] = newCx.ToString();
+                            cmd2.Args[2] = newCy.ToString();
+                            cmd2.Args[3] = newR.ToString();
+                        }
+                    }
                 }
                 catch { }
             }
@@ -2346,7 +2384,7 @@ namespace 串口助手
                 foreach (var p in pts) newPts.Add(new Point(p.X + totalDx, p.Y + totalDy));
                 tri.Points = newPts;
             }
-            else if (_originalShapeState is (double al, double at, double aw, double ah, string _, double _) && shape is System.Windows.Shapes.Path)
+            else if (_originalShapeState is (double al, double at, double acx, double acy, double ar, string _, double _) && shape is System.Windows.Shapes.Path)
             { Canvas.SetLeft(shape, al + totalDx); Canvas.SetTop(shape, at + totalDy); }
             else if (_originalShapeState is (double l, double t, double w, double h))
             { Canvas.SetLeft(shape, l + totalDx); Canvas.SetTop(shape, t + totalDy); }
@@ -2366,7 +2404,8 @@ namespace 串口助手
 
             var oldCmd = _displayVM.DrawCommands[_selectedIndex];
 
-            // 弧线：Canvas 偏移后 cmd.Args 含过时坐标 → 先修正再给 ShapeToProtocolArgs
+            // 弧线：平移后 Canvas 偏移 → 累加到 cmd.Args 圆心坐标
+            //   (resize 已由 FitShapeToBounds 直接更新 cmd.Args，此处只补平移的 Canvas 偏移)
             if (_selectedShapeDrawType == "arc" && _selectedShape is System.Windows.Shapes.Path arcP2
                 && oldCmd.Args != null && oldCmd.Args.Count >= 6)
             {
