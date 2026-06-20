@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -9,6 +10,11 @@ namespace 串口助手
 {
     public partial class MainWindow : Window
     {
+        // DWM 标题栏暗色模式（Win10 20H1+ / Win11）
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
         // ==================================================================
         //  暗色主题
         // ==================================================================
@@ -16,6 +22,8 @@ namespace 串口助手
         private void ApplyTheme(bool dark)
         {
             isDarkTheme = dark;
+
+            ApplyTitleBarTheme(dark);
 
             foreach (var kv in ThemeMap)
             {
@@ -81,15 +89,15 @@ namespace 串口助手
             // 追踪框（TrackerControl internal 类）背景/文字适配主题
             FixPlotTrackerColors(dark);
 
-            // Phase 4: 重建控制面板（颜色随主题更新——代码创建的控件不自动跟随 DynamicResource）
+            // Phase 4: 遍历换色不重建（代码创建的控件不自动跟随 DynamicResource）
             if (_keyVM != null && _keyVM.Keys.Count > 0)
-                RefreshKeysUI();
+                UpdateKeysTheme();
             if (_sliderVM != null && _sliderVM.Sliders.Count > 0)
-                RefreshSlidersUI();
+                UpdateSlidersTheme();
             if (_joyVM != null)
-                RefreshJoystickUI();
+                UpdateJoystickTheme();
             if (_displayVM != null)
-                RefreshOLEDUI();
+                UpdateOLEDTheme();
             if (_sensorVM != null && _sensorVM.Groups.SelectMany(g => g.Cards).Any())
             {
                 RefreshAllRows();
@@ -113,6 +121,19 @@ namespace 串口助手
         private void BtnThemeToggleTop_Click(object sender, RoutedEventArgs e)
         {
             ApplyTheme(!isDarkTheme);
+        }
+
+        /// <summary>标题栏 DWM 暗色模式（Win10 1809+）</summary>
+        internal void ApplyTitleBarTheme(bool dark)
+        {
+            try
+            {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (hwnd == IntPtr.Zero) return;
+                int useDark = dark ? 1 : 0;
+                _ = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
+            }
+            catch { /* 非 Windows / 早期 OS 静默跳过 */ }
         }
     }
 }

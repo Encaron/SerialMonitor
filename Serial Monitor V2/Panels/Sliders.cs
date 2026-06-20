@@ -841,6 +841,69 @@ namespace 串口助手
         }
 
         // ═══════════════════════════════════════
+        //  主题切换
+        // ═══════════════════════════════════════
+
+        internal void UpdateSlidersTheme()
+        {
+            if (_sliderVM == null || slidersPanel.Children.Count == 0) return;
+            var cardBg = (Brush)FindResource("CardBgBrush");
+            var cardBorder = (Brush)FindResource("CardBorderBrush");
+            var textBrush = (Brush)FindResource("TextPrimaryBrush");
+            var primaryBrush = (Brush)FindResource("PrimaryBrush");
+            bool isEdit = _sliderVM.IsEditMode;
+
+            foreach (var child in slidersPanel.Children)
+            {
+                if (child is not Border card) continue;
+                if (card.Tag is not SliderViewModel svm) continue;
+
+                bool hasCustomColor = svm.Color != "default" && !string.IsNullOrEmpty(svm.Color);
+                card.Background = cardBg;
+                if (!hasCustomColor)
+                    card.BorderBrush = cardBorder;
+
+                if (card.Child is Grid grid)
+                    UpdateSlidersGridTheme(grid, isEdit, textBrush, primaryBrush);
+            }
+
+            // 更新进度条 trackFill（仅默认颜色滑块——跟随 PrimaryColor）
+            foreach (var kv in _sliderPartsCache)
+            {
+                var sl = kv.Key;
+                var parts = kv.Value;
+                if (parts.trackFill == null) continue;
+                var svm = sl.Tag as SliderViewModel;
+                if (svm != null && (svm.Color == "default" || string.IsNullOrEmpty(svm.Color)))
+                    parts.trackFill.Background = primaryBrush;
+            }
+        }
+
+        private static void UpdateSlidersGridTheme(Grid grid, bool isEdit, Brush textBrush, Brush primaryBrush)
+        {
+            bool firstTextBlock = true; // Row 0 的 nameLabel
+            foreach (var child in grid.Children)
+            {
+                if (child is TextBlock tb)
+                {
+                    tb.Foreground = firstTextBlock && isEdit ? primaryBrush : textBrush;
+                    firstTextBlock = false;
+                }
+                if (child is Panel subPanel)
+                    UpdateSlidersGridTheme_Recursive(subPanel, textBrush);
+            }
+        }
+
+        private static void UpdateSlidersGridTheme_Recursive(Panel panel, Brush textBrush)
+        {
+            foreach (var child in panel.Children)
+            {
+                if (child is TextBlock tb) tb.Foreground = textBrush;
+                if (child is Panel subPanel) UpdateSlidersGridTheme_Recursive(subPanel, textBrush);
+            }
+        }
+
+        // ═══════════════════════════════════════
         //  协议处理 & 持久化
         // ═══════════════════════════════════════
 

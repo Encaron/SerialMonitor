@@ -286,6 +286,23 @@ namespace 串口助手
         //  协议处理 & 持久化
         // ═══════════════════════════════════════
 
+        // ═══════════════════════════════════════
+        //  主题切换
+        // ═══════════════════════════════════════
+
+        internal void UpdateOLEDTheme()
+        {
+            if (_displayVM == null) return;
+            var mutedBrush = (Brush)FindResource("TextMutedBrush");
+
+            // 更新 X 轴刻度文字
+            foreach (TextBlock tb in oledXAxis.Children)
+                tb.Foreground = mutedBrush;
+            // 更新 Y 轴刻度文字
+            foreach (TextBlock tb in oledYAxis.Children)
+                tb.Foreground = mutedBrush;
+        }
+
         private void HandleDisplayMessage(int x, int y, string text, int fontSize, string color = null)
         {
             InitOLEDPanel();

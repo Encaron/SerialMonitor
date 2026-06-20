@@ -942,6 +942,8 @@ namespace 串口助手
             base.OnSourceInitialized(e);
             HwndSource source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
             source.AddHook(WndProc);
+            // 启动时即时设置标题栏颜色（ApplyTheme 时 HWND 可能尚未就绪）
+            ApplyTitleBarTheme(isDarkTheme);
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -2252,7 +2254,7 @@ namespace 串口助手
                 {
                     Text = ex.Type,
                     FontSize = 11, FontFamily = codeFont,
-                    Foreground = primary,
+                    Foreground = textPrimary,
                 };
                 Grid.SetColumn(typeTag, 1);
                 headerGrid.Children.Add(typeTag);
@@ -2392,7 +2394,7 @@ namespace 串口助手
                             tag.Child = new TextBlock
                             {
                                 Text = type, FontSize = 11, FontFamily = codeFont,
-                                Foreground = primary, HorizontalAlignment = HorizontalAlignment.Center,
+                                Foreground = textPrimary, HorizontalAlignment = HorizontalAlignment.Center,
                             };
                             row.Children.Add(tag);
                             row.Children.Add(new TextBlock
