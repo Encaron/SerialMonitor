@@ -113,8 +113,14 @@ PC 端也可发 `[ctrl,led,蓝色LED,on/off]` 控制同一个灯。
 ## CubeMX 再生后注意事项
 
 CubeMX 重新生成代码后需检查：
+
+### ⚠️ 源头修复 — 改 `.ioc`（一劳永逸）
+以下在 CubeMX 里改完直接 Generate Code，无需手动改 C：
+- **PF7 引脚**：Pinout 视图 → PF7 选 `TIM11_CH1`，PB9 解绑
+- **TIM11**：Period=999, Prescaler=83（匹配 Slider2 0~999 分辨率）
+- **TIM6**：Prescaler=239, Period=99（匹配 Slider1 软件 PWM）
+
+### 手动补丁 — `.ioc` 管不到的
 - 栈大小 `_Min_Stack_Size = 0x1000`（`STM32F407XX_FLASH.ld`）
 - `-u _printf_float` 链接选项
-- TIM6 Prescaler=239, Period=99 + TIM6_DAC_IRQHandler
-- TIM11 引脚 PF7
 - `stm32f4xx_it.c` 补 `extern htim6` + `TIM6_DAC_IRQHandler`
