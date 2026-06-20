@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Threading;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
@@ -18,6 +19,8 @@ namespace 串口助手
         private DisplayPanelViewModel _displayVM;
         private Dictionary<string, TextBlock> _oledTexts = new Dictionary<string, TextBlock>();
         private List<UIElement> _drawElements = new List<UIElement>();
+        private int _nextShapeId = 1;   // F5 增量同步：图形 ID 自增计数器，清屏重置
+        private string NextShapeId() => $"a{_nextShapeId++}";
 
         // ——— #7 PC 鼠标画板 ———
         private enum DrawTool { None, Select, Pencil, Line, Rect, RoundedRect, Circle, Ellipse, Triangle, Arc, Text, Image, Eraser }
@@ -97,8 +100,8 @@ namespace 串口助手
 
             // 初始化预设尺寸下拉
             cbOLEDPreset.Items.Clear();
-            string[] presets = { "128×64", "128×128", "128×160", "240×240", "256×64", "256×128", "320×240", "480×320", "640×320", "800×480" };
-            string[] tags    = { "128,64","128,128","128,160","240,240","256,64","256,128","320,240","480,320","640,320","800,480" };
+            string[] presets = { "128×64", "128×128", "128×160", "240×240", "240×280", "256×64", "256×128", "320×240", "480×320", "640×320", "800×480" };
+            string[] tags    = { "128,64","128,128","128,160","240,240","240,280","256,64","256,128","320,240","480,320","640,320","800,480" };
             for (int i = 0; i < presets.Length; i++)
                 cbOLEDPreset.Items.Add(new ComboBoxItem { Content = presets[i], Tag = tags[i] });
             string curTag = _displayVM.CanvasWidth + "," + _displayVM.CanvasHeight;
@@ -247,6 +250,7 @@ namespace 串口助手
             _displayVM.ClearAll();
             _drawElements.Clear();
             _imagePixels.Clear();
+            _nextShapeId = 1;  // F5：清屏重置 ID 计数器
             RefreshOLEDUI();
             if (_session != null && _session.IsOpen)
                 SendRaw("[draw,clear]", appendLineEnding: true);
@@ -388,7 +392,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(tb);
             _drawElements.Add(tb);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "text", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="text", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -407,7 +411,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(pt);
             _drawElements.Add(pt);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "point", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="point", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -430,7 +434,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(line);
             _drawElements.Add(line);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "line", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="line", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -466,7 +470,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(rect);
             _drawElements.Add(rect);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "rect", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="rect", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -503,7 +507,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(circle);
             _drawElements.Add(circle);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "circle", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="circle", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -539,7 +543,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(ellipse);
             _drawElements.Add(ellipse);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "ellipse", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="ellipse", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -587,7 +591,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(rrect);
             _drawElements.Add(rrect);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "rrect", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="rrect", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -612,7 +616,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(arcPath);
             _drawElements.Add(arcPath);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "arc", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="arc", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -704,7 +708,7 @@ namespace 串口助手
 
             oledCanvas.Children.Add(triangle);
             _drawElements.Add(triangle);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "triangle", Args = args, Color = color });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="triangle", Args = args, Color = color });
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
@@ -734,7 +738,7 @@ namespace 串口助手
             oledCanvas.Children.Add(image);
             int idx = _drawElements.Count;
             _drawElements.Add(image);
-            _displayVM.DrawCommands.Add(new DrawCommand { Type = "image", Args = args, Color = null });
+            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="image", Args = args, Color = null });
             oledEmptyHint.Visibility = Visibility.Collapsed;
 
             // 存储 BGRA32 像素供格式/阈值切换时重编码
@@ -1715,11 +1719,18 @@ namespace 串口助手
                 case DrawTool.Triangle:    HandleDrawTriangle(args);    break;
                 case DrawTool.Arc:         HandleDrawArc(args);         break;
             }
-            // 发串口
-            SendDrawCmd(type, args);
+            // F5 增量同步：新建图形发 [draw,set,id,type,params...]，MCU 存入数组
+            if (_session != null && _session.IsOpen && _displayVM.DrawCommands.Count > 0)
+            {
+                var lastCmd = _displayVM.DrawCommands[_displayVM.DrawCommands.Count - 1];
+                if (!string.IsNullOrEmpty(lastCmd.Id))
+                    SendRaw($"[draw,set,{lastCmd.Id},{string.Join(",", args)}]", appendLineEnding: true);
+                else
+                    SendRaw("[draw," + string.Join(",", args) + "]", appendLineEnding: true);
+            }
         }
 
-        /// <summary>向串口发送 [draw,...] 协议</summary>
+        /// <summary>向串口发送 [draw,...] 协议（旧格式，用于无 ID 场景）</summary>
         private void SendDrawCmd(string type, List<string> args)
         {
             if (_session == null || !_session.IsOpen) return;
@@ -1767,12 +1778,12 @@ namespace 串口助手
                 byte[] pixels = new byte[stride * newH];
                 converted.CopyPixels(pixels, stride, 0);
 
-                // 4. 默认 RGB565 编码
-                byte[] rgb565 = BgraToRgb565(pixels, newW, newH);
-                string hexData = BytesToHexString(rgb565);
+                // 4. 编码：画布显示彩色（converted），串口发 mono（OLED 单色，rgb565 巨大 16×）
                 int threshold = 128;
+                byte[] mono = BgraToMono(pixels, newW, newH, threshold);
+                string hexData = BytesToHexString(mono);
 
-                var args = new List<string> { "image", "0", "0", newW.ToString(), newH.ToString(), "rgb565", threshold.ToString(), hexData };
+                var args = new List<string> { "image", "0", "0", newW.ToString(), newH.ToString(), "mono", threshold.ToString(), hexData };
 
                 // 5. 渲染
                 var image = new Image { Source = converted, Width = newW, Height = newH };
@@ -1782,7 +1793,7 @@ namespace 串口助手
                 int idx = _drawElements.Count;
                 _drawElements.Add(image);
                 _imagePixels[idx] = pixels;
-                _displayVM.DrawCommands.Add(new DrawCommand { Type = "image", Args = args, Color = null });
+                _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="image", Args = args, Color = null });
                 oledEmptyHint.Visibility = Visibility.Collapsed;
 
                 // 6. 选中新图片
@@ -1972,8 +1983,9 @@ namespace 串口助手
                         if (_selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
                         {
                             var newArgs = new List<string> { "text", newX.ToString(), newY.ToString(), text, fontSize.ToString(), color };
+                            var oldDc = _displayVM.DrawCommands[_selectedIndex];
                             _displayVM.DrawCommands[_selectedIndex] = new DrawCommand
-                                { Type = "text", Args = newArgs, Color = color };
+                                { Id = oldDc.Id, Type = "text", Args = newArgs, Color = color };
                             SyncShapeAfterModification(_selectedIndex, newArgs);
                         }
                     }
@@ -1993,7 +2005,14 @@ namespace 串口助手
                     var args = new List<string> { "text", newX.ToString(), newY.ToString(), text, fontSize.ToString(), color };
                     HandleDrawText(args);
                     if (_session != null && _session.IsOpen)
-                        SendDrawCmd("text", args);
+                    {
+                        var lastDc = _displayVM.DrawCommands.Count > 0
+                            ? _displayVM.DrawCommands[_displayVM.DrawCommands.Count - 1] : null;
+                        if (lastDc != null && !string.IsNullOrEmpty(lastDc.Id))
+                            SendRaw($"[draw,set,{lastDc.Id},{string.Join(",", args)}]", appendLineEnding: true);
+                        else
+                            SendDrawCmd("text", args);
+                    }
                 }
             }
             else
@@ -2220,6 +2239,10 @@ namespace 串口助手
             SendRaw(tri2, appendLineEnding: true);
         }
 
+        /// <summary>
+        /// 临时方案（F5 全量同步改增量前）：帧间延迟，防双缓冲溢出。
+        /// 每次 SendRaw 后等 5ms，给 MCU 处理时间。20 图形 ≈ 100ms。
+        /// </summary>
         private void SyncAllShapesToDevice()
         {
             if (_session == null || !_session.IsOpen) return;
@@ -2227,6 +2250,7 @@ namespace 串口助手
 
             // 先清屏
             SendRaw("[draw,clear," + _displayVM.CanvasBackground + "]", appendLineEnding: true);
+            Thread.Sleep(5);
 
             // 重发文本（向后兼容——同时发 [display] 旧格式和 [draw,text] 新格式）
             var syncedTextKeys = new HashSet<string>();
@@ -2235,6 +2259,7 @@ namespace 串口助手
                 string cmd = string.Format("[display,{0},{1},{2},{3},{4}]",
                     item.X, item.Y, item.Text, item.FontSize, item.Color ?? "#FFFFFF");
                 SendRaw(cmd, appendLineEnding: true);
+                Thread.Sleep(5);
                 syncedTextKeys.Add($"{item.X},{item.Y}");
             }
 
@@ -2251,9 +2276,13 @@ namespace 串口助手
                 }
                 else
                 {
-                    string payload = "[draw," + string.Join(",", cmd.Args) + "]";
-                    SendRaw(payload, appendLineEnding: true);
+                    // F5：有 ID 发 set 格式（MCU upsert + redraw_all，重连 O(N²) 但安全）
+                    if (!string.IsNullOrEmpty(cmd.Id))
+                        SendRaw($"[draw,set,{cmd.Id},{string.Join(",", cmd.Args)}]", appendLineEnding: true);
+                    else
+                        SendRaw("[draw," + string.Join(",", cmd.Args) + "]", appendLineEnding: true);
                 }
+                Thread.Sleep(5);
             }
         }
 
@@ -3056,9 +3085,10 @@ namespace 串口助手
             var newArgs = ShapeToProtocolArgs(_selectedShape, oldCmd);
             if (newArgs == null) return;
 
-            // 就地更新 DrawCommand
+            // 就地更新 DrawCommand（保留 F5 ID）
             _displayVM.DrawCommands[_selectedIndex] = new DrawCommand
             {
+                Id = oldCmd.Id,
                 Type = oldCmd.Type,
                 Args = newArgs,
                 Color = _shapeEditColor, // 使用编辑器中的实际颜色
@@ -3103,12 +3133,22 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// Point 2 预留接口：形状修改后同步到设备。
-        /// 当前实现：全量刷新（clear + 全部 draw）。将来可改为增量协议（[draw,remove,N] + [draw,insert,N,...] 或 ID 索引）。
+        /// F5 增量同步：发送 [draw,set,id,type,params...] 到设备。
+        /// 设备端维护图形数组，收到后 upsert + 本地全屏重绘。永远 1 帧。
         /// </summary>
         private void SyncShapeAfterModification(int index, List<string> newArgs)
         {
-            SyncAllShapesToDevice();
+            if (_session == null || !_session.IsOpen) return;
+            if (index < 0 || index >= _displayVM.DrawCommands.Count) return;
+            var cmd = _displayVM.DrawCommands[index];
+            if (string.IsNullOrEmpty(cmd.Id))
+            {
+                // 旧图形无 ID → 回退全量同步
+                SyncAllShapesToDevice();
+                return;
+            }
+            string payload = $"[draw,set,{cmd.Id},{string.Join(",", newArgs)}]";
+            SendRaw(payload, appendLineEnding: true);
         }
 
         /// <summary>
@@ -3367,6 +3407,7 @@ namespace 串口助手
                     {
                         _displayVM.DrawCommands[_selectedIndex] = new DrawCommand
                         {
+                            Id = oldCmd.Id,
                             Type = oldCmd.Type,
                             Args = newArgs,
                             Color = _shapeEditColor, // 使用编辑器中的实际颜色
@@ -3695,6 +3736,25 @@ namespace 串口助手
             if (_isLocked || _populatingShapeEditor || _selectedShape == null) return;
             if (IsElementLocked()) return;
             ApplyEditorToShape();
+
+            // F5 增量同步：填充/线宽变更 → 发 [draw,set,id,...]（1 帧）
+            // 文本字段变更在拖拽结束（FinalizeShapeModification）时增量同步
+            if ((sender == cbShapeFill || sender == cbShapeLineWidth)
+                && _session != null && _session.IsOpen
+                && _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count)
+            {
+                var cmd = _displayVM.DrawCommands[_selectedIndex];
+                var newArgs = ShapeToProtocolArgs(_selectedShape, cmd);
+                if (newArgs != null)
+                {
+                    cmd.Args = newArgs;
+                    cmd.Color = _shapeEditColor;
+                    if (!string.IsNullOrEmpty(cmd.Id))
+                        SendRaw($"[draw,set,{cmd.Id},{string.Join(",", newArgs)}]", appendLineEnding: true);
+                    else
+                        SendRaw("[draw," + string.Join(",", newArgs) + "]", appendLineEnding: true);
+                }
+            }
         }
 
         /// <summary>从编辑器读取所有字段，应用到选中图形</summary>
@@ -4005,18 +4065,27 @@ namespace 串口助手
             var shiftedPixels = _imagePixels.Where(kv => kv.Key > idx).ToList();
             foreach (var kv in shiftedPixels) { _imagePixels.Remove(kv.Key); _imagePixels[kv.Key - 1] = kv.Value; }
 
-            // 从协议列表移除
+            // 从协议列表移除（先保存 ID 用于增量同步）
+            string deletedId = null;
             if (idx >= 0 && idx < _displayVM.DrawCommands.Count)
+            {
+                deletedId = _displayVM.DrawCommands[idx].Id;
                 _displayVM.DrawCommands.RemoveAt(idx);
+            }
 
             // 维护锁定索引（删除后后续索引前移）
             _lockedShapeIndices.Remove(idx);
             var shifted = _lockedShapeIndices.Where(i => i > idx).ToList();
             foreach (var i in shifted) { _lockedShapeIndices.Remove(i); _lockedShapeIndices.Add(i - 1); }
 
-            // 如果设备已连，同步删除
+            // F5 增量同步：发送 [draw,del,id]（1 帧）；无 ID 则回退全量
             if (_session != null && _session.IsOpen)
-                SyncAllShapesToDevice();
+            {
+                if (!string.IsNullOrEmpty(deletedId))
+                    SendRaw($"[draw,del,{deletedId}]", appendLineEnding: true);
+                else
+                    SyncAllShapesToDevice();
+            }
 
             // 清除选中态 + 恢复侧栏
             RemoveControlPoints();

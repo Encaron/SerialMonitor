@@ -21,6 +21,7 @@ namespace 串口助手
     /// </summary>
     public class DrawCommand
     {
+        public string Id { get; set; }      // F5 增量同步：PC 分配的图形 ID（a1,a2,a3...）
         public string Type { get; set; }
         public List<string> Args { get; set; }
         public string Color { get; set; }
