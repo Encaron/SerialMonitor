@@ -1,5 +1,5 @@
 #define MyAppName "Serial Monitor"
-#define MyAppVersion "2.4.0"
+#define MyAppVersion "2.5.0"
 #define MyAppPublisher "Encaron"
 #define MyAppURL "https://github.com/Encaron/SerialMonitor"
 #define MyAppExeName "Serial Monitor.exe"
