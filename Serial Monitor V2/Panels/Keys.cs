@@ -42,11 +42,15 @@ namespace 串口助手
                 foreach (var kv in nameDict)
                     if (int.TryParse(kv.Key, out int gid) && kv.Value is string n) _groupNames[gid] = n;
 
-            // 初始化下拉框
+            // 初始化下拉框（Display=中文 Value=英文 key）
             foreach (var cb in new ComboBox[] { cbKeyPressMode, cbKeyReleaseMode, cbKeySendModeMulti, cbKeyReleaseModeMulti, cbModulePressMode, cbModuleReleaseMode })
             {
-                cb.Items.Clear(); cb.Items.Add("文本"); cb.Items.Add("HEX"); cb.Items.Add("数据包"); cb.Items.Add("无");
-                cb.SelectedIndex = 2;
+                cb.Items.Clear();
+                foreach (var k in LogicValueMaps.SendModeKeys)
+                    cb.Items.Add(new { Display = LogicValueMaps.DisplaySendMode(k), Value = k });
+                cb.DisplayMemberPath = "Display";
+                cb.SelectedValuePath = "Value";
+                cb.SelectedValue = "packet";
             }
 
             InitColorPanels();
@@ -59,7 +63,7 @@ namespace 串口助手
         {
             keysColorPanel.Children.Clear();
             keysColorPanelMulti.Children.Clear();
-            string[] colors = { "默认", "红色", "绿色", "蓝色", "黄色", "白色", "灰色" };
+            string[] colors = LogicValueMaps.ColorKeys;
             foreach (var colorName in colors)
             {
                 keysColorPanel.Children.Add(CreateColorChip(colorName, c => {
@@ -81,7 +85,7 @@ namespace 串口助手
         private void InitModuleColorPanel()
         {
             if (_moduleColorPanelInited) return; _moduleColorPanelInited = true;
-            string[] colors = { "默认", "红色", "绿色", "蓝色", "黄色", "白色", "灰色" };
+            string[] colors = LogicValueMaps.ColorKeys;
             foreach (var c in colors)
                 moduleColorPanel.Children.Add(CreateColorChip(c, cn => {
                     if (_selectedModuleGroupId == null) return;
@@ -111,7 +115,7 @@ namespace 串口助手
                 Width = 24, Height = 24, CornerRadius = new CornerRadius(4),
                 Background = fillBrush, BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 6, 6),
-                Cursor = Cursors.Hand, ToolTip = colorName, Tag = colorName,
+                Cursor = Cursors.Hand, ToolTip = LogicValueMaps.DisplayColor(colorName), Tag = colorName,
             };
             border.PreviewMouseLeftButtonDown += (s, e) => { onClick((string)((Border)s).Tag); e.Handled = true; };
             return border;
@@ -443,7 +447,7 @@ namespace 串口助手
 
                 // 模式标签
                 var gModes = groupKeys.GroupBy(k => k.PressSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).ToList();
-                string gMode = gModes.FirstOrDefault() ?? "数据包";
+                string gMode = LogicValueMaps.DisplaySendMode(gModes.FirstOrDefault() ?? "packet");
                 var modeTag = new TextBlock { Text = " [↓" + gMode + " ↑" + gMode + "]", FontSize = 9,
                     Foreground = (Brush)FindResource("PrimaryBrush"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
 
@@ -671,9 +675,9 @@ namespace 串口助手
                         ? k.Name.ToUpperInvariant()
                         : k.Name.ToLowerInvariant();
                     // 文本/HEX 模式下同步更新发送值，数据包模式自动从 Name 生成无需管
-                    if (k.PressSendMode == "文本" || k.PressSendMode == "HEX")
+                    if (k.PressSendMode == "text" || k.PressSendMode == "hex")
                         k.PressSendValue = k.Name;
-                    if (k.ReleaseSendMode == "文本" || k.ReleaseSendMode == "HEX")
+                    if (k.ReleaseSendMode == "text" || k.ReleaseSendMode == "hex")
                         k.ReleaseSendValue = k.Name;
                 }
             }
@@ -785,8 +789,8 @@ namespace 串口助手
                 var first = _selectedKeys[0];
                 bool samePress = _selectedKeys.All(k => k.PressSendMode == first.PressSendMode);
                 bool sameRelease = _selectedKeys.All(k => k.ReleaseSendMode == first.ReleaseSendMode);
-                cbKeySendModeMulti.SelectedItem = samePress ? first.PressSendMode : null;
-                cbKeyReleaseModeMulti.SelectedItem = sameRelease ? first.ReleaseSendMode : null;
+                cbKeySendModeMulti.SelectedValue = samePress ? first.PressSendMode : null;
+                cbKeyReleaseModeMulti.SelectedValue = sameRelease ? first.ReleaseSendMode : null;
                 return;
             }
 
@@ -796,9 +800,9 @@ namespace 串口助手
             rightKeysSingleSelect.Visibility = Visibility.Visible;
             tbKeyName.Text = key.Name;
             chkKeySelfLock.IsChecked = key.IsSelfLock;
-            cbKeyPressMode.SelectedItem = key.PressSendMode;
+            cbKeyPressMode.SelectedValue = key.PressSendMode;
             tbKeyPressValue.Text = key.PressSendValue;
-            cbKeyReleaseMode.SelectedItem = key.ReleaseSendMode;
+            cbKeyReleaseMode.SelectedValue = key.ReleaseSendMode;
             tbKeyReleaseValue.Text = key.ReleaseSendValue;
             // 模块布局键不可调大小
             tbKeyWidth.Text = key.Width.ToString();
@@ -811,40 +815,40 @@ namespace 串口助手
         // ——— 单选属性编辑 ———
         private void tbKeyName_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { _selectedKeys[0].Name = tbKeyName.Text; RefreshKeysUI(); } }
         private void chkKeySelfLock_Changed(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { _selectedKeys[0].IsSelfLock = chkKeySelfLock.IsChecked == true; _selectedKeys[0].IsPressed = false; RefreshKeysUI(); } }
-        private void cbKeyPressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count == 1 && cbKeyPressMode.SelectedItem != null) _selectedKeys[0].PressSendMode = cbKeyPressMode.SelectedItem.ToString(); }
+        private void cbKeyPressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count == 1 && cbKeyPressMode.SelectedValue != null) _selectedKeys[0].PressSendMode = cbKeyPressMode.SelectedValue.ToString(); }
         private void tbKeyPressValue_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) _selectedKeys[0].PressSendValue = tbKeyPressValue.Text; }
-        private void cbKeyReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count == 1 && cbKeyReleaseMode.SelectedItem != null) _selectedKeys[0].ReleaseSendMode = cbKeyReleaseMode.SelectedItem.ToString(); }
+        private void cbKeyReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count == 1 && cbKeyReleaseMode.SelectedValue != null) _selectedKeys[0].ReleaseSendMode = cbKeyReleaseMode.SelectedValue.ToString(); }
         private void tbKeyReleaseValue_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) _selectedKeys[0].ReleaseSendValue = tbKeyReleaseValue.Text; }
         private void tbKeyWidth_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { if (double.TryParse(tbKeyWidth.Text, out double w) && w >= 20 && w <= 400) { _selectedKeys[0].Width = w; RefreshKeysUI(); } else tbKeyWidth.Text = _selectedKeys[0].Width.ToString(); } }
         private void tbKeyHeight_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { if (double.TryParse(tbKeyHeight.Text, out double h) && h >= 20 && h <= 400) { _selectedKeys[0].Height = h; RefreshKeysUI(); } else tbKeyHeight.Text = _selectedKeys[0].Height.ToString(); } }
 
         // ——— 多选批量编辑 ———
-        private void cbKeySendModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count <= 1 || cbKeySendModeMulti.SelectedItem == null) return; string m = cbKeySendModeMulti.SelectedItem.ToString(); foreach (var k in _selectedKeys) k.PressSendMode = m; }
-        private void cbKeyReleaseModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count <= 1 || cbKeyReleaseModeMulti.SelectedItem == null) return; string m = cbKeyReleaseModeMulti.SelectedItem.ToString(); foreach (var k in _selectedKeys) k.ReleaseSendMode = m; }
+        private void cbKeySendModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count <= 1 || cbKeySendModeMulti.SelectedValue == null) return; string m = cbKeySendModeMulti.SelectedValue.ToString(); foreach (var k in _selectedKeys) k.PressSendMode = m; }
+        private void cbKeyReleaseModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count <= 1 || cbKeyReleaseModeMulti.SelectedValue == null) return; string m = cbKeyReleaseModeMulti.SelectedValue.ToString(); foreach (var k in _selectedKeys) k.ReleaseSendMode = m; }
 
         // ——— 模块设置 ———
         private void ShowModuleSettings(int gid) {
             rightKeysModuleSettings.Visibility = Visibility.Visible;
             tbModuleName.Text = _groupNames.TryGetValue(gid, out var n) ? n : ("模块 " + gid);
             var gk = _keyVM.Keys.Where(k => k.GroupId == gid).ToList();
-            var pressMode = gk.GroupBy(k => k.PressSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "数据包";
-            var releaseMode = gk.GroupBy(k => k.ReleaseSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "数据包";
-            cbModulePressMode.SelectedItem = pressMode;
-            cbModuleReleaseMode.SelectedItem = releaseMode;
+            var pressMode = gk.GroupBy(k => k.PressSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "packet";
+            var releaseMode = gk.GroupBy(k => k.ReleaseSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "packet";
+            cbModulePressMode.SelectedValue = pressMode;
+            cbModuleReleaseMode.SelectedValue = releaseMode;
         }
         private void tbModuleName_LostFocus(object sender, RoutedEventArgs e) { if (_selectedModuleGroupId == null) return; string nn = tbModuleName.Text?.Trim(); if (!string.IsNullOrEmpty(nn)) { _groupNames[_selectedModuleGroupId.Value] = nn; RefreshKeysUI(); } }
         private void cbModulePressMode_Changed(object sender, SelectionChangedEventArgs e) {
-            if (_selectedModuleGroupId == null || cbModulePressMode.SelectedItem == null) return;
-            string m = cbModulePressMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value;
+            if (_selectedModuleGroupId == null || cbModulePressMode.SelectedValue == null) return;
+            string m = cbModulePressMode.SelectedValue.ToString(); int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
-            { k.PressSendMode = m; if (m == "文本" && string.IsNullOrEmpty(k.PressSendValue)) k.PressSendValue = k.Name; }
+            { k.PressSendMode = m; if (m == "text" && string.IsNullOrEmpty(k.PressSendValue)) k.PressSendValue = k.Name; }
             RefreshKeysUI();
         }
         private void cbModuleReleaseMode_Changed(object sender, SelectionChangedEventArgs e) {
-            if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedItem == null) return;
-            string m = cbModuleReleaseMode.SelectedItem.ToString(); int gid = _selectedModuleGroupId.Value;
+            if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedValue == null) return;
+            string m = cbModuleReleaseMode.SelectedValue.ToString(); int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
-            { k.ReleaseSendMode = m; if (m == "文本" && string.IsNullOrEmpty(k.ReleaseSendValue)) k.ReleaseSendValue = k.Name; }
+            { k.ReleaseSendMode = m; if (m == "text" && string.IsNullOrEmpty(k.ReleaseSendValue)) k.ReleaseSendValue = k.Name; }
             RefreshKeysUI();
         }
         // ── 模块按下/松开值快捷操作 ──
@@ -869,15 +873,15 @@ namespace 串口助手
             switch (tag)
             {
                 case "null":
-                    if (isPress) k.PressSendMode = "无"; else k.ReleaseSendMode = "无";
+                    if (isPress) k.PressSendMode = "none"; else k.ReleaseSendMode = "none";
                     break;
                 case "name":
-                    if (isPress) { k.PressSendMode = "文本"; k.PressSendValue = k.Name; }
-                    else        { k.ReleaseSendMode = "文本"; k.ReleaseSendValue = k.Name; }
+                    if (isPress) { k.PressSendMode = "text"; k.PressSendValue = k.Name; }
+                    else        { k.ReleaseSendMode = "text"; k.ReleaseSendValue = k.Name; }
                     break;
                 default: // up, down, on, off
-                    if (isPress) { k.PressSendMode = "文本"; k.PressSendValue = tag; }
-                    else        { k.ReleaseSendMode = "文本"; k.ReleaseSendValue = tag; }
+                    if (isPress) { k.PressSendMode = "text"; k.PressSendValue = tag; }
+                    else        { k.ReleaseSendMode = "text"; k.ReleaseSendValue = tag; }
                     break;
             }
         }
@@ -885,7 +889,7 @@ namespace 串口助手
             if (_selectedModuleGroupId == null) return; int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid && !k.IsShiftToggle))
             {
-                k.ReleaseSendMode = "数据包";
+                k.ReleaseSendMode = "packet";
                 k.ReleaseSendValue = "";  // 默认=up
             }
             RefreshKeysUI(); RefreshKeysSidePanel();

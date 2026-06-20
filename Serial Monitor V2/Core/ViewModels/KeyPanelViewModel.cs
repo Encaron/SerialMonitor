@@ -31,14 +31,14 @@ namespace 串口助手
         /// <summary>
         /// 添加一个手动按键
         /// </summary>
-        public KeyViewModel AddKey(string name, string pressSendMode = "数据包", string pressSendValue = "")
+        public KeyViewModel AddKey(string name, string pressSendMode = "packet", string pressSendValue = "")
         {
             var key = new KeyViewModel
             {
                 Name = name,
                 PressSendMode = pressSendMode,
                 PressSendValue = pressSendValue,
-                ReleaseSendMode = "无",
+                ReleaseSendMode = "none",
                 ReleaseSendValue = "",
                 GroupId = ManualGroupId,
             };
@@ -122,7 +122,7 @@ namespace 串口助手
 
             newKeys.Add(new KeyViewModel
             {
-                Name = "⇧", PressSendMode = "数据包", PressSendValue = "",
+                Name = "⇧", PressSendMode = "packet", PressSendValue = "",
                 Width = keyW + 8, Height = keyH, GroupId = gid,
                 LayoutX = 8, LayoutY = 3,
                 IsShiftToggle = true,
@@ -186,8 +186,8 @@ namespace 串口助手
             // Row 4: Enter（跨全宽）
             newKeys.Add(new KeyViewModel
             {
-                Name = "Enter", PressSendMode = "数据包", PressSendValue = "enter",
-                ReleaseSendMode = "无", ReleaseSendValue = "",
+                Name = "Enter", PressSendMode = "packet", PressSendValue = "enter",
+                ReleaseSendMode = "none", ReleaseSendValue = "",
                 Width = keyW * 2, Height = keyH,
                 GroupId = gid, LayoutX = 1, LayoutY = 4,
             });
@@ -268,9 +268,9 @@ namespace 串口助手
             return new KeyViewModel
             {
                 Name = finalName,
-                PressSendMode = "数据包",
+                PressSendMode = "packet",
                 PressSendValue = string.IsNullOrEmpty(pressSendValue) ? finalName : pressSendValue,
-                ReleaseSendMode = "无", ReleaseSendValue = "",
+                ReleaseSendMode = "none", ReleaseSendValue = "",
                 GroupId = gid, LayoutX = lx, LayoutY = ly, Width = w, Height = h,
             };
         }
@@ -304,12 +304,12 @@ namespace 串口助手
         {
             switch (colorName)
             {
-                case "红色": return isDark ? "#E74856" : "#C42B1C";
-                case "绿色": return isDark ? "#16C60C" : "#107C10";
-                case "蓝色": return isDark ? "#3B78FF" : "#0078D4";
-                case "黄色": return isDark ? "#F9F1A5" : "#E0C300";
-                case "白色": return isDark ? "#CCCCCC" : "#666666";
-                case "灰色": return isDark ? "#555555" : "#999999";
+                case "red": return isDark ? "#E74856" : "#C42B1C";
+                case "green": return isDark ? "#16C60C" : "#107C10";
+                case "blue": return isDark ? "#3B78FF" : "#0078D4";
+                case "yellow": return isDark ? "#F9F1A5" : "#E0C300";
+                case "white": return isDark ? "#CCCCCC" : "#666666";
+                case "gray": return isDark ? "#555555" : "#999999";
                 default: return colorName != null && colorName.StartsWith("#") ? colorName : null;
             }
         }

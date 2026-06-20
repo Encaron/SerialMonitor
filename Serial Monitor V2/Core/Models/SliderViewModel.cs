@@ -25,14 +25,14 @@ namespace 串口助手
         /// <summary>拖拽时的发送间隔（毫秒）</summary>
         public int SendIntervalMs { get; set; } = 200;
 
-        /// <summary>预设色块名称</summary>
-        public string Color { get; set; } = "默认";
+        /// <summary>预设色块名称（"default"/"red"/"green"/"blue"/"yellow"/"white"/"gray"）</summary>
+        public string Color { get; set; } = "default";
 
-        /// <summary>轨道风格（"默认" / "极简" / 自定义风格名）</summary>
-        public string TrackStyle { get; set; } = "默认";
+        /// <summary>轨道风格（"default" / "minimal" / 自定义风格名）</summary>
+        public string TrackStyle { get; set; } = "default";
 
-        /// <summary>拇指风格（"默认" / "极简" / 自定义风格名）</summary>
-        public string ThumbStyle { get; set; } = "默认";
+        /// <summary>拇指风格（"default" / "minimal" / 自定义风格名）</summary>
+        public string ThumbStyle { get; set; } = "default";
 
         // ——— 工具 ———
 
@@ -83,12 +83,12 @@ namespace 串口助手
                 Value    = GetDouble(d, "value", 0),
                 Step     = GetDouble(d, "step", 1),
                 SendIntervalMs = GetInt(d, "sendIntervalMs", 200),
-                Color    = GetStr(d, "color", "默认"),
+                Color    = LogicValueMaps.MigrateColor(GetStr(d, "color", "default")),
                 // 迁移旧的 "style" 字段到 trackStyle（兼容旧 prefs.json）
-                TrackStyle = GetStr(d, "trackStyle",
-                              GetStr(d, "style", "默认")),
-                ThumbStyle = GetStr(d, "thumbStyle",
-                              GetStr(d, "style", "默认")),
+                TrackStyle = LogicValueMaps.MigrateStyle(GetStr(d, "trackStyle",
+                              LogicValueMaps.MigrateStyle(GetStr(d, "style", "default")))),
+                ThumbStyle = LogicValueMaps.MigrateStyle(GetStr(d, "thumbStyle",
+                              LogicValueMaps.MigrateStyle(GetStr(d, "style", "default")))),
             };
         }
 

@@ -41,13 +41,13 @@ namespace 串口助手
 
         private static readonly SliderStyleParams DefaultStyleParams = new SliderStyleParams
         {
-            Name = "默认", TrackH = 4, TrackR = 2, ThumbW = 16, ThumbH = 16,
+            Name = "default", TrackH = 4, TrackR = 2, ThumbW = 16, ThumbH = 16,
             StrokeThick = 2
         };
 
         private static readonly SliderStyleParams MinimalStyleParams = new SliderStyleParams
         {
-            Name = "极简", TrackH = 2, TrackR = 1, ThumbW = 12, ThumbH = 12,
+            Name = "minimal", TrackH = 2, TrackR = 1, ThumbW = 12, ThumbH = 12,
             StrokeThick = 1
         };
 
@@ -87,7 +87,7 @@ namespace 串口助手
         private void InitSlidersColorPanel()
         {
             if (_slidersColorPanelInited) return; _slidersColorPanelInited = true;
-            string[] colors = { "默认", "红色", "绿色", "蓝色", "黄色", "白色", "灰色" };
+            string[] colors = LogicValueMaps.ColorKeys;
             foreach (var colorName in colors)
                 slidersColorPanel.Children.Add(CreateSlidersColorChip(colorName, c => {
                     if (_selectedSliders.Count == 1) { _selectedSliders[0].Color = c; RefreshSlidersUI(); RefreshSlidersSidePanel(); }
@@ -105,7 +105,7 @@ namespace 串口助手
                 Width = 24, Height = 24, CornerRadius = new CornerRadius(4),
                 Background = fillBrush, BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 6, 6),
-                Cursor = Cursors.Hand, ToolTip = colorName, Tag = colorName,
+                Cursor = Cursors.Hand, ToolTip = LogicValueMaps.DisplayColor(colorName), Tag = colorName,
             };
             border.MouseLeftButtonDown += (s, e) => onClick((string)((Border)s).Tag);
             return border;
@@ -247,16 +247,16 @@ namespace 串口助手
 
         private SliderStyleParams ResolveTrackParams(string styleName)
         {
-            if (styleName == "极简") return MinimalStyleParams;
-            if (styleName == "默认" || string.IsNullOrEmpty(styleName)) return DefaultStyleParams;
+            if (styleName == "minimal") return MinimalStyleParams;
+            if (styleName == "default" || string.IsNullOrEmpty(styleName)) return DefaultStyleParams;
             return BuildTrackParams(styleName);
         }
 
         private SliderStyleParams ResolveThumbParams(string styleName)
         {
-            if (styleName == "极简") return MinimalStyleParams;
+            if (styleName == "minimal") return MinimalStyleParams;
             if (styleName == "方块") return SquareStyleParams;
-            if (styleName == "默认" || string.IsNullOrEmpty(styleName)) return DefaultStyleParams;
+            if (styleName == "default" || string.IsNullOrEmpty(styleName)) return DefaultStyleParams;
             return BuildThumbParams(styleName);
         }
 
@@ -299,8 +299,8 @@ namespace 串口助手
         /// <summary>将轨道和拇指各自独立的风格应用到已加载的 Slider 控件</summary>
         private void ApplySliderStyleToControl(Slider slider, string trackStyle, string thumbStyle)
         {
-            var tp = ResolveTrackParams(trackStyle ?? "默认");
-            var thp = ResolveThumbParams(thumbStyle ?? "默认");
+            var tp = ResolveTrackParams(trackStyle ?? "default");
+            var thp = ResolveThumbParams(thumbStyle ?? "default");
             if (tp == null || thp == null) return;
             var p = new SliderStyleParams
             {
@@ -433,8 +433,8 @@ namespace 串口助手
             // 把菜单绑定到按钮上（确保能正确打开）
             button.ContextMenu = menu;
 
-            AddStyleMenuItem(menu, "默认", desc, itemStyle, current == "默认", svm, isTrack);
-            AddStyleMenuItem(menu, "极简", desc, itemStyle, current == "极简", svm, isTrack);
+            AddStyleMenuItem(menu, "default", desc, itemStyle, current == "default", svm, isTrack);
+            AddStyleMenuItem(menu, "minimal", desc, itemStyle, current == "minimal", svm, isTrack);
             if (!isTrack) AddStyleMenuItem(menu, "方块", "14×14 方角矩形 · 无描边", itemStyle, current == "方块", svm, isTrack);
 
             var customs = isTrack ? ScanCustomTrackStyles() : ScanCustomSliderThumbStyles();
@@ -454,7 +454,7 @@ namespace 串口助手
             var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
             headerPanel.Children.Add(new TextBlock
             {
-                Text = (isCurrent ? "✓ " : "   ") + name,
+                Text = (isCurrent ? "✓ " : "   ") + LogicValueMaps.DisplaySliderStyle(name),
                 FontSize = 12, FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
             });
@@ -536,7 +536,7 @@ namespace 串口助手
                 };
 
                 // 颜色条
-                if (svm.Color != "默认" && !string.IsNullOrEmpty(svm.Color))
+                if (svm.Color != "default" && !string.IsNullOrEmpty(svm.Color))
                 {
                     string hex = SliderPanelViewModel.GetColorHex(svm.Color, isDarkTheme);
                     if (hex != null) {
@@ -547,7 +547,7 @@ namespace 串口助手
 
                 // 编辑模式选中高亮
                 if (isEdit && _selectedSliders.Contains(svm)) {
-                    bool hasCustomColor = svm.Color != "默认" && !string.IsNullOrEmpty(svm.Color);
+                    bool hasCustomColor = svm.Color != "default" && !string.IsNullOrEmpty(svm.Color);
                     if (!hasCustomColor) {
                         var accent = isDarkTheme ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
                         card.BorderBrush = new SolidColorBrush(accent); card.BorderThickness = new Thickness(2);
@@ -653,7 +653,7 @@ namespace 串口助手
                         var sl2 = s2 as Slider;
                         var vm2 = sl2?.Tag as SliderViewModel;
                         if (vm2 == null) return;
-                        ApplySliderStyleToControl(sl2, vm2.TrackStyle ?? "默认", vm2.ThumbStyle ?? "默认");
+                        ApplySliderStyleToControl(sl2, vm2.TrackStyle ?? "default", vm2.ThumbStyle ?? "default");
                         var tFill = sl2.Template?.FindName("trackFill", sl2) as Border;
                         var thumb2 = sl2.Template?.FindName("Thumb", sl2) as Thumb;
                         Ellipse tDot = null;
@@ -773,8 +773,8 @@ namespace 串口助手
             var svm = _selectedSliders[0];
             rightSlidersSingleSelect.Visibility = Visibility.Visible;
             tbSliderName.Text = svm.Name;
-            btnSliderTrackStyle.Content = (svm.TrackStyle ?? "默认") + " ▾";
-            btnSliderThumbStyle.Content = (svm.ThumbStyle ?? "默认") + " ▾";
+            btnSliderTrackStyle.Content = LogicValueMaps.DisplaySliderStyle(svm.TrackStyle ?? "default") + " ▾";
+            btnSliderThumbStyle.Content = LogicValueMaps.DisplaySliderStyle(svm.ThumbStyle ?? "default") + " ▾";
             tbSliderMin.Text = svm.MinValue.ToString();
             tbSliderMax.Text = svm.MaxValue.ToString();
             tbSliderStep.Text = svm.Step.ToString();
