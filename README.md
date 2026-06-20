@@ -19,7 +19,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.4.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.5.0-green.svg)
 
 ## Preview
 
@@ -86,6 +86,13 @@
 - 频域指标：基频 / 幅度 / THD / SNR / DC 偏置
 - 采样率输入 → X 轴 Bin → Hz，频率范围/分辨率全部 Hz 显示
 
+### 🎨 OLED 绘图 & PC 画板（v2.5 新增）
+- **11 种绘图指令**：点/线/矩形/圆角矩形/圆/椭圆/三角/弧/文字/图片/清屏
+- **旋转支持**：矩形/椭圆旋转，`a<angle>` 协议后缀
+- **F5 增量同步**：拖动图形时每次只发 1 帧，MCU 本地维护图形数组
+- **PC 画板**：类似画图软件，支持鼠标拖拽绘制 → 实时同步到 STM32 物理 OLED/LCD 屏幕
+- **双屏支持**：OLED 128×64 + LCD 240×280，注释一行代码即可切换
+
 ### 🎮 控制面板（双向通信）
 | 面板 | 协议格式 | 说明 |
 |:----:|---------|------|
@@ -149,10 +156,12 @@ if (strcmp(type, "ctrl") == 0) {
 | 文件 | 说明 |
 |------|------|
 | [`Serial.c`](Serial_C_Language/Serial.c) + [`Serial.h`](Serial_C_Language/Serial.h) | 发送(6个) + 接收(4协议) + 中断回调，零依赖零 malloc |
-| [`README.md`](Serial_C_Language/README.md) | 完整文档：快速入门、API 速查、接收处理示例、路由分发架构 |
-| [`example/`](Serial_C_Language/example/) | 最小可编译 STM32CubeIDE 工程：波形发生器(9种) + 按键 + OLED 虚拟屏 + PWM 滑杆 |
+| [`README.md`](Serial_C_Language/README.md) | 库文档：快速入门、API 速查、协议格式、GetField、路由架构例 |
+| [`example/`](Serial_C_Language/example/) | **STM32F407ZGT6** CMake 演示工程：绘图解析 + 双滑杆 PWM + 传感面板 + 波形 + 按键 |
 
-> ⚠️ **本工程基于 STM32H743。** 若使用其他系列（F1/F4/G0/L4 等），需在 CubeMX 中更换芯片 → 重新生成 → 保留 `HardWare/` 目录即可。串口库本身与芯片无关，HAL 通用。可交给 AI 辅助迁移。
+> 📖 想了解协议的完整格式和 STM32 端实现？所有文档藏在 [`Serial_C_Language/README.md`](Serial_C_Language/README.md)。
+>
+> 💡 本库仅需 `Serial.c` + `Serial.h` 两个文件，与芯片无关（HAL 通用）。配套演示工程基于 **STM32F407ZGT6**（用户基数最大），其他系列（F1/G0/L4）理论兼容。
 
 ## Development
 
@@ -187,7 +196,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 | ✅ **v2.2.0** | 🔴 全部 5 条快速改进 | Bug 修复 + 体验提升：拖拽不卡、HEX 提醒、波形冻结、版本号、侧栏充实 |
 | ✅ **v2.3.0** | 🟡 调参工作台 + FFT 频谱 | 拖滑杆同时看波形 + PC 端自动 FFT 频域分析 |
 | ✅ **v2.4.0** | 🟡 传感面板 + 体验修缮 | 8 类传感卡片 + 编辑模式 + 侧栏管理 + 调参工作台 + FFT 频谱 + 协议筛选 + 主题切换按钮 + 版本静默更新 |
-| **v2.5.0** | 🟡 OLED 绘图 + PC 画板 | 绘图指令 + PC 端绘制 → STM32 物理屏 |
+| ✅ **v2.5.0** | 🟡 OLED 绘图 + PC 画板 | 11 种绘图指令 + F5 增量同步 + 旋转 + PC 画板 → STM32 物理屏 |
 | **v2.6.0** | 🟢 内部优化 | i18n 预埋 + 路由抽出 + 主题优化，为英文版铺路 |
 
 ### 🔴 快速改进（v2.2.0）
