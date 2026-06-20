@@ -438,147 +438,170 @@ namespace 串口助手
                 if (pr.Messages.Count > 0)
                 {
                     foreach (var msg in pr.Messages)
-                    {
-                        if (msg.Type == "plot" && msg.Args.Count >= 2)
-                        {
-                            if (double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
-                            {
-                                _plotVM.OnPlotMessage(msg.Args[0], val, DateTime.Now);
-                                if (plotEmptyHint.Visibility == Visibility.Visible)
-                                    plotEmptyHint.Visibility = Visibility.Collapsed;
-                                if (!_isFreqDomain) UpdatePlotHud();
-                                // #10 FFT：频域下自动重算频谱
-                                if (_isFreqDomain)
-                                    _plotVM.RecomputeFft();
-                                // 初次收到 plot 数据时检测调参按钮（已在 Plot 页无需切标签）
-                                if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
-                                    RefreshTuningDrawer();
-                            }
-                        }
-                        // Phase 4: [key,name,state]
-                        else if (msg.Type == "key" && msg.Args.Count >= 2)
-                        {
-                            string keyName = msg.Args[0];
-                            string state = msg.Args[1]; // "down" or "up"
-                            HandleKeyMessage(keyName, state);
-                        }
-                        // Phase 4: [slider,name,value]
-                        else if (msg.Type == "slider" && msg.Args.Count >= 2)
-                        {
-                            HandleSliderMessage(msg.Args[0], msg.Args[1]);
-                            if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
-                                RefreshTuningDrawer();
-                        }
-                        // Phase 4: [joystick,id,x1,y1,x2,y2]
-                        else if (msg.Type == "joystick" && msg.Args.Count >= 5)
-                        {
-                            if (int.TryParse(msg.Args[0], out int joyId)
-                                && double.TryParse(msg.Args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jx)
-                                && double.TryParse(msg.Args[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double jy))
-                            {
-                                HandleJoystickMessage(joyId, jx, jy);
-                            }
-                        }
-                        // #10 FFT: [fft,点数,bin0,...] 或 [fft,name,点数,bin0,...]
-                        else if (msg.Type == "fft" && msg.Args.Count >= 2)
-                        {
-                            ParseFftMessage(msg.Args);
-                        }
-                        // Phase 4: [display,x,y,"text",size] or [display,x,y,"text",size,#RRGGBB]
-                        else if (msg.Type == "display" && msg.Args.Count >= 4)
-                        {
-                            if (int.TryParse(msg.Args[0], out int dx) && int.TryParse(msg.Args[1], out int dy)
-                                && int.TryParse(msg.Args[3], out int dsize))
-                            {
-                                string color = msg.Args.Count >= 5 ? msg.Args[4] : null;
-                                HandleDisplayMessage(dx, dy, msg.Args[2], dsize, color);
-                            }
-                        }
-                        // Phase 4: [display-clear]
-                        else if (msg.Type == "display-clear")
-                        {
-                            HandleDisplayClear();
-                        }
-                        // #6 OLED 绘图: [draw,point|line|rect|fill|circle|ellipse|triangle|clear,...]
-                        else if (msg.Type == "draw" && msg.Args.Count >= 1)
-                        {
-                            HandleDrawMessage(msg.Args);
-                        }
-                        // #19 传感面板: [sensor,子类型,卡片名,值,辅助]
-                        else if (msg.Type == "sensor" && msg.Args.Count >= 3 && _sensorVM != null)
-                        {
-                            string subType = msg.Args[0];
-                            string name = msg.Args[1];
-                            string value = msg.Args.Count >= 3 ? msg.Args[2] : null;
-                            string aux = msg.Args.Count >= 4 ? msg.Args[3] : null;
-
-                            // 滑杆卡仅手动建——收到数据只更新不创建
-                            bool isNewCard = (_sensorVM.FindByName(name) == null);
-                            if (subType == "slider")
-                            {
-                                var existing = _sensorVM.FindByName(name);
-                                if (existing != null)
-                                {
-                                    existing.Update(value, aux);
-                                    if (_sensorVM.IsActive && !_sensorVM.IsEditMode) UpdateCardUI(existing);
-                                }
-                                // slider 不存在 → 忽略（等手动建卡）
-                                continue;
-                            }
-
-                            var card = _sensorVM.OnSensorMessage(subType, name, value, aux);
-                            if (card != null)
-                            {
-                                if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
-                                {
-                                    if (isNewCard)
-                                        RefreshAllRows();       // 首次建卡 → 重建
-                                    else
-                                        UpdateCardUI(card);     // 已存在 → 增量更新
-                                }
-                                SaveSensorPrefs();
-                            }
-                        }
-                        // #19 传感面板: [ctrl,子类型,卡片名,动作]
-                        else if (msg.Type == "ctrl" && msg.Args.Count >= 3 && _sensorVM != null)
-                        {
-                            string subType = msg.Args[0];
-                            string name = msg.Args[1];
-                            string action = msg.Args[2];
-
-                            // 滑杆卡：双向协议——PC 发 [ctrl,slider,...]，MCU 回 [sensor,slider,...]
-                            // 收到 [ctrl,slider,...] 是 PC→MCU 的发送路径，不建卡不更新
-                            if (subType == "slider")
-                            {
-                                // TODO Phase B: 滑杆卡拖拽时走这里发串口
-                                continue;
-                            }
-
-                            // 开关卡：led/relay → control 类型
-                            bool isNewCard = (_sensorVM.FindByName(name) == null);
-                            var card = _sensorVM.OnCtrlMessage(subType, name, action);
-                            if (card != null)
-                            {
-                                if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
-                                {
-                                    if (isNewCard)
-                                        RefreshAllRows();
-                                    else
-                                        UpdateCardUI(card);
-                                }
-                                SaveSensorPrefs();
-                            }
-                        }
-                        else if (msg.Type != "sensor" && msg.Type != "ctrl")
-                        {
-                            LogSystem($"未知协议类型: [{msg.Type}]");
-                        }
-                    }
+                        RouteMessage(msg);
                 }
             }
             catch (Exception ex)
             {
                 LogSystem($"协议路由异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 协议消息路由 —— switch 派发到各 handler（活接头，未来可升级为注册表）
+        /// </summary>
+        private void RouteMessage(ProtocolMessage msg)
+        {
+            switch (msg.Type)
+            {
+                case "plot":
+                    if (msg.Args.Count >= 2)
+                        RoutePlotMessage(msg.Args);
+                    break;
+                case "key":
+                    if (msg.Args.Count >= 2)
+                        HandleKeyMessage(msg.Args[0], msg.Args[1]);
+                    break;
+                case "slider":
+                    if (msg.Args.Count >= 2)
+                    {
+                        HandleSliderMessage(msg.Args[0], msg.Args[1]);
+                        if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
+                            RefreshTuningDrawer();
+                    }
+                    break;
+                case "joystick":
+                    if (msg.Args.Count >= 5
+                        && int.TryParse(msg.Args[0], out int joyId)
+                        && double.TryParse(msg.Args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double jx)
+                        && double.TryParse(msg.Args[2], NumberStyles.Float, CultureInfo.InvariantCulture, out double jy))
+                    {
+                        HandleJoystickMessage(joyId, jx, jy);
+                    }
+                    break;
+                case "fft":
+                    if (msg.Args.Count >= 2)
+                        ParseFftMessage(msg.Args);
+                    break;
+                case "display":
+                    if (msg.Args.Count >= 4
+                        && int.TryParse(msg.Args[0], out int dx)
+                        && int.TryParse(msg.Args[1], out int dy)
+                        && int.TryParse(msg.Args[3], out int dsize))
+                    {
+                        string color = msg.Args.Count >= 5 ? msg.Args[4] : null;
+                        HandleDisplayMessage(dx, dy, msg.Args[2], dsize, color);
+                    }
+                    break;
+                case "display-clear":
+                    HandleDisplayClear();
+                    break;
+                case "draw":
+                    if (msg.Args.Count >= 1)
+                        HandleDrawMessage(msg.Args);
+                    break;
+                case "sensor":
+                    if (msg.Args.Count >= 3 && _sensorVM != null)
+                        RouteSensorMessage(msg.Args);
+                    break;
+                case "ctrl":
+                    if (msg.Args.Count >= 3 && _sensorVM != null)
+                        RouteCtrlMessage(msg.Args);
+                    break;
+                default:
+                    LogSystem($"未知协议类型: [{msg.Type}]");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// [plot,name,value] 路由 —— inline 逻辑从 OnLineReceived 提取
+        /// </summary>
+        private void RoutePlotMessage(List<string> args)
+        {
+            if (double.TryParse(args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
+            {
+                _plotVM.OnPlotMessage(args[0], val, DateTime.Now);
+                if (plotEmptyHint.Visibility == Visibility.Visible)
+                    plotEmptyHint.Visibility = Visibility.Collapsed;
+                if (!_isFreqDomain) UpdatePlotHud();
+                // #10 FFT：频域下自动重算频谱
+                if (_isFreqDomain)
+                    _plotVM.RecomputeFft();
+                // 初次收到 plot 数据时检测调参按钮（已在 Plot 页无需切标签）
+                if (_currentTab == "Plot" && barTuningToggle.Visibility != Visibility.Visible)
+                    RefreshTuningDrawer();
+            }
+        }
+
+        /// <summary>
+        /// [sensor,子类型,卡片名,值,辅助] 路由 —— inline 逻辑从 OnLineReceived 提取
+        /// </summary>
+        private void RouteSensorMessage(List<string> args)
+        {
+            string subType = args[0];
+            string name = args[1];
+            string value = args.Count >= 3 ? args[2] : null;
+            string aux = args.Count >= 4 ? args[3] : null;
+
+            // 滑杆卡仅手动建——收到数据只更新不创建
+            bool isNewCard = (_sensorVM.FindByName(name) == null);
+            if (subType == "slider")
+            {
+                var existing = _sensorVM.FindByName(name);
+                if (existing != null)
+                {
+                    existing.Update(value, aux);
+                    if (_sensorVM.IsActive && !_sensorVM.IsEditMode) UpdateCardUI(existing);
+                }
+                // slider 不存在 → 忽略（等手动建卡）
+                return;
+            }
+
+            var card = _sensorVM.OnSensorMessage(subType, name, value, aux);
+            if (card != null)
+            {
+                if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
+                {
+                    if (isNewCard)
+                        RefreshAllRows();       // 首次建卡 → 重建
+                    else
+                        UpdateCardUI(card);     // 已存在 → 增量更新
+                }
+                SaveSensorPrefs();
+            }
+        }
+
+        /// <summary>
+        /// [ctrl,子类型,卡片名,动作] 路由 —— inline 逻辑从 OnLineReceived 提取
+        /// </summary>
+        private void RouteCtrlMessage(List<string> args)
+        {
+            string subType = args[0];
+            string name = args[1];
+            string action = args[2];
+
+            // 滑杆卡：双向协议——PC 发 [ctrl,slider,...]，MCU 回 [sensor,slider,...]
+            // 收到 [ctrl,slider,...] 是 PC→MCU 的发送路径，不建卡不更新
+            if (subType == "slider")
+            {
+                // TODO Phase B: 滑杆卡拖拽时走这里发串口
+                return;
+            }
+
+            // 开关卡：led/relay → control 类型
+            bool isNewCard = (_sensorVM.FindByName(name) == null);
+            var card = _sensorVM.OnCtrlMessage(subType, name, action);
+            if (card != null)
+            {
+                if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
+                {
+                    if (isNewCard)
+                        RefreshAllRows();
+                    else
+                        UpdateCardUI(card);
+                }
+                SaveSensorPrefs();
             }
         }
 
