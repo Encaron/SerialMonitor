@@ -4117,6 +4117,75 @@ namespace 串口助手
             tbSidePanelTitle.Text = "OLED 设置";
         }
 
+        // ═══ Z-order：置顶 / 置底 ═══
+
+        private void btnShapeBringToFront_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedShape == null || _selectedIndex < 0) return;
+            if (IsElementLocked()) return;
+            int idx = _selectedIndex;
+            int lastIdx = _drawElements.Count - 1;
+            if (idx >= lastIdx) return;
+
+            bool wasLocked = _lockedShapeIndices.Contains(idx);
+            MoveShapeInList(idx, lastIdx, wasLocked);
+            _selectedIndex = lastIdx;
+            UpdateZOrderAfterReorder();
+        }
+
+        private void btnShapeSendToBack_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedShape == null || _selectedIndex < 0) return;
+            if (IsElementLocked()) return;
+            int idx = _selectedIndex;
+            if (idx <= 0) return;
+
+            bool wasLocked = _lockedShapeIndices.Contains(idx);
+            MoveShapeInList(idx, 0, wasLocked);
+            _selectedIndex = 0;
+            UpdateZOrderAfterReorder();
+        }
+
+        private void MoveShapeInList(int fromIdx, int toIdx, bool keepLocked)
+        {
+            // 移动 _drawElements
+            var elem = _drawElements[fromIdx];
+            _drawElements.RemoveAt(fromIdx);
+            if (toIdx >= _drawElements.Count) _drawElements.Add(elem);
+            else _drawElements.Insert(toIdx, elem);
+
+            // 移动 DrawCommands
+            var cmd = _displayVM.DrawCommands[fromIdx];
+            _displayVM.DrawCommands.RemoveAt(fromIdx);
+            if (toIdx >= _displayVM.DrawCommands.Count) _displayVM.DrawCommands.Add(cmd);
+            else _displayVM.DrawCommands.Insert(toIdx, cmd);
+
+            // 维护锁定索引
+            _lockedShapeIndices.Remove(fromIdx);
+            var lockedList = _lockedShapeIndices.ToList();
+            _lockedShapeIndices.Clear();
+            foreach (var i in lockedList)
+            {
+                if (fromIdx < toIdx) // 下移（置顶）：中间元素索引-1
+                    _lockedShapeIndices.Add(i > fromIdx && i <= toIdx ? i - 1 : i);
+                else // 上移（置底）：中间元素索引+1
+                    _lockedShapeIndices.Add(i >= toIdx && i < fromIdx ? i + 1 : i);
+            }
+            if (keepLocked) _lockedShapeIndices.Add(toIdx);
+        }
+
+        private void UpdateZOrderAfterReorder()
+        {
+            // 刷新 PC 画布 z-order（全部元素按列表顺序重设）
+            for (int i = 0; i < _drawElements.Count; i++)
+                Canvas.SetZIndex(_drawElements[i], i);
+            // 全量同步到 MCU（重建设备端数组为新顺序）
+            SyncAllShapesToDevice();
+            // 刷新侧栏
+            if (rightOLEDShapeEditor.Visibility == Visibility.Visible)
+                PopulateShapeEditorFields();
+        }
+
         private void shapeEditColorSwatch_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedShape == null) return;
