@@ -2213,10 +2213,9 @@ namespace 串口助手
         }
 
         /// <summary>全量同步画布到设备（clear + 全部 display + 全部 draw）</summary>
-        // F4：旋转矩形拆 2 填充三角，MCU 零改动
+        // F4：旋转矩形 → 填充拆 2 三角，空心拆 4 直线；圆角矩形忽略圆角
         private void SendRotatedRectAsTriangles(Shape shape, DrawCommand cmd)
         {
-            // 取旋转后的 4 个角点
             double x = Canvas.GetLeft(shape), y = Canvas.GetTop(shape);
             double w = shape is Rectangle r ? r.Width : ((FrameworkElement)shape).Width;
             double h = shape is Rectangle r2 ? r2.Height : ((FrameworkElement)shape).Height;
@@ -2227,16 +2226,31 @@ namespace 串口助手
             var rt = shape.RenderTransform as RotateTransform;
             double angle = rt?.Angle ?? 0;
             double cx = x + w / 2, cy = y + h / 2;
-            var rotated = corners.Select(c => RotatePoint(c.X, c.Y, cx, cy, angle)).ToArray();
+            var rot = corners.Select(c => RotatePoint(c.X, c.Y, cx, cy, angle)).ToArray();
 
-            // 2 填充三角: A-C-B, A-D-C
             string color = cmd.Color ?? "#FFFFFF";
             int lw = (cmd.Args.Count >= 7 && int.TryParse(cmd.Args[6], out int sw) && sw >= 1) ? sw : 1;
+            bool isFilled = shape is Shape s && s.Fill != null && s.Stroke == null;
 
-            var tri1 = $"[draw,triangle,{(int)rotated[0].Item1},{(int)rotated[0].Item2},{(int)rotated[2].Item1},{(int)rotated[2].Item2},{(int)rotated[1].Item1},{(int)rotated[1].Item2},{color},{lw},fill]";
-            var tri2 = $"[draw,triangle,{(int)rotated[0].Item1},{(int)rotated[0].Item2},{(int)rotated[3].Item1},{(int)rotated[3].Item2},{(int)rotated[2].Item1},{(int)rotated[2].Item2},{color},{lw},fill]";
-            SendRaw(tri1, appendLineEnding: true);
-            SendRaw(tri2, appendLineEnding: true);
+            if (isFilled)
+            {
+                // 填充 → 2 三角
+                var t1 = $"[draw,triangle,{(int)rot[0].Item1},{(int)rot[0].Item2},{(int)rot[2].Item1},{(int)rot[2].Item2},{(int)rot[1].Item1},{(int)rot[1].Item2},{color},{lw},fill]";
+                var t2 = $"[draw,triangle,{(int)rot[0].Item1},{(int)rot[0].Item2},{(int)rot[3].Item1},{(int)rot[3].Item2},{(int)rot[2].Item1},{(int)rot[2].Item2},{color},{lw},fill]";
+                SendRaw(t1, appendLineEnding: true);
+                SendRaw(t2, appendLineEnding: true);
+            }
+            else
+            {
+                // 空心 → 4 直线
+                var lwStr = lw != 1 ? $",{lw}" : "";
+                for (int i = 0; i < 4; i++)
+                {
+                    int j = (i + 1) % 4;
+                    var line = $"[draw,line,{(int)rot[i].Item1},{(int)rot[i].Item2},{(int)rot[j].Item1},{(int)rot[j].Item2},{color}{lwStr}]";
+                    SendRaw(line, appendLineEnding: true);
+                }
+            }
         }
 
         /// <summary>
@@ -3143,7 +3157,14 @@ namespace 串口助手
             var cmd = _displayVM.DrawCommands[index];
             if (string.IsNullOrEmpty(cmd.Id))
             {
-                // 旧图形无 ID → 回退全量同步
+                SyncAllShapesToDevice();
+                return;
+            }
+            // 旋转矩形/圆角矩形：ShapeToProtocolArgs 不含旋转信息，回退全量同步（拆 2 三角）
+            if (index < _drawElements.Count && _drawElements[index] is Shape shape
+                && shape.RenderTransform is RotateTransform rt && rt.Angle != 0
+                && (cmd.Type == "rect" || cmd.Type == "rrect"))
+            {
                 SyncAllShapesToDevice();
                 return;
             }
