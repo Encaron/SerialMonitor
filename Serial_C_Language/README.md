@@ -2,6 +2,8 @@
 
 > 一份 `.c` + 一份 `.h`，扔进 CubeMX 工程即可用。
 > 专为 **[Serial Monitor V2](https://github.com/Encaron/SerialMonitorV2)** 配套设计，也适合任何需要串口通信的 STM32 项目。
+>
+> **🔗 配套测试工程**：[example/](example/) — STM32F407ZGT6 CMake 工程。包含完整的 draw 协议解析 + F5 增量同步 + OLED/LCD 双屏显示 + 双滑杆 PWM + 传感面板 + 波形 + 物理按键。详见 [example/README.md](example/README.md)。
 
 ---
 
@@ -603,9 +605,10 @@ void RouteMessage(const char *raw) {
 }
 ```
 
-> 📁 **完整测试工程**：[example/](example/) ——同目录下最小可编译 STM32CubeIDE 工程。
-> 包含：波形发生器（9 种波形）、按键处理、OLED 虚拟屏 UI 组件库、PWM 呼吸灯、
-> 协议路由分发架构。导入即编译，配合 PC 端 exe 开箱验证。
+> 📁 **完整测试工程**：[example/](example/) — STM32F407ZGT6 CMake 工程。
+> 涵盖：绘图协议解析（OLED/LCD 双屏）+ F5 增量同步 + 双滑杆 PWM + 传感面板模拟
+> + 9 种波形 + 物理按键 + OLED 虚拟屏 + 开关控制。
+> 详见 [example/README.md](example/README.md)。
 
 ---
 
@@ -651,13 +654,12 @@ Serial_C_Language/
 ├── Serial.c              # 发送 + 接收状态机 + 中断回调（490 行）
 ├── Serial.h              # 接口声明 + 配置宏 + 枚举（126 行）
 ├── README.md             # 本文件
-└── example/              # STM32CubeIDE 完整示例工程（导入即编译）
+└── example/              # STM32F407 CMake 演示工程
     ├── Core/             #  main.c + CubeMX 生成代码
-    ├── Drivers/          #  CMSIS + HAL（仅保留用到的 .c）
-    ├── HardWare/
-    │   ├── Serial/       #  Serial.c + Serial.h
-    │   └── TEST/         #  波形/按键/OLED/滑杆 测试模块
-    └── cmake/            #  CMake 构建配置
+    ├── Drivers/          #  CMSIS + HAL
+    ├── HardWare/         #  OLED / LCD / Serial / Key 驱动
+    ├── SerialTest/       #  绘图 / 滑杆 / 传感器 / 波形 / 按键 / 虚拟屏
+    └── cmake/            #  CMake 工具链 + 构建配置
 ```
 
 > 就两个文件，无依赖，零 malloc，静态分配全部缓冲区。
@@ -670,7 +672,7 @@ Serial_C_Language/
 99% 是没在 CubeMX 里开串口中断。NVIC 页签 → `USARTx global interrupt` → 勾上 ✅ → 重新编译。
 
 **Q: 支持哪些 STM32 系列？**
-只要用 HAL 库就支持。已在 STM32H7 上验证，F1/F4/G0/L4 理论兼容。
+只要用 HAL 库就支持。已在 STM32H743 和 STM32F407 上验证，F1/G0/L4 理论兼容。
 
 **Q: 能同时用多个串口吗？**
 能。`UART_InitReceive(SERIAL_DEVICE_1, ...)` + `UART_InitReceive(SERIAL_DEVICE_2, ...)`——各自独立接收，发送时指定 `huart` 即可。

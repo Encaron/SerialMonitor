@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME H743_Serial_test)
+set(CMAKE_PROJECT_NAME SerialMonitor_DrawTest)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -37,6 +37,36 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+file(GLOB_RECURSE USER_SOURCES
+    "HardWare/*.c"
+    "HardWare/*/*.c"
+    "SerialTest/*.c"
+    "SerialTest/*/*.c"
+)
+
+# 自动收集所有头文件目录 - 无需手动添加每个.h路径
+file(GLOB_RECURSE USER_HEADER_DIRS
+    "HardWare/*.h"
+    "HardWare/*/*.h"
+    "SerialTest/*.h"
+    "SerialTest/*/*.h"
+)
+
+# 提取头文件目录并去重
+set(INCLUDE_DIRS "")
+foreach(header_file ${USER_HEADER_DIRS})
+    get_filename_component(dir ${header_file} DIRECTORY)
+    list(APPEND INCLUDE_DIRS ${dir})
+endforeach()
+list(REMOVE_DUPLICATES INCLUDE_DIRS)
+
+
+# 打印找到的源文件（调试用，完成后可删除）
+message("Found source files: ${USER_SOURCES}")
+message("Include directories: ${INCLUDE_DIRS}")
+
+
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
@@ -45,18 +75,14 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    HardWare/Serial/Serial.c
-    HardWare/TEST/test_protocols.c
-    HardWare/TEST/test_key.c
-    HardWare/TEST/test_display.c
-    HardWare/TEST/test_waveform.c
+     ${USER_SOURCES}
+
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    HardWare/Serial
-    HardWare/TEST
+    ${INCLUDE_DIRS}
 )
 
 # Add project symbols (macros)

@@ -8,6 +8,8 @@
  *
  * History:
  *   2026-05-23  优化: volatile修饰ISR共享变量, const正确性, vsnprintf, BYTE协议接口
+ *   2026-06-20  移植到 STM32F407 (Serial Monitor V2 draw test)
+ *               启用 USART1 (PC) + USART3 (BT), 均为方括号协议
  */
 
 #ifndef SERIAL_SERIAL_H_
@@ -16,13 +18,15 @@
 #include "gpio.h"
 #include "main.h"
 #include "usart.h"
-#include "stm32h7xx_hal.h"
+#include "stm32f4xx_hal.h"
 #include <stdarg.h>
 #include <stdio.h>
 
 /*******************************************************************************
- * 配置选项：启用哪些串口 (默认为1，若未启用请在工程预定义中设为0)
- * 例如：SERIAL_USE_USART2=0 禁用USART2
+ * 配置选项：启用哪些串口
+ *   USART1 = PC (Serial Monitor V2)  ← 默认启用
+ *   USART2 = WiFi (预留)             ← 默认禁用
+ *   USART3 = 蓝牙 (BT)              ← 默认启用
  ******************************************************************************/
 #ifndef SERIAL_USE_USART1
 #define SERIAL_USE_USART1 1
@@ -33,7 +37,7 @@
 #endif
 
 #ifndef SERIAL_USE_USART3
-#define SERIAL_USE_USART3 0
+#define SERIAL_USE_USART3 1
 #endif
 
 /* 根据配置声明外部句柄 (CubeMX生成的usart.h中只有启用的句柄) */
@@ -50,12 +54,12 @@ extern UART_HandleTypeDef huart3;
 #endif
 
 /*******************************************************************************
- * 设备类型枚举 (通用名称，用户可自定义宏别名)
+ * 设备类型枚举
  ******************************************************************************/
 typedef enum {
-  SERIAL_DEVICE_1 = 0, // 对应 USART1
-  SERIAL_DEVICE_2,     // 对应 USART2
-  SERIAL_DEVICE_3      // 对应 USART3
+  SERIAL_DEVICE_1 = 0, // 对应 USART1 (PC)
+  SERIAL_DEVICE_2,     // 对应 USART2 (WiFi)
+  SERIAL_DEVICE_3      // 对应 USART3 (蓝牙)
 } DeviceType;
 
 /*******************************************************************************
@@ -67,35 +71,33 @@ typedef enum {
 } OpMode;
 
 /*******************************************************************************
- * 协议类型枚举 (通用名称)
+ * 协议类型枚举
  ******************************************************************************/
 typedef enum {
-  SERIAL_BYTE,          // 单字节协议 (标志+独立读取)
+  SERIAL_BYTE,          // 单字节协议
   SERIAL_PACK,          // 数据包协议 (0xFF + 4字节数据 + 0xFE)
   SERIAL_TEXT,          // 文本协议 (@TEXT\r\n)
-  SERIAL_SQUARE_BRACKET // 方括号协议 ([DATA])
+  SERIAL_SQUARE_BRACKET // 方括号协议 ([DATA]) — Serial Monitor V2 使用
 } ProtocolType;
 
 /*******************************************************************************
- * 缓冲区大小配置 (可在此修改)
+ * 用户自定义设备别名
  ******************************************************************************/
-#define SERIAL_TEXT_BUF_SIZE 100      // 文本/方括号协议缓冲区大小
+#define Serial_PC   SERIAL_DEVICE_1
+#define Serial_WIFI SERIAL_DEVICE_2
+#define Serial_BT   SERIAL_DEVICE_3
+
+/*******************************************************************************
+ * 缓冲区大小配置
+ ******************************************************************************/
+#define SERIAL_TEXT_BUF_SIZE 2304     // 文本/方括号协议缓冲区 (128x64图片hex=2048+前缀≈2100)
 #define SERIAL_REALTIME_BUF_SIZE 1024 // 实时模式缓冲区大小
 
 /*******************************************************************************
  * 发送数据包缓冲区 (供外部使用)
  ******************************************************************************/
-extern uint8_t Serial_TxPacket[4]; // 单片机发送数据包 (用户填充)
+extern uint8_t Serial_TxPacket[4]; // 发送数据包 (用户填充)
 extern uint8_t Serial_RxPacket[4]; // 接收数据包缓冲区 (PACK协议使用)
-
-/*******************************************************************************
- * 用户自定义设备别名 (根据需要定义，无需修改库)
- ******************************************************************************/
-// 示例：
-// #define Serial_PC     SERIAL_DEVICE_1
-// #define Serial_WIFI   SERIAL_DEVICE_2
-// #define Serial_BT     SERIAL_DEVICE_3
-// 若未定义，则使用原始枚举名
 
 /*******************************************************************************
  * 发送函数声明

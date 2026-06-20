@@ -1,41 +1,118 @@
-# Serial Monitor V2 — STM32 端完整示例
+# Serial Monitor V2 — STM32F4 配套演示工程
 
-基于 STM32H743，用 STM32CubeIDE + CMake 构建。演示 Serial.c/h 的全部功能配合 PC 端 Serial Monitor V2。
+> STM32F407ZGT6 · 配合 [Serial Monitor V2](https://github.com/Encaron/SerialMonitorV2) 上位机使用
+>
+> 涵盖：绘图 / 滑杆 PWM / 传感面板 / 波形 / 按键 / 虚拟屏 / 开关控制
 
-## 快速验证
+## 硬件引脚
 
-1. STM32CubeIDE → File → Import → Existing Projects into Workspace → 选这个目录
-2. 编译 → 烧录
-3. 打开 PC 端 Serial Monitor V2，连上 USART1 @ 115200 bps
-4. 波形面板自动出现正弦波、滑杆拖动 PC13 LED 亮度变化、OLED 面板显示虚拟 UI
+| 外设 | 引脚 | 说明 |
+|------|------|------|
+| USART1 (PC) | PA9(TX), PA10(RX) | 115200 8N1，连接 Serial Monitor V2 |
+| USART3 (BT) | PB10(TX), PB11(RX) | 9600 8N1，蓝牙备用 |
+| OLED 0.96" 128×64 | PA8(SCL), PC9(SDA) | 软件 I2C，单色 |
+| LCD 1.69" 240×280 | PB13(SCK), PB15(MOSI), PE7(CS), PE5(RES), PE6(DC), PD12(BLK) | SPI，彩色 |
+| LED (PC13) | PC13 | Slider1 呼吸灯 |
+| LED (PF7) | PF7 | Slider2 调光 |
+| LED (PF8) | PF8 | 蓝色LED 开关 |
+| 按键 | PE1(开), PE3(关) | 上拉输入，控制蓝色LED |
 
-## 文件说明
+## 编译 & 烧录
 
+```bash
+cd 工程目录
+cmake --preset Debug
+cmake --build build/Debug
+# 固件：build/Debug/SerialMonitor_DrawTest.elf
 ```
-example/
-├── Core/               # CubeMX 生成（main.c / usart.c / gpio.c / tim.c）
-├── Drivers/            # CMSIS + HAL 库（仅保留 CMake 引用的 .c 文件）
-├── HardWare/
-│   ├── Serial/         # Serial.c Serial.h（串口库）
-│   └── TEST/           # 测试模块
-│       ├── test_protocols.c/.h   # 滑杆处理 + 字段提取 + 路由
-│       ├── test_key.c/.h         # 按键事件处理
-│       ├── test_waveform.c/.h    # 9 种波形发生器
-│       └── test_display.c/.h     # OLED 虚拟屏 UI 组件库
-├── cmake/stm32cubemx/  # CMake 构建配置
-└── H743_Serial_test.ioc # CubeMX 工程文件
+
+> **必须用 `cmake --preset Debug`**，不能直接 `cmake -B build` —— 否则找不到 ARM 工具链。
+
+CubeIDE 用户：Open Project from File System → 选工程目录 → 点 Run。
+
+## 功能模块
+
+所有模块入口在 `Core/Src/main.c`，取消注释即可启用。
+
+### 绘图测试（PC 画板 → MCU 屏幕）
+
+| 函数 | 位置 | 说明 |
+|------|------|------|
+| `DrawTest_Init()` | Init 区 | 初始化 OLED 绘图 |
+| `LCD_DrawTest_Init()` | Init 区 | 初始化 LCD 绘图 |
+| `OLED_Draw_Test()` | Init 区 | 静态画布（一次性，勿放循环） |
+
+**切换 OLED / LCD**：在 main.c 的 UART 分发区注释对调：
+```c
+LCD_DrawTest_ProcessCommand(data);      // ← LCD
+//DrawTest_ProcessCommand(data);         // ← OLED
 ```
 
-## 硬件要求
+PC 端画板发 `[draw,...]` 命令即可在屏幕上显示。
 
-- STM32H743（Nucleo / 自制板均可）
-- USART1 连 PC（PA9=TX, PA10=RX）
-- PC13 接 LED（滑杆 PWM 调光用）
+### 滑杆 PWM
 
-> ⚠️ **本工程基于 STM32H743。** 不是 H743 也能用，但需要改：
-> 1. CubeMX 中更换为你的芯片 → 重新生成代码
-> 2. 保留 `HardWare/` 和 `Serial_C_Language/` 目录不动
-> 3. `Serial.c` / `Serial.h` 本身只依赖 HAL 库，芯片无关——HAL 是统一的
-> 4. 不会操作可交给 AI："帮我把这个 H743 工程迁移到 STM32F407"
-> 
-> 换芯片后 HAL 驱动文件不同，Drivers 目录会自动更新，无需手动选。
+| 函数 | 说明 |
+|------|------|
+| `Test_Init()` | 启动双 PWM + 串口接收 |
+| `Test_Handle()` | 处理 slider / ctrl / key 协议 |
+| `Test_SliderLoop()` | 输出 plot 波形 |
+
+- Slider1 (PC 端) → PC13 呼吸灯
+- Slider2 (PC 端) → PF7 调光
+
+### 传感面板
+
+| 函数 | 说明 |
+|------|------|
+| `Test_SensorInit()` | 随机种子 |
+| `Test_SensorLoop()` | 发送温湿压/电机/电池数据 |
+
+发 `[ctrl,slider,电池电压,3.7]` 可控制电池电压值。
+
+### 按键 & 虚拟开关
+
+| 函数 | 说明 |
+|------|------|
+| `Test_KeyLoop()` | PE1→开 PF8, PE3→关 PF8 |
+
+PC 端也可发 `[ctrl,led,蓝色LED,on/off]` 控制同一个灯。
+
+### 波形发生器
+
+| 函数 | 说明 |
+|------|------|
+| `Test_WaveformInit(WAVEFORM_SIN)` | 选择波形模式 |
+| `Test_WaveformProcess()` | 每帧输出 plot 数据 |
+
+9 种模式：SIN / SQUARE / TRI / SAW / AM / MIXED / NOISE / DAMPED / BURST
+
+### OLED 虚拟屏
+
+| 函数 | 说明 |
+|------|------|
+| `Test_DisplayInit()` | 启动画面 |
+| `Test_DisplayLoop()` | 动态刷新 |
+
+## 协议速查
+
+| 协议 | 方向 | 示例 |
+|------|------|------|
+| `[draw,circle,64,32,20,#FFF]` | PC→MCU | 画圆 |
+| `[slider,Slider1,75]` | PC→MCU | 滑杆 |
+| `[ctrl,led,蓝色LED,on]` | 双向 | 开关 |
+| `[ctrl,slider,电池电压,3.7]` | PC→MCU | 设电池值 |
+| `[sensor,temp,芯片温度,42.5]` | MCU→PC | 温度卡 |
+| `[plot,Slider1,75.0]` | MCU→PC | 波形数据 |
+| `[display,10,20,"hello",16,#FFF]` | MCU→PC | 虚拟屏 |
+
+完整协议见 [Serial Monitor V2 文档](https://github.com/Encaron/SerialMonitorV2)。
+
+## CubeMX 再生后注意事项
+
+CubeMX 重新生成代码后需检查：
+- 栈大小 `_Min_Stack_Size = 0x1000`（`STM32F407XX_FLASH.ld`）
+- `-u _printf_float` 链接选项
+- TIM6 Prescaler=239, Period=99 + TIM6_DAC_IRQHandler
+- TIM11 引脚 PF7
+- `stm32f4xx_it.c` 补 `extern htim6` + `TIM6_DAC_IRQHandler`
