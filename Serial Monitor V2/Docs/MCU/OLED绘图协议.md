@@ -1,24 +1,43 @@
-# OLED 绘图协议（v2.5.0 最终版）
+# OLED 绘图协议（v2.5.0 最终版 + F5 增量同步 + F4 旋转）
 
-> 状态：✅ PC 端已实现
-> 用途：STM32 端将物理 LCD 的 UI 代码无缝移植到串口虚拟 OLED 上
+> 状态：✅ 已实现
+> 用途：STM32 ↔ PC 串口虚拟 OLED 双向绘图
 
-## 协议格式（10 条）
+## 图形协议（11 条 + 3 旋转）
 
 ```
-[draw,text,    x,y,content,fontSize,#RRGGBB]       → 文字（v2.5 F1 统一后新增）
+[draw,text,    x,y,content,fontSize,#RRGGBB]       → 文字
 [draw,point,   x,y,#RRGGBB]                         → 1×1 像素点
 [draw,line,    x1,y1,x2,y2,#RRGGBB,w]               → 直线（w 可选，默认 1）
 [draw,rect,    x,y,w,h,#RRGGBB,w]                   → 空心矩形
-[draw,rect,    x,y,w,h,#RRGGBB,w,fill]              → 实心矩形（w 被忽略）
+[draw,rect,    x,y,w,h,#RRGGBB,w,fill]              → 实心矩形
+[draw,rect,    x,y,w,h,#RRGGBB,w,a<angle>]          → 空心旋转矩形
+[draw,rect,    x,y,w,h,#RRGGBB,w,fill,a<angle>]     → 实心旋转矩形
 [draw,circle,  cx,cy,r,#RRGGBB,w]                   → 空心圆
-[draw,circle,  cx,cy,r,#RRGGBB,w,fill]              → 实心圆饼（w 被忽略）
-[draw,ellipse, cx,cy,a,b,#RRGGBB,w]                 → 空心椭圆（a=半宽，b=半高）
-[draw,ellipse, cx,cy,a,b,#RRGGBB,w,fill]            → 实心椭圆（w 被忽略）
+[draw,circle,  cx,cy,r,#RRGGBB,w,fill]              → 实心圆饼
+[draw,ellipse, cx,cy,a,b,#RRGGBB,w]                 → 空心椭圆
+[draw,ellipse, cx,cy,a,b,#RRGGBB,w,fill]            → 实心椭圆
+[draw,ellipse, cx,cy,a,b,#RRGGBB,w,a<angle>]        → 空心旋转椭圆
+[draw,ellipse, cx,cy,a,b,#RRGGBB,w,fill,a<angle>]   → 实心旋转椭圆
 [draw,triangle,x0,y0,x1,y1,x2,y2,#RRGGBB,w]         → 空心三角形
-[draw,triangle,x0,y0,x1,y1,x2,y2,#RRGGBB,w,fill]   → 实心三角形（w 被忽略）
+[draw,triangle,x0,y0,x1,y1,x2,y2,#RRGGBB,w,fill]   → 实心三角形
 [draw,clear]                                         → 清屏（默认底色 #111111）
 [draw,clear,#RRGGBB]                                 → 清屏 + 填指定色
+
+注：线/三角/弧旋转已烘焙进坐标，无需 a<angle>。圆角矩形旋转忽略圆角。
+```
+
+## F5 增量同步协议
+
+```
+[draw,set,<id>,<type>,<params>...]    → 创建/更新图形（upsert，永远1帧）
+[draw,del,<id>]                        → 删除图形（1帧）
+```
+
+- `<id>` 格式：`a1,a2,a3...`（PC 分配，自增不回收）
+- `<type>,<params>` 同上述图形协议
+- 设备端维护图形数组，收到 set/del → 更新数组 → 本地全屏重绘
+- 旧格式 `[draw,<type>,...]` 兼容保留（MCU→PC 方向使用）
 ```
 
 ### fill 参数说明

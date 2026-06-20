@@ -2281,21 +2281,11 @@ namespace 串口助手
             for (int i = 0; i < _displayVM.DrawCommands.Count; i++)
             {
                 var cmd = _displayVM.DrawCommands[i];
-                // F4 旋转：矩形/圆角矩形 → 拆 2 填充三角发给 MCU
-                if (i < _drawElements.Count && _drawElements[i] is Shape shape
-                    && shape.RenderTransform is RotateTransform rt && rt.Angle != 0
-                    && (cmd.Type == "rect" || cmd.Type == "rrect"))
-                {
-                    SendRotatedRectAsTriangles(shape, cmd);
-                }
+                // F5：有 ID 发 set 格式（旋转矩形也走 set，MCU 显示未旋转但位置正确，旋转是 PC 视觉效果）
+                if (!string.IsNullOrEmpty(cmd.Id))
+                    SendRaw($"[draw,set,{cmd.Id},{string.Join(",", cmd.Args)}]", appendLineEnding: true);
                 else
-                {
-                    // F5：有 ID 发 set 格式（MCU upsert + redraw_all，重连 O(N²) 但安全）
-                    if (!string.IsNullOrEmpty(cmd.Id))
-                        SendRaw($"[draw,set,{cmd.Id},{string.Join(",", cmd.Args)}]", appendLineEnding: true);
-                    else
-                        SendRaw("[draw," + string.Join(",", cmd.Args) + "]", appendLineEnding: true);
-                }
+                    SendRaw("[draw," + string.Join(",", cmd.Args) + "]", appendLineEnding: true);
                 Thread.Sleep(5);
             }
         }
@@ -3160,14 +3150,6 @@ namespace 串口助手
                 SyncAllShapesToDevice();
                 return;
             }
-            // 旋转矩形/圆角矩形：ShapeToProtocolArgs 不含旋转信息，回退全量同步（拆 2 三角）
-            if (index < _drawElements.Count && _drawElements[index] is Shape shape
-                && shape.RenderTransform is RotateTransform rt && rt.Angle != 0
-                && (cmd.Type == "rect" || cmd.Type == "rrect"))
-            {
-                SyncAllShapesToDevice();
-                return;
-            }
             string payload = $"[draw,set,{cmd.Id},{string.Join(",", newArgs)}]";
             SendRaw(payload, appendLineEnding: true);
         }
@@ -3220,11 +3202,21 @@ namespace 串口助手
                 case "rect":
                     var rect = (System.Windows.Shapes.Rectangle)shape;
                     bool rectFilled = rect.Fill != null && rect.Stroke == null;
+                    int rectAngle = rect.RenderTransform is RotateTransform rrt && rrt.Angle != 0 ? (int)rrt.Angle : 0;
                     var rectArgs = new List<string> { "rect",
                         ((int)Canvas.GetLeft(rect)).ToString(), ((int)Canvas.GetTop(rect)).ToString(),
                         ((int)rect.Width).ToString(), ((int)rect.Height).ToString(), color };
-                    if (!rectFilled && rect.StrokeThickness != 1) rectArgs.Add(((int)rect.StrokeThickness).ToString());
-                    if (rectFilled) rectArgs.Add("fill");
+                    if (rectAngle != 0)
+                    {
+                        rectArgs.Add(((int)rect.StrokeThickness).ToString());
+                        if (rectFilled) rectArgs.Add("fill");
+                        rectArgs.Add("a" + rectAngle.ToString());  // a前缀防误读
+                    }
+                    else
+                    {
+                        if (!rectFilled && rect.StrokeThickness != 1) rectArgs.Add(((int)rect.StrokeThickness).ToString());
+                        if (rectFilled) rectArgs.Add("fill");
+                    }
                     return rectArgs;
 
                 case "fill":
@@ -3252,9 +3244,11 @@ namespace 串口助手
                     int ey = (int)(Canvas.GetTop(ellipse) + ellipse.Height / 2);
                     int a = (int)(ellipse.Width / 2);
                     int b = (int)(ellipse.Height / 2);
+                    int ellAngle = ellipse.RenderTransform is RotateTransform ert && ert.Angle != 0 ? (int)ert.Angle : 0;
                     var ellArgs = new List<string> { "ellipse", ex.ToString(), ey.ToString(), a.ToString(), b.ToString(), color };
                     if (!ellFilled && ellipse.Stroke != null && ellipse.StrokeThickness != 1) ellArgs.Add(((int)ellipse.StrokeThickness).ToString());
                     if (ellFilled) ellArgs.Add("fill");
+                    if (ellAngle != 0) ellArgs.Add("a" + ellAngle.ToString());
                     return ellArgs;
 
                 case "triangle":
@@ -3272,11 +3266,13 @@ namespace 串口助手
                     var rrect2 = (System.Windows.Shapes.Rectangle)shape;
                     bool rrFilled = rrect2.Fill != null && rrect2.Stroke == null;
                     int rrLw = (int)rrect2.StrokeThickness;
+                    int rrAngle = rrect2.RenderTransform is RotateTransform rrt2 && rrt2.Angle != 0 ? (int)rrt2.Angle : 0;
                     var rrArgs = new List<string> { "rrect",
                         ((int)Canvas.GetLeft(rrect2)).ToString(), ((int)Canvas.GetTop(rrect2)).ToString(),
                         ((int)rrect2.Width).ToString(), ((int)rrect2.Height).ToString(), color,
                         rrLw.ToString(), ((int)rrect2.RadiusX).ToString() };
                     if (rrFilled) rrArgs.Add("fill");
+                    if (rrAngle != 0) rrArgs.Add("a" + rrAngle.ToString());
                     return rrArgs;
 
                 case "arc":
