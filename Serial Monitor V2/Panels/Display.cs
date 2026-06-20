@@ -8,7 +8,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Threading;
-using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
 namespace 串口助手
@@ -23,7 +22,7 @@ namespace 串口助手
         private string NextShapeId() => $"a{_nextShapeId++}";
 
         // ——— #7 PC 鼠标画板 ———
-        private enum DrawTool { None, Select, Pencil, Line, Rect, RoundedRect, Circle, Ellipse, Triangle, Arc, Text, Image, Eraser }
+        private enum DrawTool { None, Select, Pencil, Line, Rect, RoundedRect, Circle, Ellipse, Triangle, Arc, Text, Eraser }
 
         /// <summary>
         /// 控点角色。Phase 3 用 TopLeft~Center；Endpoint1~Vertex2 预留给线端点/三角顶点拖拽。
@@ -79,10 +78,6 @@ namespace 串口助手
         private string _shapeEditColor = "#FFFFFF";
         private readonly List<TextBox> _shapeFieldTextBoxes = new List<TextBox>(); // 动态字段 TextBox 列表
 
-        // ——— 图片导入 ———
-        private readonly Dictionary<int, byte[]> _imagePixels = new(); // 原始 BGRA32 像素，key=_drawElements 索引
-        private string _exportCFormat = "mono"; // 导出 C 数组格式：mono / rgb565
-
         // ——— 初始化 ———
         private void InitOLEDPanel()
         {
@@ -126,7 +121,6 @@ namespace 串口助手
             _toolButtons.Add(btnToolTriangle);
             _toolButtons.Add(btnToolArc);
             _toolButtons.Add(btnToolText);
-            _toolButtons.Add(btnToolImage);
             _toolButtons.Add(btnToolEraser);
 
             // 锁屏按钮初始颜色（默认锁定=红色）
@@ -249,7 +243,6 @@ namespace 串口助手
             DeselectShape();
             _displayVM.ClearAll();
             _drawElements.Clear();
-            _imagePixels.Clear();
             _nextShapeId = 1;  // F5：清屏重置 ID 计数器
             RefreshOLEDUI();
             if (_session != null && _session.IsOpen)
@@ -321,7 +314,6 @@ namespace 串口助手
             _displayVM.ClearAll();
             _drawElements.Clear();
             _oledTexts.Clear();
-            _imagePixels.Clear();
             Dispatcher.InvokeAsync(() => { RefreshOLEDUI(); });
         }
 
@@ -356,7 +348,6 @@ namespace 串口助手
                     case "rrect":    HandleDrawRoundedRect(args);  break;
                     case "arc":      HandleDrawArc(args);          break;
                     case "triangle": HandleDrawTriangle(args);    break;
-                    case "image":    HandleDrawImage(args);       break;
                     case "clear":    HandleDrawClearCmd(args);    break;
                 }
             });
@@ -712,67 +703,6 @@ namespace 串口助手
             oledEmptyHint.Visibility = Visibility.Collapsed;
         }
 
-        // ── 图片 [draw,image,x,y,w,h,format,threshold,HEXDATA] ──
-        private void HandleDrawImage(List<string> args)
-        {
-            if (args.Count < 8) return;
-            if (!int.TryParse(args[1], out int x) || !int.TryParse(args[2], out int y)) return;
-            if (!int.TryParse(args[3], out int w) || !int.TryParse(args[4], out int h)) return;
-            string format = args[5]; // "rgb565" or "mono"
-            if (!int.TryParse(args[6], out int threshold)) threshold = 128;
-            string hexData = args[7];
-            if (w <= 0 || h <= 0 || string.IsNullOrEmpty(hexData)) return;
-
-            byte[] rawBytes;
-            try { rawBytes = HexStringToBytes(hexData); } catch { return; }
-
-            BitmapSource bitmap;
-            if (format == "mono")
-                bitmap = MonoBytesToBitmap(rawBytes, w, h);
-            else
-                bitmap = Rgb565BytesToBitmap(rawBytes, w, h);
-
-            var image = new Image { Source = bitmap, Width = w, Height = h };
-            Canvas.SetLeft(image, x); Canvas.SetTop(image, y);
-
-            oledCanvas.Children.Add(image);
-            int idx = _drawElements.Count;
-            _drawElements.Add(image);
-            _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="image", Args = args, Color = null });
-            oledEmptyHint.Visibility = Visibility.Collapsed;
-
-            // 存储 BGRA32 像素供格式/阈值切换时重编码
-            int stride = w * 4;
-            byte[] bgra = new byte[stride * h];
-            if (format == "mono")
-            {
-                for (int py = 0; py < h; py++)
-                    for (int px = 0; px < w; px++)
-                    {
-                        int byteIdx = py * ((w + 7) / 8) + px / 8;
-                        int bit = (rawBytes[byteIdx] >> (7 - (px % 8))) & 1;
-                        byte v = bit == 1 ? (byte)255 : (byte)0;
-                        int i = py * stride + px * 4;
-                        bgra[i] = v; bgra[i + 1] = v; bgra[i + 2] = v; bgra[i + 3] = 255;
-                    }
-            }
-            else
-            {
-                for (int py = 0; py < h; py++)
-                    for (int px = 0; px < w; px++)
-                    {
-                        int bi = (py * w + px) * 2;
-                        ushort rgb = (ushort)(rawBytes[bi] << 8 | rawBytes[bi + 1]);
-                        byte r = (byte)(((rgb >> 11) & 0x1F) * 255 / 31);
-                        byte g = (byte)(((rgb >> 5) & 0x3F) * 255 / 63);
-                        byte b = (byte)((rgb & 0x1F) * 255 / 31);
-                        int i = py * stride + px * 4;
-                        bgra[i] = b; bgra[i + 1] = g; bgra[i + 2] = r; bgra[i + 3] = 255;
-                    }
-            }
-            _imagePixels[idx] = bgra;
-        }
-
         // ── 清屏 [draw,clear] 或 [draw,clear,#RRGGBB] ──
         private void HandleDrawClearCmd(List<string> args)
         {
@@ -798,9 +728,8 @@ namespace 串口助手
                 oledCanvas.Children.Remove(shape);
             _drawElements.Clear();
 
-            // 清锁定索引 + 图片像素
+            // 清锁定索引
             _lockedShapeIndices.Clear();
-            _imagePixels.Clear();
 
             // 清 VM
             _displayVM.ClearAll();
@@ -1634,12 +1563,11 @@ namespace 串口助手
         private void FinalizeShape(DrawTool tool, Point p1, Point p2)
         {
             string color = _drawColor;
-            string type; List<string> args;
+            List<string> args;
 
             switch (tool)
             {
                 case DrawTool.Line:
-                    type = "line";
                     args = new List<string> { "line",
                         ((int)p1.X).ToString(), ((int)p1.Y).ToString(),
                         ((int)p2.X).ToString(), ((int)p2.Y).ToString(), color };
@@ -1648,7 +1576,6 @@ namespace 串口助手
                 {
                     int x = (int)Math.Min(p1.X, p2.X), y = (int)Math.Min(p1.Y, p2.Y);
                     int w = (int)Math.Abs(p2.X - p1.X), h = (int)Math.Abs(p2.Y - p1.Y);
-                    type = "rect";
                     args = new List<string> { "rect", x.ToString(), y.ToString(), w.ToString(), h.ToString(), color };
                     break;
                 }
@@ -1656,7 +1583,6 @@ namespace 串口助手
                 {
                     int cx = (int)((p1.X + p2.X) / 2), cy = (int)((p1.Y + p2.Y) / 2);
                     int r = (int)Math.Max(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y)) / 2;
-                    type = "circle";
                     args = new List<string> { "circle", cx.ToString(), cy.ToString(), r.ToString(), color };
                     break;
                 }
@@ -1664,7 +1590,6 @@ namespace 串口助手
                 {
                     int x = (int)Math.Min(p1.X, p2.X), y = (int)Math.Min(p1.Y, p2.Y);
                     int w = (int)Math.Abs(p2.X - p1.X), h = (int)Math.Abs(p2.Y - p1.Y);
-                    type = "triangle";
                     args = new List<string> { "triangle",
                         (x + w / 2).ToString(), y.ToString(),               // 顶点
                         x.ToString(), (y + h).ToString(),                    // 左下
@@ -1675,7 +1600,6 @@ namespace 串口助手
                 {
                     int x = (int)Math.Min(p1.X, p2.X), y = (int)Math.Min(p1.Y, p2.Y);
                     int w = (int)Math.Abs(p2.X - p1.X), h = (int)Math.Abs(p2.Y - p1.Y);
-                    type = "rrect";
                     args = new List<string> { "rrect", x.ToString(), y.ToString(), w.ToString(), h.ToString(), color };
                     break;
                 }
@@ -1683,7 +1607,6 @@ namespace 串口助手
                 {
                     int ecx = (int)((p1.X + p2.X) / 2), ecy = (int)((p1.Y + p2.Y) / 2);
                     int a = (int)Math.Abs(p2.X - p1.X) / 2, b = (int)Math.Abs(p2.Y - p1.Y) / 2;
-                    type = "ellipse";
                     args = new List<string> { "ellipse", ecx.ToString(), ecy.ToString(), a.ToString(), b.ToString(), color };
                     break;
                 }
@@ -1691,7 +1614,6 @@ namespace 串口助手
                 {
                     int acx = (int)((p1.X + p2.X) / 2), acy = (int)((p1.Y + p2.Y) / 2);
                     int ar = (int)(Math.Max(Math.Abs(p2.X - p1.X), Math.Abs(p2.Y - p1.Y)) / 2);
-                    type = "arc";
                     args = new List<string> { "arc", acx.ToString(), acy.ToString(), ar.ToString(),
                         _arcStartAngle.ToString(), _arcEndAngle.ToString(), color };
                     break;
@@ -1738,162 +1660,7 @@ namespace 串口助手
             SendRaw(payload, appendLineEnding: true);
         }
 
-        // ═══════════════════════════════════════
-        //  图片导入
-        // ═══════════════════════════════════════
-
-        private void btnToolImage_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isLocked) { if (btnLockCanvas != null) ShakeButton(btnLockCanvas); return; }
-            InitOLEDPanel();
-            if (_displayVM == null) return;
-
-            var dlg = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "图片文件|*.png;*.jpg;*.jpeg;*.bmp|PNG|*.png|JPEG|*.jpg;*.jpeg|BMP|*.bmp",
-                Title = "导入图片到画布"
-            };
-            if (dlg.ShowDialog() != true) return;
-
-            try
-            {
-                // 1. 加载
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.UriSource = new Uri(dlg.FileName);
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.EndInit();
-
-                // 2. 缩放（保持比例，≤画布尺寸）
-                int maxW = _displayVM.CanvasWidth;
-                int maxH = _displayVM.CanvasHeight;
-                double scale = Math.Min(1.0, Math.Min((double)maxW / bmp.PixelWidth, (double)maxH / bmp.PixelHeight));
-                int newW = Math.Max(1, (int)(bmp.PixelWidth * scale));
-                int newH = Math.Max(1, (int)(bmp.PixelHeight * scale));
-
-                // 3. 提取 BGRA32 像素
-                var scaled = new TransformedBitmap(bmp, new ScaleTransform(scale, scale));
-                var converted = new FormatConvertedBitmap(scaled, PixelFormats.Bgra32, null, 0);
-                int stride = newW * 4;
-                byte[] pixels = new byte[stride * newH];
-                converted.CopyPixels(pixels, stride, 0);
-
-                // 4. 编码：画布显示彩色（converted），串口发 mono（OLED 单色，rgb565 巨大 16×）
-                int threshold = 128;
-                byte[] mono = BgraToMono(pixels, newW, newH, threshold);
-                string hexData = BytesToHexString(mono);
-
-                var args = new List<string> { "image", "0", "0", newW.ToString(), newH.ToString(), "mono", threshold.ToString(), hexData };
-
-                // 5. 渲染
-                var image = new Image { Source = converted, Width = newW, Height = newH };
-                Canvas.SetLeft(image, 0); Canvas.SetTop(image, 0);
-                oledCanvas.Children.Add(image);
-
-                int idx = _drawElements.Count;
-                _drawElements.Add(image);
-                _imagePixels[idx] = pixels;
-                _displayVM.DrawCommands.Add(new DrawCommand { Id = NextShapeId(), Type ="image", Args = args, Color = null });
-                oledEmptyHint.Visibility = Visibility.Collapsed;
-
-                // 6. 选中新图片
-                if (_selectedShape != null) DeselectShape();
-                SelectShape(image, idx);
-
-                // 7. 发串口
-                if (_session != null && _session.IsOpen)
-                    SendRaw("[draw," + string.Join(",", args) + "]", appendLineEnding: true);
-            }
-            catch (Exception ex)
-            {
-                LogSystem($"图片导入失败：{ex.Message}");
-            }
-        }
-
-        // ── 编码 ──
-
-        private static byte[] BgraToRgb565(byte[] bgra, int w, int h)
-        {
-            var result = new byte[w * h * 2];
-            for (int py = 0; py < h; py++)
-                for (int px = 0; px < w; px++)
-                {
-                    int src = py * w * 4 + px * 4;
-                    byte b = bgra[src], g = bgra[src + 1], r = bgra[src + 2];
-                    ushort rgb = (ushort)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
-                    int dst = (py * w + px) * 2;
-                    result[dst] = (byte)(rgb >> 8);
-                    result[dst + 1] = (byte)(rgb & 0xFF);
-                }
-            return result;
-        }
-
-        private static byte[] BgraToMono(byte[] bgra, int w, int h, int threshold)
-        {
-            int rowBytes = (w + 7) / 8;
-            var result = new byte[rowBytes * h];
-            for (int py = 0; py < h; py++)
-                for (int px = 0; px < w; px++)
-                {
-                    int src = py * w * 4 + px * 4;
-                    byte gray = (byte)(bgra[src + 2] * 0.299 + bgra[src + 1] * 0.587 + bgra[src] * 0.114);
-                    if (gray > threshold)
-                        result[py * rowBytes + px / 8] |= (byte)(1 << (7 - (px % 8)));
-                }
-            return result;
-        }
-
-        private static string BytesToHexString(byte[] data)
-        {
-            var sb = new System.Text.StringBuilder(data.Length * 2);
-            foreach (byte b in data) sb.Append(b.ToString("X2"));
-            return sb.ToString();
-        }
-
-        private static byte[] HexStringToBytes(string hex)
-        {
-            if (hex.Length % 2 != 0) throw new ArgumentException("HEX 字符串长度必须为偶数");
-            var result = new byte[hex.Length / 2];
-            for (int i = 0; i < result.Length; i++)
-                result[i] = byte.Parse(hex.Substring(i * 2, 2), System.Globalization.NumberStyles.HexNumber);
-            return result;
-        }
-
-        // ── 解码 → BitmapSource ──
-
-        private static BitmapSource Rgb565BytesToBitmap(byte[] rgb565, int w, int h)
-        {
-            int stride = w * 4;
-            byte[] bgra = new byte[stride * h];
-            for (int py = 0; py < h; py++)
-                for (int px = 0; px < w; px++)
-                {
-                    int si = (py * w + px) * 2;
-                    ushort rgb = (ushort)(rgb565[si] << 8 | rgb565[si + 1]);
-                    int di = py * stride + px * 4;
-                    bgra[di] = (byte)(((rgb & 0x1F) * 255) / 31);
-                    bgra[di + 1] = (byte)((((rgb >> 5) & 0x3F) * 255) / 63);
-                    bgra[di + 2] = (byte)((((rgb >> 11) & 0x1F) * 255) / 31);
-                    bgra[di + 3] = 255;
-                }
-            return BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, bgra, stride);
-        }
-
-        private static BitmapSource MonoBytesToBitmap(byte[] mono, int w, int h)
-        {
-            int stride = w * 4;
-            byte[] bgra = new byte[stride * h];
-            int rowBytes = (w + 7) / 8;
-            for (int py = 0; py < h; py++)
-                for (int px = 0; px < w; px++)
-                {
-                    int bit = (mono[py * rowBytes + px / 8] >> (7 - (px % 8))) & 1;
-                    byte v = bit == 1 ? (byte)255 : (byte)0;
-                    int di = py * stride + px * 4;
-                    bgra[di] = v; bgra[di + 1] = v; bgra[di + 2] = v; bgra[di + 3] = 255;
-                }
-            return BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, bgra, stride);
-        }
+        // 图片导入 + 编码辅助方法已移除 (v2.5 精简)
 
         // ═══════════════════════════════════════
         //  文字编辑（侧栏模式）
@@ -2342,13 +2109,11 @@ namespace 串口助手
                 }
                 return new Rect(minX, minY, maxX - minX, maxY - minY);
             }
-            // Rectangle / Ellipse / Path（以及 1px point 矩形）/ Image
+            // Rectangle / Ellipse / Path（以及 1px point 矩形）
             double left = Canvas.GetLeft(shape);
             double top = Canvas.GetTop(shape);
             double width = (shape as FrameworkElement)?.ActualWidth ?? 0;
             double height = (shape as FrameworkElement)?.ActualHeight ?? 0;
-            // Image 的 ActualWidth 可能在首次布局前为 0，回退到 Width
-            if (width == 0 && shape is Image img) { width = img.Width; height = img.Height; }
 
             // Path 优先：几何含绝对坐标，必须从 Data.Bounds 推算（ActualWidth 非零会导致跳过）
             if (shape is System.Windows.Shapes.Path arcPath2 && arcPath2.Data?.Bounds != null)
@@ -2393,7 +2158,7 @@ namespace 串口助手
         // ── F4 旋转：判断当前选中图形是否支持旋转 ──
         private bool IsRotationSupported()
         {
-            if (_selectedShapeDrawType == "circle" || _selectedShapeDrawType == "point" || _selectedShapeDrawType == "image") return false;
+            if (_selectedShapeDrawType == "circle" || _selectedShapeDrawType == "point") return false;
             return true;
         }
 
@@ -2542,8 +2307,8 @@ namespace 串口助手
                 return;
             }
 
-            // ── 文字/图片：中心控点 + 虚线框 + 旋转控点（无角控点，不可 resize） ──
-            if (_selectedShape is TextBlock || _selectedShape is Image)
+            // ── 文字：中心控点 + 虚线框 + 旋转控点（无角控点，不可 resize） ──
+            if (_selectedShape is TextBlock)
             {
                 double cx = bounds.Left + bounds.Width / 2;
                 double cy = bounds.Top + bounds.Height / 2;
@@ -2810,9 +2575,6 @@ namespace 串口助手
             else if (shape is TextBlock tb)
                 state = (Canvas.GetLeft(tb), Canvas.GetTop(tb), tb.Text, tb.FontSize,
                     (tb.Foreground as SolidColorBrush)?.Color.ToString() ?? "#FFFFFF");
-            else if (shape is Image img)
-                state = (Canvas.GetLeft(img), Canvas.GetTop(img),
-                    img.Width, img.Height);
             else // Rectangle / Ellipse
                 state = (Canvas.GetLeft(shape), Canvas.GetTop(shape),
                     ((FrameworkElement)shape).Width, ((FrameworkElement)shape).Height);
@@ -3293,17 +3055,6 @@ namespace 串口助手
                     }
                     return null;
 
-                case "image":
-                    if (shape is Image img && oldCmd.Args != null && oldCmd.Args.Count >= 8)
-                    {
-                        return new List<string> { "image",
-                            ((int)Canvas.GetLeft(img)).ToString(),
-                            ((int)Canvas.GetTop(img)).ToString(),
-                            oldCmd.Args[3], oldCmd.Args[4], // w, h 不变
-                            oldCmd.Args[5], oldCmd.Args[6], // format, threshold 不变
-                            oldCmd.Args[7] };               // hex 数据不变
-                    }
-                    return null;
             }
             return null;
         }
@@ -3510,8 +3261,8 @@ namespace 串口助手
             _shapeEditColor = color;
 
             // 标题
-            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc", "image" };
-            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线", "图片" };
+            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc" };
+            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线" };
             int ti = Array.IndexOf(typeNames, type);
             string typeLabel = ti >= 0 ? typeLabels[ti] : type;
             tbShapeEditTitle.Text = $"图形属性 — {typeLabel}";
@@ -3599,104 +3350,6 @@ namespace 串口助手
                     cbShapeFill.Visibility = Visibility.Visible;
                     break;
 
-                case "image":
-                    if (_selectedShape is Image img)
-                    {
-                        var imgCmd = _selectedIndex >= 0 && _selectedIndex < _displayVM.DrawCommands.Count
-                            ? _displayVM.DrawCommands[_selectedIndex] : null;
-                        string fmt = imgCmd?.Args != null && imgCmd.Args.Count >= 6 ? imgCmd.Args[5] : "rgb565";
-                        int thr = imgCmd?.Args != null && imgCmd.Args.Count >= 7 && int.TryParse(imgCmd.Args[6], out int t) ? t : 128;
-                        int iw = imgCmd?.Args != null && imgCmd.Args.Count >= 5 && int.TryParse(imgCmd.Args[3], out int pw) ? pw : (int)img.Width;
-                        int ih = imgCmd?.Args != null && imgCmd.Args.Count >= 5 && int.TryParse(imgCmd.Args[4], out int ph) ? ph : (int)img.Height;
-                        int hexLen = imgCmd?.Args != null && imgCmd.Args.Count >= 8 ? imgCmd.Args[7].Length / 2 : 0;
-
-                        add("位置", "X", "Y",
-                            ((int)Canvas.GetLeft(img)).ToString(), ((int)Canvas.GetTop(img)).ToString());
-                        addSingle("尺寸", "W×H", $"{iw} × {ih}");
-
-                        // 格式 RadioButtons
-                        shapeExtrasContainer.Children.Clear();
-                        var fmtLabel = new TextBlock
-                        {
-                            Text = "格式",
-                            FontSize = 11,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
-                            Margin = new Thickness(0, 6, 0, 2)
-                        };
-                        shapeExtrasContainer.Children.Add(fmtLabel);
-
-                        var fmtPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-                        var rbRgb = new RadioButton
-                        {
-                            Content = "RGB565", FontSize = 11, Margin = new Thickness(0, 0, 12, 0),
-                            Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                            IsChecked = fmt == "rgb565",
-                            Tag = "rgb565"
-                        };
-                        var rbMono = new RadioButton
-                        {
-                            Content = "单色", FontSize = 11,
-                            Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                            IsChecked = fmt == "mono",
-                            Tag = "mono"
-                        };
-                        rbRgb.Checked += ImageFormat_Changed;
-                        rbMono.Checked += ImageFormat_Changed;
-                        fmtPanel.Children.Add(rbRgb);
-                        fmtPanel.Children.Add(rbMono);
-                        shapeExtrasContainer.Children.Add(fmtPanel);
-
-                        // 阈值滑块（仅单色显示）
-                        var thrPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-                        var thrLabel = new TextBlock
-                        {
-                            Text = "阈值", FontSize = 11,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
-                            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
-                        };
-                        var thrSlider = new Slider
-                        {
-                            Minimum = 0, Maximum = 255, Value = thr, Width = 100,
-                            IsSnapToTickEnabled = true, TickFrequency = 1,
-                            VerticalAlignment = VerticalAlignment.Center
-                        };
-                        var thrValue = new TextBlock
-                        {
-                            Text = thr.ToString(), FontSize = 11, Width = 30,
-                            Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0)
-                        };
-                        thrSlider.Tag = thrValue; // 联动更新标签
-                        thrSlider.ValueChanged += ImageThreshold_Changed;
-                        thrPanel.Children.Add(thrLabel);
-                        thrPanel.Children.Add(thrSlider);
-                        thrPanel.Children.Add(thrValue);
-                        thrPanel.Visibility = fmt == "mono" ? Visibility.Visible : Visibility.Collapsed;
-                        thrPanel.Tag = "thresholdPanel"; // 格式切换时查找用
-                        shapeExtrasContainer.Children.Add(thrPanel);
-
-                        // 数据大小
-                        var sizeLabel = new TextBlock
-                        {
-                            Text = $"数据  {hexLen:N0} 字节",
-                            FontSize = 11,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
-                            Margin = new Thickness(0, 0, 0, 4)
-                        };
-                        shapeExtrasContainer.Children.Add(sizeLabel);
-
-                        // 锁定禁用
-                        if (IsElementLocked())
-                        {
-                            foreach (var tb in _shapeFieldTextBoxes) tb.IsEnabled = false;
-                            rbRgb.IsEnabled = false; rbMono.IsEnabled = false;
-                            thrSlider.IsEnabled = false;
-                        }
-                    }
-                    shapeLineWidthPanel.Visibility = Visibility.Collapsed;
-                    _populatingShapeEditor = false;
-                    UpdateSharedProtocolPreview();
-                    return; // 不走通用结尾（不需要 fill/lw/color）
             }
 
             // 线宽面板 / 圆角半径面板显隐
@@ -3880,14 +3533,6 @@ namespace 串口助手
                     }
                     break;
 
-                case "image":
-                    if (_selectedShape is Image img)
-                    {
-                        Canvas.SetLeft(img, f1);
-                        Canvas.SetTop(img, f2);
-                        // w/h/format/threshold/hex 由格式/阈值事件单独处理
-                    }
-                    break;
             }
 
             // 同步默认画笔颜色/线宽
@@ -3903,8 +3548,8 @@ namespace 串口助手
             CreateControlPoints(bounds);
 
             // 更新类型标签
-            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc", "image" };
-            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线", "图片" };
+            string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc" };
+            string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线" };
             int ti = Array.IndexOf(typeNames, type);
             tbShapeEditType.Text = isFilled ? $"类型: {(ti >= 0 ? typeLabels[ti] : type)}（实心）" : $"类型: {(ti >= 0 ? typeLabels[ti] : type)}";
 
@@ -3923,88 +3568,6 @@ namespace 串口助手
             if (cbShapeLineWidth.SelectedItem is ComboBoxItem item && item.Tag is int w)
                 return w;
             return 1;
-        }
-
-        // ── 图片格式/阈值切换 ──
-
-        private void ImageFormat_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_populatingShapeEditor || _selectedShapeDrawType != "image") return;
-            if (_selectedIndex < 0 || _selectedIndex >= _displayVM.DrawCommands.Count) return;
-            if (!(sender is RadioButton rb) || rb.IsChecked != true) return;
-            string newFormat = rb.Tag as string;
-            if (string.IsNullOrEmpty(newFormat)) return;
-
-            var cmd = _displayVM.DrawCommands[_selectedIndex];
-            if (cmd.Args == null || cmd.Args.Count < 8) return;
-            string oldFormat = cmd.Args[5];
-
-            // 切换阈值面板可见性
-            foreach (var child in shapeExtrasContainer.Children)
-            {
-                if (child is FrameworkElement fe && fe.Tag is string tag && tag == "thresholdPanel")
-                    fe.Visibility = newFormat == "mono" ? Visibility.Visible : Visibility.Collapsed;
-            }
-
-            if (newFormat == oldFormat) return;
-
-            ReEncodeImage(newFormat, cmd);
-        }
-
-        private void ImageThreshold_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (_populatingShapeEditor || _selectedShapeDrawType != "image") return;
-            if (_selectedIndex < 0 || _selectedIndex >= _displayVM.DrawCommands.Count) return;
-            if (sender is Slider slider && slider.Tag is TextBlock lbl)
-            {
-                int thr = (int)e.NewValue;
-                lbl.Text = thr.ToString();
-            }
-            var cmd = _displayVM.DrawCommands[_selectedIndex];
-            if (cmd.Args == null || cmd.Args.Count < 8) return;
-            if (cmd.Args[5] != "mono") return; // 仅单色响应阈值变化
-
-            ReEncodeImage("mono", cmd);
-        }
-
-        private void ReEncodeImage(string format, DrawCommand cmd)
-        {
-            if (!_imagePixels.TryGetValue(_selectedIndex, out byte[] bgra)) return;
-            if (cmd.Args == null || cmd.Args.Count < 8) return;
-            if (!int.TryParse(cmd.Args[3], out int iw)) return;
-            if (!int.TryParse(cmd.Args[4], out int ih)) return;
-            int.TryParse(cmd.Args[6], out int thr);
-
-            byte[] encoded;
-            if (format == "mono")
-                encoded = BgraToMono(bgra, iw, ih, thr);
-            else
-                encoded = BgraToRgb565(bgra, iw, ih);
-
-            string hex = BytesToHexString(encoded);
-            cmd.Args[5] = format;
-            cmd.Args[6] = thr.ToString();
-            cmd.Args[7] = hex;
-
-            // 更新画布显示（单色 → 灰度预览）
-            if (_selectedShape is Image img)
-            {
-                BitmapSource bmp;
-                if (format == "mono")
-                    bmp = MonoBytesToBitmap(encoded, iw, ih);
-                else
-                    bmp = Rgb565BytesToBitmap(encoded, iw, ih);
-                img.Source = bmp;
-            }
-
-            UpdateSharedProtocolPreview();
-
-            // 发串口
-            if (_session != null && _session.IsOpen)
-            {
-                var newArgs = new List<string> { "image", cmd.Args[1], cmd.Args[2], cmd.Args[3], cmd.Args[4], format, thr.ToString(), hex };
-                SendRaw("[draw," + string.Join(",", newArgs) + "]", appendLineEnding: true);
-            }
         }
 
         // ── 单元素锁定 ──
@@ -4076,11 +3639,6 @@ namespace 串口助手
             // 从画布移除
             oledCanvas.Children.Remove(_selectedShape);
             _drawElements.Remove(_selectedShape);
-
-            // 清理图片像素数据（删除后后续索引前移）
-            _imagePixels.Remove(idx);
-            var shiftedPixels = _imagePixels.Where(kv => kv.Key > idx).ToList();
-            foreach (var kv in shiftedPixels) { _imagePixels.Remove(kv.Key); _imagePixels[kv.Key - 1] = kv.Value; }
 
             // 从协议列表移除（先保存 ID 用于增量同步）
             string deletedId = null;
@@ -4200,142 +3758,6 @@ namespace 串口助手
             ApplyEditorToShape();
         }
 
-        // ═══════════════════════════════════════
-        //  导出 C 数组
-        // ═══════════════════════════════════════
-
-        private void ExportCFormat_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.Tag is string fmt)
-            {
-                _exportCFormat = fmt;
-                DoExportC();
-            }
-        }
-
-        private void btnExportC_Click(object sender, RoutedEventArgs e)
-        {
-            // 左键 → 弹出下拉选格式（和矩形/圆工具一致）
-            if (sender is Button btn && btn.ContextMenu != null)
-            {
-                btn.ContextMenu.PlacementTarget = btn;
-                btn.ContextMenu.Placement = PlacementMode.Bottom;
-                btn.ContextMenu.IsOpen = true;
-            }
-        }
-
-        private void DoExportC()
-        {
-            try
-            {
-                InitOLEDPanel();
-                if (_displayVM == null) { LogSystem("⚠ 导出失败：画布未初始化"); return; }
-                int w = _displayVM.CanvasWidth, h = _displayVM.CanvasHeight;
-
-                oledCanvas.UpdateLayout();
-                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
-                rtb.Render(oledCanvas);
-
-                int stride = w * 4;
-                byte[] pixels = new byte[stride * h];
-                rtb.CopyPixels(pixels, stride, 0);
-
-                string content;
-                string defaultExt;
-                string filter;
-                if (_exportCFormat == "rgb565")
-                {
-                    content = BuildRgb565Content(pixels, w, h, stride);
-                    defaultExt = ".h";
-                    filter = "C 头文件 (*.h)|*.h";
-                }
-                else
-                {
-                    content = BuildMonoContent(pixels, w, h, stride);
-                    defaultExt = ".h";
-                    filter = "C 头文件 (*.h)|*.h";
-                }
-
-                // 弹出另存为对话框
-                var dlg = new Microsoft.Win32.SaveFileDialog
-                {
-                    FileName = _exportCFormat == "rgb565" ? $"logo_rgb565_{w}x{h}.h" : $"logo_mono_{w}x{h}.h",
-                    DefaultExt = defaultExt,
-                    Filter = filter,
-                    Title = "导出 C 数组"
-                };
-                if (dlg.ShowDialog() != true) return;
-
-                System.IO.File.WriteAllText(dlg.FileName, content);
-                Clipboard.SetText(content);
-                string sizeStr = _exportCFormat == "rgb565"
-                    ? $"{w * h} 像素，{w * h * 2} 字节"
-                    : $"{content.Split('{')[1].Split(']')[0]} 字节";
-                LogSystem($"✓ 已导出 {w}×{h} {(_exportCFormat == "rgb565" ? "RGB565" : "单色")} → {System.IO.Path.GetFileName(dlg.FileName)}（{sizeStr}，已复制到剪贴板）");
-            }
-            catch (Exception ex)
-            {
-                LogSystem($"✗ 导出 C 数组失败：{ex.Message}");
-            }
-        }
-
-        private static string BuildMonoContent(byte[] pixels, int w, int h, int stride)
-        {
-            var bits = new List<byte>();
-            for (int row = 0; row < h; row += 8)
-            {
-                for (int col = 0; col < w; col++)
-                {
-                    byte b = 0;
-                    for (int bit = 0; bit < 8; bit++)
-                    {
-                        int py = row + bit;
-                        if (py >= h) break;
-                        int idx = py * stride + col * 4;
-                        byte gray = (byte)((pixels[idx + 1] + pixels[idx + 2] + pixels[idx + 3]) / 3);
-                        if (gray > 128) b |= (byte)(1 << bit);
-                    }
-                    bits.Add(b);
-                }
-            }
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"// OLED 画布导出 — {w}×{h} 单色（8 像素纵向打包）");
-            sb.AppendLine($"const uint8_t logo[{bits.Count}] = {{");
-            for (int i = 0; i < bits.Count; i++)
-            {
-                if (i % 16 == 0) sb.Append("    ");
-                sb.Append($"0x{bits[i]:X2}");
-                if (i < bits.Count - 1) sb.Append(",");
-                if ((i + 1) % 16 == 0) sb.AppendLine();
-            }
-            sb.AppendLine();
-            sb.AppendLine("};");
-            return sb.ToString();
-        }
-
-        private static string BuildRgb565Content(byte[] pixels, int w, int h, int stride)
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"// OLED 画布导出 — {w}×{h} RGB565（逐行 uint16_t）");
-            sb.AppendLine($"const uint16_t logo[{w * h}] = {{");
-            for (int py = 0; py < h; py++)
-            {
-                sb.Append("    ");
-                for (int px = 0; px < w; px++)
-                {
-                    int idx = py * stride + px * 4;
-                    byte b = pixels[idx], g = pixels[idx + 1], r = pixels[idx + 2];
-                    ushort rgb = (ushort)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
-                    sb.Append($"0x{rgb:X4}");
-                    if (!(py == h - 1 && px == w - 1)) sb.Append(",");
-                    if ((px + 1) % 16 == 0 && !(py == h - 1 && px == w - 1))
-                    { sb.AppendLine(); sb.Append("    "); }
-                }
-                sb.AppendLine();
-            }
-            sb.AppendLine("};");
-            return sb.ToString();
-        }
+        // 导出 C 数组已移除 (v2.5 精简)
     }
 }

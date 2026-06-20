@@ -694,6 +694,39 @@ namespace 串口助手
                 tbKeyFeedbackValue.Text = string.Format("↓ {0}", Truncate(press, 80));
             else
                 tbKeyFeedbackValue.Text = string.Format("↑ {0}", Truncate(release, 80));
+
+            UpdateKeyProtocolPreview(keyVM);
+        }
+
+        private void UpdateKeyProtocolPreview(KeyViewModel k)
+        {
+            if (tbKeyProtoDown == null || tbKeyProtoUp == null) return;
+            if (k == null)
+            {
+                tbKeyProtoDown.Text = "—";
+                tbKeyProtoUp.Text = "—";
+                return;
+            }
+            tbKeyProtoDown.Text = string.Format("[key,{0},{1}]", k.Name,
+                string.IsNullOrEmpty(k.PressSendValue) ? "down" : k.PressSendValue);
+            tbKeyProtoUp.Text = string.Format("[key,{0},{1}]", k.Name,
+                string.IsNullOrEmpty(k.ReleaseSendValue) ? "up" : k.ReleaseSendValue);
+        }
+
+        private void btnKeyCopyDown_Click(object sender, RoutedEventArgs e)
+        {
+            if (tbKeyProtoDown == null || string.IsNullOrEmpty(tbKeyProtoDown.Text)
+                || tbKeyProtoDown.Text == "—") return;
+            SafeSetClipboard(tbKeyProtoDown.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
+        }
+
+        private void btnKeyCopyUp_Click(object sender, RoutedEventArgs e)
+        {
+            if (tbKeyProtoUp == null || string.IsNullOrEmpty(tbKeyProtoUp.Text)
+                || tbKeyProtoUp.Text == "—") return;
+            SafeSetClipboard(tbKeyProtoUp.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
         private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";

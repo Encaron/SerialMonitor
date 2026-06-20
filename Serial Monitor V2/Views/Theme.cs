@@ -93,7 +93,7 @@ namespace 串口助手
             if (_sensorVM != null && _sensorVM.Groups.SelectMany(g => g.Cards).Any())
             {
                 RefreshAllRows();
-                if (_sensorVM.IsEditMode)
+                if (_sensorVM.IsEditMode || _normalDetailCard != null)
                     RefreshSensorSidePanel();
             }
 

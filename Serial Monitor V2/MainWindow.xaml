@@ -1235,6 +1235,38 @@
                                                        TextWrapping="Wrap" LineHeight="16" MaxWidth="180"/>
                                         </StackPanel>
                                     </Border>
+                                    <!-- 协议预览 -->
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <TextBlock Text="协议预览" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <!-- 按下 -->
+                                    <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6" Margin="0,0,0,4">
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" x:Name="tbKeyProtoDown" FontSize="12"
+                                                     FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                                     Background="Transparent" BorderThickness="0"
+                                                     IsReadOnly="True" TextWrapping="Wrap" Padding="0" Text="—"/>
+                                            <Button Grid.Column="1" x:Name="btnKeyCopyDown" Content="📋"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    Height="24" Width="32" MinWidth="0" Padding="0"
+                                                    FontSize="11" Click="btnKeyCopyDown_Click" ToolTip="复制按下"/>
+                                        </Grid>
+                                    </Border>
+                                    <!-- 松开 -->
+                                    <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6">
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" x:Name="tbKeyProtoUp" FontSize="12"
+                                                     FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                                     Background="Transparent" BorderThickness="0"
+                                                     IsReadOnly="True" TextWrapping="Wrap" Padding="0" Text="—"/>
+                                            <Button Grid.Column="1" x:Name="btnKeyCopyUp" Content="📋"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    Height="24" Width="32" MinWidth="0" Padding="0"
+                                                    FontSize="11" Click="btnKeyCopyUp_Click" ToolTip="复制松开"/>
+                                        </Grid>
+                                    </Border>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="16"
                                                Text="点击左侧按键发送数据。消息回显可在接收区设置中开启。"/>
@@ -1497,6 +1529,25 @@
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
                                                        TextWrapping="Wrap" LineHeight="16" MaxWidth="180"/>
                                         </StackPanel>
+                                    </Border>
+                                    <!-- 协议预览 -->
+                                    <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="协议预览" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" x:Name="btnSliderProtocolCopy" Content="📋 复制"
+                                                Style="{DynamicResource SecondaryButtonStyle}"
+                                                Height="24" MinWidth="0" Padding="6,0" FontSize="11"
+                                                Click="btnSliderProtocolCopy_Click" ToolTip="复制协议到剪贴板"/>
+                                    </Grid>
+                                    <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBox x:Name="tbSliderProtocolPreview" FontSize="12"
+                                                 FontFamily="Sarasa Mono SC, Consolas, Courier New"
+                                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 IsReadOnly="True" TextWrapping="Wrap"
+                                                 Padding="0" Text="—"/>
                                     </Border>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="16"
@@ -2282,33 +2333,15 @@
                                     FontWeight="Bold"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolText_Click"/>
-                            <Button x:Name="btnToolImage" Content="🖼" Width="24" Height="24" ToolTip="导入图片"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
-                                    Click="btnToolImage_Click"/>
-                            <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 橡皮擦 -->
                             <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="橡皮擦"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolEraser_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
-                            <!-- 发送 / 导出 -->
+                            <!-- 发送 -->
                             <Button x:Name="btnSendCanvas" Content="发送" Height="26" MinWidth="0" Padding="8,0"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Click="btnSendCanvas_Click" ToolTip="重发全部图形到串口"/>
-                            <Button x:Name="btnExportC" Content="导出C ▾" Height="26" MinWidth="0" Padding="8,0"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Click="btnExportC_Click" ToolTip="导出画布为 C 数组">
-                                <Button.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="单色 C 数组 (uint8_t)" Tag="mono"
-                                                  Style="{DynamicResource ContextMenuMenuItemStyle}"
-                                                  Click="ExportCFormat_Click"/>
-                                        <MenuItem Header="RGB565 C 数组 (uint16_t)" Tag="rgb565"
-                                                  Style="{DynamicResource ContextMenuMenuItemStyle}"
-                                                  Click="ExportCFormat_Click"/>
-                                    </ContextMenu>
-                                </Button.ContextMenu>
-                            </Button>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 清屏 -->
                             <Button x:Name="btnOLEDClear" Content="🗑 清屏"

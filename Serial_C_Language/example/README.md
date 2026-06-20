@@ -1,6 +1,6 @@
 # Serial Monitor V2 — STM32F4 配套演示工程
 
-> STM32F407ZGT6 · 配合 [Serial Monitor V2](https://github.com/Encaron/SerialMonitorV2) 上位机使用
+> STM32F407ZGT6 · 配合 [Serial Monitor V2](https://github.com/Encaron/SerialMonitor) 上位机使用
 >
 > 涵盖：绘图 / 滑杆 PWM / 传感面板 / 波形 / 按键 / 虚拟屏 / 开关控制
 
@@ -87,7 +87,7 @@ PC 端也可发 `[ctrl,led,蓝色LED,on/off]` 控制同一个灯。
 
 9 种模式：SIN / SQUARE / TRI / SAW / AM / MIXED / NOISE / DAMPED / BURST
 
-### OLED 虚拟屏
+### OLED 虚拟屏（`[display,...]` 兼容保留，推荐用 `[draw,text,...]`）
 
 | 函数 | 说明 |
 |------|------|
@@ -104,9 +104,11 @@ PC 端也可发 `[ctrl,led,蓝色LED,on/off]` 控制同一个灯。
 | `[ctrl,slider,电池电压,3.7]` | PC→MCU | 设电池值 |
 | `[sensor,temp,芯片温度,42.5]` | MCU→PC | 温度卡 |
 | `[plot,Slider1,75.0]` | MCU→PC | 波形数据 |
-| `[display,10,20,"hello",16,#FFF]` | MCU→PC | 虚拟屏 |
+| `[draw,text,0,0,hello,24,#FFF]` | MCU→PC | 文字（替代旧 display） |
+| `[draw,set,a1,circle,64,32,20,#0F0]` | PC→MCU | F5 增量同步 |
+| `[draw,del,a1]` | PC→MCU | F5 删除图形 |
 
-完整协议见 [Serial Monitor V2 文档](https://github.com/Encaron/SerialMonitorV2)。
+完整协议见 [Serial Monitor V2 文档](https://github.com/Encaron/SerialMonitor)。
 
 ## CubeMX 再生后注意事项
 

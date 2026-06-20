@@ -39,6 +39,13 @@ namespace 串口助手
         private readonly Dictionary<SensorCardViewModel, DateTime> _sliderLastSend = new();
         private bool _sliderProgrammaticUpdate;
         private SensorCardViewModel _detailCard; // null = 编辑侧栏显示行管理器，非 null = 显示该卡详情面板
+        private SensorCardViewModel _normalDetailCard; // 正常模式下点击卡片→显示该卡详情视图
+        // 详情视图缓存（timer 触发时只改文字/颜色，不销毁重建）
+        private TextBlock _ndValueBlock;
+        private Border _ndTypeTag;
+        private TextBlock _ndTypeTagText;
+        private TextBox _ndSensorProtoBox;
+        private TextBox _ndCtrlProtoBox;
 
         // ——— 初始化 ———
         private void InitSensorPanel()
@@ -85,7 +92,10 @@ namespace 串口助手
                         && !_sensorVM.IsEditMode && _currentTab == "Sensors")
                     {
                         _sidePanelDirty = false;
-                        RefreshSensorSidePanel();
+                        if (_normalDetailCard != null)
+                            UpdateNormalDetailInPlace();
+                        else
+                            RefreshSensorSidePanel();
                     }
                 }, Dispatcher);
             _sidePanelRefreshTimer.Start();
@@ -308,6 +318,18 @@ namespace 串口助手
                 Margin = new Thickness(0, 0, 8, 8),
             };
             _cardBorderMap[vm] = card;
+
+            // 点击卡片 → 正常模式下侧栏显示该卡详情（编辑模式不响应）
+            var capturedVm = vm;
+            card.MouseLeftButtonDown += (s, e) =>
+            {
+                if (_sensorVM != null && _sensorVM.IsEditMode) return;
+                if (_currentTab != "Sensors") return;
+                _normalDetailCard = capturedVm;
+                RefreshSensorSidePanel();
+                PulseCardHighlight(capturedVm);
+                e.Handled = true;
+            };
 
             return card;
         }
@@ -1002,6 +1024,7 @@ namespace 串口助手
             _sensorVM.IsEditMode = !_sensorVM.IsEditMode;
             _selectedCard = null;
             _detailCard = null;
+            _normalDetailCard = null;
 
             if (_sensorVM.IsEditMode)
             {
@@ -1194,11 +1217,13 @@ namespace 串口助手
             row.Children.Add(nameBlock);
             row.Children.Add(valueBlock);
 
-            // 点击 → 主区滚动定位 + 脉冲高亮
+            // 点击 → 侧栏切换到该卡详情 + 主区滚动定位 + 脉冲高亮
             var captureCard = card;
             row.Cursor = Cursors.Hand;
             row.MouseLeftButtonDown += (s, e) =>
             {
+                _normalDetailCard = captureCard;
+                RefreshSensorSidePanel();
                 if (_cardBorderMap.TryGetValue(captureCard, out var border))
                 {
                     border.BringIntoView();
@@ -1622,46 +1647,56 @@ namespace 串口助手
                 }
                 else
                 {
-                    // ═══ 正常模式：卡片概览 + 快速跳转 ═══
-                    tbSidePanelTitle.Text = "传感面板";
-
-                    bool anyVisible = false;
-                    foreach (var group in _sensorVM.Groups)
+                    // ═══ 正常模式 ═══
+                    if (_normalDetailCard != null)
                     {
-                        // 组名标题
-                        if (!string.IsNullOrEmpty(group.Name))
+                        // 卡片详情视图
+                        tbSidePanelTitle.Text = "卡片详情";
+                        BuildCardNormalDetailView(container, _normalDetailCard);
+                    }
+                    else
+                    {
+                        // 卡片概览 + 快速跳转
+                        tbSidePanelTitle.Text = "传感面板";
+
+                        bool anyVisible = false;
+                        foreach (var group in _sensorVM.Groups)
+                        {
+                            // 组名标题
+                            if (!string.IsNullOrEmpty(group.Name))
+                            {
+                                container.Children.Add(new TextBlock
+                                {
+                                    Text = group.Name,
+                                    FontSize = 11,
+                                    Foreground = (Brush)FindResource("TextMutedBrush"),
+                                    Margin = new Thickness(0, anyVisible ? 8 : 0, 0, 3),
+                                    TextTrimming = TextTrimming.CharacterEllipsis,
+                                });
+                            }
+
+                            foreach (var item in group.Items)
+                            {
+                                if (item is string) continue; // 跳过换行标记
+                                if (item is SensorCardViewModel card)
+                                {
+                                    container.Children.Add(CreateNormalSidebarRow(card));
+                                    anyVisible = true;
+                                }
+                            }
+                        }
+
+                        if (!anyVisible)
                         {
                             container.Children.Add(new TextBlock
                             {
-                                Text = group.Name,
-                                FontSize = 11,
+                                Text = "暂无卡片",
+                                FontSize = 12,
                                 Foreground = (Brush)FindResource("TextMutedBrush"),
-                                Margin = new Thickness(0, anyVisible ? 8 : 0, 0, 3),
-                                TextTrimming = TextTrimming.CharacterEllipsis,
+                                Margin = new Thickness(0, 20, 0, 0),
+                                HorizontalAlignment = HorizontalAlignment.Center,
                             });
                         }
-
-                        foreach (var item in group.Items)
-                        {
-                            if (item is string) continue; // 跳过换行标记
-                            if (item is SensorCardViewModel card)
-                            {
-                                container.Children.Add(CreateNormalSidebarRow(card));
-                                anyVisible = true;
-                            }
-                        }
-                    }
-
-                    if (!anyVisible)
-                    {
-                        container.Children.Add(new TextBlock
-                        {
-                            Text = "暂无卡片",
-                            FontSize = 12,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
-                            Margin = new Thickness(0, 20, 0, 0),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                        });
                     }
                 }
             }
@@ -2474,6 +2509,248 @@ namespace 串口助手
             parent.Children.Insert(idx, titleBlock);
             panelSensors.Focus();
             SaveSensorPrefs();
+        }
+
+        // ═══════════════════════════════════════
+        //  正常模式卡片详情视图（只读，含协议预览）
+        // ═══════════════════════════════════════
+
+        private void BuildCardNormalDetailView(StackPanel container, SensorCardViewModel card)
+        {
+            _ndValueBlock = null;
+            _ndTypeTag = null;
+            _ndTypeTagText = null;
+            _ndSensorProtoBox = null;
+            _ndCtrlProtoBox = null;
+
+            // ← 返回概览
+            var backBtn = new Button
+            {
+                Content = "← 返回",
+                Style = (Style)FindResource("SecondaryButtonStyle"),
+                Height = 24, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
+                FontSize = 11, HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 0, 10),
+            };
+            backBtn.Click += (s, e) =>
+            {
+                _normalDetailCard = null;
+                RefreshSensorSidePanel();
+            };
+            container.Children.Add(backBtn);
+
+            // 类型标签 + 名称（control 型始终橙色，不跟 on/off 变灰）
+            var accentHex = card.Type == "control"
+                ? (isDarkTheme ? "#FFA726" : "#FF9800")
+                : card.GetAccentHex(isDarkTheme);
+            var accent = ParseColor(accentHex);
+            var headerRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            var typeTag = new Border
+            {
+                Background = ParseColor(accentHex, 0.15),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 2, 6, 2),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            typeTag.Child = new TextBlock
+            {
+                Text = card.Type,
+                FontSize = 11, FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Foreground = accent,
+            };
+            _ndTypeTag = typeTag;
+            _ndTypeTagText = (TextBlock)typeTag.Child;
+            headerRow.Children.Add(typeTag);
+            headerRow.Children.Add(new TextBlock
+            {
+                Text = " " + card.Name,
+                FontSize = 14, FontWeight = System.Windows.FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
+            });
+            container.Children.Add(headerRow);
+
+            // 数值信息
+            var infoBorder = new Border
+            {
+                Background = (Brush)FindResource("SecondaryHoverBgBrush"),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(10, 8, 10, 8),
+                Margin = new Thickness(0, 0, 0, 12),
+            };
+            var infoStack = new StackPanel();
+
+            // 当前值
+            string displayValue = card.Type switch
+            {
+                "status" => card.Status ?? "--",
+                "control" => card.Status == "on" ? "ON" : "OFF",
+                _ => (card.Value ?? "--") + card.GetUnit(),
+            };
+            // 当前值（缓存引用供 timer 增量更新）
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+                row.Children.Add(new TextBlock
+                {
+                    Text = "当前值：", FontSize = 11,
+                    Foreground = (Brush)FindResource("TextMutedBrush"), Width = 62,
+                });
+                _ndValueBlock = new TextBlock
+                {
+                    Text = displayValue, FontSize = 12,
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    TextWrapping = TextWrapping.Wrap,
+                };
+                row.Children.Add(_ndValueBlock);
+                infoStack.Children.Add(row);
+            }
+
+            // 辅助参数
+            if (!string.IsNullOrEmpty(card.AuxText))
+                AddDetailRow(infoStack, "辅助参数", card.AuxText);
+            // 状态卡
+            if (card.Type == "status" && !string.IsNullOrEmpty(card.AlarmReason))
+                AddDetailRow(infoStack, "告警原因", card.AlarmReason);
+            // 通用卡
+            if (card.Type == "generic" && !string.IsNullOrEmpty(card.CustomUnit))
+                AddDetailRow(infoStack, "单位", card.CustomUnit);
+
+            infoBorder.Child = infoStack;
+            container.Children.Add(infoBorder);
+
+            // 分隔线
+            container.Children.Add(new Border
+            {
+                Height = 1, Background = (Brush)FindResource("SeparatorBrush"),
+                Margin = new Thickness(0, 0, 0, 8),
+            });
+
+            // 协议预览
+            var (sensorLine, ctrlLine) = BuildSensorProtocolLines(card);
+            var protoTitle = new TextBlock
+            {
+                Text = "协议预览", FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"), Margin = new Thickness(0, 0, 0, 4),
+            };
+            container.Children.Add(protoTitle);
+
+            TextBox AddProtoRow(string line, string margin)
+            {
+                var row = new Border
+                {
+                    Background = (Brush)FindResource("SecondaryHoverBgBrush"),
+                    CornerRadius = new CornerRadius(4), Padding = new Thickness(8, 6, 8, 6),
+                    Margin = new Thickness(0, 0, 0, string.IsNullOrEmpty(margin) ? 0 : 4),
+                };
+                var grid = new Grid();
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var tb = new TextBox
+                {
+                    Text = line, FontSize = 11,
+                    FontFamily = new System.Windows.Media.FontFamily("Sarasa Mono SC, Consolas, Courier New"),
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+                    IsReadOnly = true, TextWrapping = TextWrapping.Wrap, Padding = new Thickness(0),
+                };
+                Grid.SetColumn(tb, 0);
+                grid.Children.Add(tb);
+                var capturedLine = line;
+                var btn = new Button
+                {
+                    Content = "📋", Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
+                    FontSize = 11,
+                };
+                btn.Click += (_, _) => { SafeSetClipboard(capturedLine); ShowCopyToastAndShake(btn); };
+                Grid.SetColumn(btn, 1);
+                grid.Children.Add(btn);
+                row.Child = grid;
+                container.Children.Add(row);
+                return tb;
+            }
+
+            _ndSensorProtoBox = AddProtoRow(sensorLine, "bottom");
+            _ndCtrlProtoBox = null;
+            if (!string.IsNullOrEmpty(ctrlLine))
+                _ndCtrlProtoBox = AddProtoRow(ctrlLine, "");
+        }
+
+        private (string sensorLine, string ctrlLine) BuildSensorProtocolLines(SensorCardViewModel card)
+        {
+            // MCU→PC: [sensor,type,name,value,aux?]
+            string valuePart = card.Type == "status" ? (card.Status ?? "")
+                           : card.Type == "control" ? (card.Status ?? "")
+                           : card.Value ?? "";
+            string sensorLine = string.IsNullOrEmpty(card.AuxText)
+                ? string.Format("[sensor,{0},{1},{2}]", card.SubType, card.Name, valuePart)
+                : string.Format("[sensor,{0},{1},{2},{3}]", card.SubType, card.Name, valuePart, card.AuxText);
+
+            // PC→MCU: 仅 control/slider 型有回控协议
+            string ctrlLine = "";
+            if (card.Type == "control")
+                ctrlLine = string.Format("[ctrl,{0},{1},{2}]", card.SubType, card.Name,
+                    card.Status == "on" ? "on" : "off");
+            else if (card.Type == "slider")
+                ctrlLine = string.Format("[ctrl,slider,{0},{1:G}]", card.Name,
+                    !string.IsNullOrEmpty(card.Value) && double.TryParse(card.Value,
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out double v) ? v : 0);
+
+            return (sensorLine, ctrlLine);
+        }
+
+        /// <summary>timer 触发时只改文字，不销毁重建详情视图（避免 Popup 坐标漂移 + 闪烁）</summary>
+        private void UpdateNormalDetailInPlace()
+        {
+            if (_normalDetailCard == null) return;
+            var card = _normalDetailCard;
+
+            // 标签颜色（control/status 卡的状态变化会影响颜色）
+            if (_ndTypeTag != null && _ndTypeTagText != null)
+            {
+                var ndAccentHex = card.Type == "control"
+                    ? (isDarkTheme ? "#FFA726" : "#FF9800")
+                    : card.GetAccentHex(isDarkTheme);
+                var ndAccent = ParseColor(ndAccentHex);
+                _ndTypeTag.Background = ParseColor(ndAccentHex, 0.15);
+                _ndTypeTagText.Foreground = ndAccent;
+            }
+
+            // 当前值
+            if (_ndValueBlock != null)
+            {
+                string displayValue = card.Type switch
+                {
+                    "status" => card.Status ?? "--",
+                    "control" => card.Status == "on" ? "ON" : "OFF",
+                    _ => (card.Value ?? "--") + card.GetUnit(),
+                };
+                _ndValueBlock.Text = displayValue;
+            }
+
+            // 协议预览
+            var (sensorLine, ctrlLine) = BuildSensorProtocolLines(card);
+            if (_ndSensorProtoBox != null) _ndSensorProtoBox.Text = sensorLine;
+            if (_ndCtrlProtoBox != null) _ndCtrlProtoBox.Text = ctrlLine;
+        }
+
+        private void AddDetailRow(StackPanel parent, string label, string value)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+            row.Children.Add(new TextBlock
+            {
+                Text = label + "：", FontSize = 11,
+                Foreground = (Brush)FindResource("TextMutedBrush"), Width = 62,
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = value, FontSize = 12,
+                Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                TextWrapping = TextWrapping.Wrap,
+            });
+            parent.Children.Add(row);
         }
     }
 }

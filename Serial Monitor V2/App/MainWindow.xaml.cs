@@ -1833,6 +1833,7 @@ namespace 串口助手
                 _sensorVM.IsEditMode = false;
                 _selectedCard = null;
                 _detailCard = null;
+                _normalDetailCard = null;
                 btnSensorEdit.Content = "编辑";
                 rightSensors.Visibility = Visibility.Collapsed;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
@@ -1904,6 +1905,7 @@ namespace 串口助手
                 _sensorVM.IsEditMode = false;
                 _selectedCard = null;
                 _detailCard = null;
+                _normalDetailCard = null;
                 btnSensorEdit.Content = "编辑";
                 rightSensors.Visibility = Visibility.Collapsed;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
@@ -2088,7 +2090,7 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 使用示例页 — 8 组协议示例，按类型折叠分组
+        /// 使用示例页 — 8 组协议示例（plot / key / slider / joystick / sensor / ctrl / fft / draw），按类型折叠分组
         /// </summary>
         private void PopulateExamplesPage()
         {
@@ -2166,16 +2168,12 @@ namespace 串口助手
                          ("bin值", "各频率 bin 归一化幅度（0~1），从低到高排列。bin 数需与点数一致") },
                  "// CMSIS-DSP FFT（MCU 端运算）\r\nprintf(\"[fft,ch1,%d\", N);\r\nfor (int i = 0; i < N; i++)\r\n    printf(\",%.2f\", mag[i]);\r\nprintf(\"]\\r\\n\");\r\n// 或交给 PC 端自动 FFT：发 [plot,...] 后选 📈 数据源即可"),
 
-                ("OLED 显示", "display",
-                 "在 PC 端 OLED 面板指定位置显示文本。支持自定义字号和颜色。省略参数直接发 [display-clear] 即清屏。",
-                 "[display,x,y,文本,字号,#RRGGBB]",
-                 "[display,10,20,\"hello\",16]",
-                 new[] { ("x", "像素横坐标（整数），如 10"),
-                         ("y", "像素纵坐标（整数），如 20"),
-                         ("文本", "要显示的文字，含逗号时需双引号包裹"),
-                         ("字号", "字体大小（整数），如 16"),
-                         ("颜色", "可选，十六进制颜色 #RRGGBB，如 #FF0000") },
-                 "// 显示文本\r\nprintf(\"[display,10,20,\\\"hello\\\",16]\\r\\n\");\r\n// 带颜色\r\nprintf(\"[display,30,40,\\\"ok\\\",24,#00FF00]\\r\\n\");\r\n// 清屏\r\nprintf(\"[display-clear]\\r\\n\");"),
+                ("OLED 绘图协议", "draw",
+                 "通过串口发送绘图指令，PC 虚拟 OLED 面板实时渲染。支持 11 种图形 + 清屏 + F5 增量同步（[draw,set,id,...]/[draw,del,id]）。旧 [display,...] 由 [draw,text,...] 取代。\n\n协议统一在 [draw,<type>,<params>...] 命名空间下。末尾可追加 fill（填充，忽略线宽）或 a<角度>（旋转度数，仅 rect/ellipse）。",
+                 "[draw,<type>,<params>...]",
+                 "[draw,rect,10,10,50,30,#FF0000,2]",
+                 new (string, string)[0],
+                 "// ═══ MCU printf wrapper（复制到工程任意 .c 文件） ═══\r\n#include <stdio.h>\r\n\r\n// ── 文字 ──\r\nvoid Draw_Text(int x, int y, const char *t, int fs, const char *c)\r\n{ printf(\"[draw,text,%d,%d,%s,%d,%s]\\r\\n\", x, y, t, fs, c); }\r\n\r\n// ── 画点 ──\r\nvoid Draw_Point(int x, int y, const char *c)\r\n{ printf(\"[draw,point,%d,%d,%s]\\r\\n\", x, y, c); }\r\n\r\n// ── 画线 ──\r\nvoid Draw_Line(int x1, int y1, int x2, int y2, const char *c)\r\n{ printf(\"[draw,line,%d,%d,%d,%d,%s]\\r\\n\", x1, y1, x2, y2, c); }\r\nvoid Draw_LineW(int x1, int y1, int x2, int y2, const char *c, int w)\r\n{ printf(\"[draw,line,%d,%d,%d,%d,%s,%d]\\r\\n\", x1, y1, x2, y2, c, w); }\r\n\r\n// ── 矩形（空心/实心） ──\r\nvoid Draw_Rect(int x, int y, int w, int h, const char *c)\r\n{ printf(\"[draw,rect,%d,%d,%d,%d,%s]\\r\\n\", x, y, w, h, c); }\r\nvoid Draw_Fill(int x, int y, int w, int h, const char *c)\r\n{ printf(\"[draw,rect,%d,%d,%d,%d,%s,1,fill]\\r\\n\", x, y, w, h, c); }\r\n\r\n// ── 圆（空心/实心） ──\r\nvoid Draw_Circle(int cx, int cy, int r, const char *c)\r\n{ printf(\"[draw,circle,%d,%d,%d,%s]\\r\\n\", cx, cy, r, c); }\r\nvoid Draw_CircleFilled(int cx, int cy, int r, const char *c)\r\n{ printf(\"[draw,circle,%d,%d,%d,%s,1,fill]\\r\\n\", cx, cy, r, c); }\r\n\r\n// ── 椭圆 ──\r\nvoid Draw_Ellipse(int cx, int cy, int a, int b, const char *c)\r\n{ printf(\"[draw,ellipse,%d,%d,%d,%d,%s]\\r\\n\", cx, cy, a, b, c); }\r\n\r\n// ── 三角形（空心/实心） ──\r\nvoid Draw_Triangle(int x0, int y0, int x1, int y1, int x2, int y2, const char *c)\r\n{ printf(\"[draw,triangle,%d,%d,%d,%d,%d,%d,%s]\\r\\n\", x0, y0, x1, y1, x2, y2, c); }\r\nvoid Draw_TriangleFilled(int x0, int y0, int x1, int y1, int x2, int y2, const char *c)\r\n{ printf(\"[draw,triangle,%d,%d,%d,%d,%d,%d,%s,1,fill]\\r\\n\", x0, y0, x1, y1, x2, y2, c); }\r\n\r\n// ── 清屏 ──\r\nvoid Draw_Clear(void)\r\n{ printf(\"[draw,clear]\\r\\n\"); }\r\nvoid Draw_ClearColor(const char *c)\r\n{ printf(\"[draw,clear,%s]\\r\\n\", c); }"),
             };
 
             // 颜色随主题
@@ -2327,143 +2325,355 @@ namespace 串口助手
                     Margin = new Thickness(0, 8, 0, 10),
                 });
 
-                // ——— 协议格式 ———
-                var formatRow = new StackPanel
+                if (ex.Type == "draw")
                 {
-                    Orientation = Orientation.Horizontal,
-                    Margin = new Thickness(0, 0, 0, 4),
-                };
-                formatRow.Children.Add(new TextBlock
-                {
-                    Text = "协议格式",
-                    FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                    Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
-                    Width = 72,
-                });
-                formatRow.Children.Add(new TextBlock
-                {
-                    Text = ex.Format,
-                    FontSize = 12, FontFamily = codeFont,
-                    Foreground = textSecondary,
-                    VerticalAlignment = VerticalAlignment.Center,
-                });
-                card.Children.Add(formatRow);
+                    // ═══════════════════════════════════════════
+                    // draw 协议专属渲染：子类型速查表 + 常用示例 + 可折叠代码
+                    // ═══════════════════════════════════════════
 
-                // ——— 协议示例 ———
-                var exampleHeader = new TextBlock
-                {
-                    Text = "协议示例",
-                    FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                    Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
-                };
-                card.Children.Add(exampleHeader);
+                    // ── 子类型速查表 ──
+                    var tableHeader = new TextBlock
+                    {
+                        Text = "子类型速查",
+                        FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = textMuted, Margin = new Thickness(0, 0, 0, 6),
+                    };
+                    card.Children.Add(tableHeader);
 
-                void AddExampleRow(string exampleText)
+                    var basicShapes = new (string Type, string Params, string Note)[]
+                    {
+                        ("point",    "x, y, #color",                                         "画点"),
+                        ("line",     "x1, y1, x2, y2, #color [,w]",                         "画线，w 默认 1"),
+                        ("rect",     "x, y, w, h, #color [,w] [,fill] [,a°]",               "空心/实心矩形，支持旋转"),
+                        ("circle",   "cx, cy, r, #color [,w] [,fill]",                      "空心/实心圆"),
+                        ("triangle", "x0, y0, x1, y1, x2, y2, #color [,w] [,fill]",         "空心/实心三角形"),
+                        ("text",     "x, y, content, fontSize, #color",                     "文字"),
+                        ("clear",    "[#BG色]",                                              "清屏，默认底色 #111111"),
+                    };
+
+                    var advancedShapes = new (string Type, string Params, string Note)[]
+                    {
+                        ("ellipse",  "cx, cy, a, b, #color [,w] [,fill] [,a°]",             "空心/实心椭圆，支持旋转"),
+                        ("arc",      "cx, cy, r, start, end, #color [,w] [,fill]",          "弧线/扇形，角度制·顺时针"),
+                        ("rrect",    "x, y, w, h, #color, w, radius [,fill]",               "圆角矩形"),
+                        ("set",      "id, <type>, <params>…",                               "增量同步：创建或更新"),
+                        ("del",      "id",                                                   "增量同步：删除图形"),
+                    };
+
+                    void RenderTable(string title, (string Type, string Params, string Note)[] items)
+                    {
+                        var titleTb = new TextBlock
+                        {
+                            Text = title,
+                            FontSize = 10, FontFamily = yaheiFont,
+                            Foreground = textMuted, Margin = new Thickness(0, 6, 0, 4),
+                        };
+                        card.Children.Add(titleTb);
+
+                        var tblBorder = new Border
+                        {
+                            Background = codeBg,
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(10, 8, 10, 8),
+                            Margin = new Thickness(0, 0, 0, 8),
+                        };
+                        var tblStack = new StackPanel();
+
+                        foreach (var (type, prm, note) in items)
+                        {
+                            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 3) };
+                            var tag = new Border
+                            {
+                                Background = new SolidColorBrush(dark ? Color.FromRgb(0x1E, 0x50, 0x7C) : Color.FromRgb(0xDE, 0xEC, 0xF9)),
+                                CornerRadius = new CornerRadius(3),
+                                Padding = new Thickness(5, 1, 5, 1),
+                                Width = 68,
+                            };
+                            tag.Child = new TextBlock
+                            {
+                                Text = type, FontSize = 11, FontFamily = codeFont,
+                                Foreground = primary, HorizontalAlignment = HorizontalAlignment.Center,
+                            };
+                            row.Children.Add(tag);
+                            row.Children.Add(new TextBlock
+                            {
+                                Text = prm, FontSize = 11, FontFamily = codeFont,
+                                Foreground = textSecondary, VerticalAlignment = VerticalAlignment.Center,
+                                Margin = new Thickness(8, 0, 6, 0),
+                            });
+                            if (!string.IsNullOrEmpty(note))
+                            {
+                                row.Children.Add(new TextBlock
+                                {
+                                    Text = note, FontSize = 10, FontFamily = yaheiFont,
+                                    Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                                });
+                            }
+                            tblStack.Children.Add(row);
+                        }
+                        tblBorder.Child = tblStack;
+                        card.Children.Add(tblBorder);
+                    }
+
+                    RenderTable("基础图形", basicShapes);
+                    RenderTable("进阶 & 增量同步", advancedShapes);
+
+                    // ── 规则说明 ──
+                    var rulesText = new TextBlock
+                    {
+                        Text = "fill → 填充模式（忽略线宽），a<度数> → 旋转（仅 rect / ellipse）",
+                        FontSize = 10, FontFamily = yaheiFont,
+                        Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
+                        Margin = new Thickness(0, 0, 0, 12),
+                    };
+                    card.Children.Add(rulesText);
+
+                    // ── 常用示例 ──
+                    var exHeader = new TextBlock
+                    {
+                        Text = "常用示例",
+                        FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = textMuted, Margin = new Thickness(0, 4, 0, 4),
+                    };
+                    card.Children.Add(exHeader);
+
+                    var drawExamples = new (string Example, string Label)[]
+                    {
+                        ("[draw,rect,10,10,50,30,#FF0000]",                 "空心矩形·省略线宽（默认 1）"),
+                        ("[draw,rect,10,10,50,30,#FF0000,2]",               "空心矩形·指定线宽 2"),
+                        ("[draw,rect,10,10,50,30,#FF0000,1,fill]",          "实心矩形（fill 忽略线宽）"),
+                        ("[draw,rect,10,10,50,30,#FF0000,2,a45]",           "空心矩形·旋转 45°"),
+                        ("[draw,circle,64,32,20,#00FF00]",                  "空心圆·省略线宽"),
+                        ("[draw,circle,64,32,20,#00FF00,1,fill]",           "实心圆"),
+                        ("[draw,text,0,0,hello,24,#FFFFFF]",                 "文字"),
+                        ("[draw,clear]",                                     "清屏（默认底色）"),
+                        ("[draw,clear,#DEF]",                                "清屏·指定底色"),
+                    };
+
+                    foreach (var (exp, label) in drawExamples)
+                    {
+                        var exRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 3) };
+
+                        exRow.Children.Add(new TextBox
+                        {
+                            Text = exp,
+                            IsReadOnly = true, BorderThickness = new Thickness(0),
+                            FontSize = 11, FontFamily = codeFont,
+                            Foreground = primary, Background = Brushes.Transparent,
+                            Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
+                            Cursor = System.Windows.Input.Cursors.Arrow,
+                        });
+
+                        exRow.Children.Add(new TextBlock
+                        {
+                            Text = label,
+                            FontSize = 10, FontFamily = yaheiFont,
+                            Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                            Margin = new Thickness(6, 0, 6, 0),
+                        });
+
+                        var btnCopyEx = new Button
+                        {
+                            Content = "📋",
+                            Style = (Style)FindResource("SecondaryButtonStyle"),
+                            Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
+                            FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
+                            Tag = exp,
+                        };
+                        btnCopyEx.Click += (s2, e2) =>
+                        {
+                            if (s2 is Button b2 && b2.Tag is string e) { SafeSetClipboard(e); ShowCopyToastAndShake(b2); }
+                        };
+                        exRow.Children.Add(btnCopyEx);
+                        card.Children.Add(exRow);
+                    }
+
+                    // ── 设备端代码（默认折叠） ──
+                    var codeToggleRow = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Margin = new Thickness(0, 12, 0, 6),
+                        Cursor = System.Windows.Input.Cursors.Hand,
+                    };
+                    var codeArrow = new TextBlock
+                    {
+                        Text = "▶",
+                        FontSize = 11, FontFamily = codeFont,
+                        Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 6, 0),
+                    };
+                    codeToggleRow.Children.Add(codeArrow);
+                    codeToggleRow.Children.Add(new TextBlock
+                    {
+                        Text = "设备端代码（MCU printf wrapper）",
+                        FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                    });
+                    card.Children.Add(codeToggleRow);
+
+                    var codeContent = new Border
+                    {
+                        Background = codeBg,
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(12, 10, 12, 10),
+                        Visibility = Visibility.Collapsed,
+                    };
+                    codeContent.Child = new TextBlock
+                    {
+                        Text = ex.Code,
+                        FontSize = 11, FontFamily = codeFont,
+                        Foreground = codeFg,
+                        TextWrapping = TextWrapping.Wrap,
+                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                        LineHeight = 18,
+                    };
+                    card.Children.Add(codeContent);
+
+                    codeToggleRow.MouseLeftButtonDown += (s, e) =>
+                    {
+                        bool show = codeContent.Visibility != Visibility.Visible;
+                        codeContent.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                        codeArrow.Text = show ? "▼" : "▶";
+                        e.Handled = true;
+                    };
+                }
+                else
                 {
-                    var exampleRow = new StackPanel
+                    // ——— 协议格式 ———
+                    var formatRow = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
                         Margin = new Thickness(0, 0, 0, 4),
                     };
-                    var tbExample = new TextBox
+                    formatRow.Children.Add(new TextBlock
                     {
-                        Text = exampleText,
-                        IsReadOnly = true, BorderThickness = new Thickness(0),
-                        FontSize = 12, FontFamily = codeFont,
-                        Foreground = primary,
-                        Background = Brushes.Transparent,
-                        Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
-                        Cursor = System.Windows.Input.Cursors.Arrow,
-                    };
-                    exampleRow.Children.Add(tbExample);
-
-                    var btnCopy = new Button
-                    {
-                        Content = "📋",
-                        Style = (Style)FindResource("SecondaryButtonStyle"),
-                        Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
-                        FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(6, 0, 0, 0),
-                    };
-                    btnCopy.Tag = exampleText;
-                    btnCopy.Click += (s2, e2) =>
-                    {
-                        if (s2 is Button b2 && b2.Tag is string exp)
-                        {
-                            SafeSetClipboard(exp);
-                            ShowCopyToastAndShake(b2);
-                        }
-                    };
-                    exampleRow.Children.Add(btnCopy);
-                    card.Children.Add(exampleRow);
-                }
-
-                AddExampleRow(ex.Example);
-                // display 协议额外显示清屏示例
-                if (ex.Type == "display")
-                    AddExampleRow("[display-clear]");
-
-                // ——— 参数 ———
-                if (ex.Params.Length > 0)
-                {
-                    var paramsHeader = new TextBlock
-                    {
-                        Text = "参数",
+                        Text = "协议格式",
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                        Foreground = textMuted, Margin = new Thickness(0, 8, 0, 4),
-                    };
-                    card.Children.Add(paramsHeader);
-
-                    foreach (var (name, desc) in ex.Params)
+                        Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
+                        Width = 72,
+                    });
+                    formatRow.Children.Add(new TextBlock
                     {
-                        var paramStack = new StackPanel
+                        Text = ex.Format,
+                        FontSize = 12, FontFamily = codeFont,
+                        Foreground = textSecondary,
+                        VerticalAlignment = VerticalAlignment.Center,
+                    });
+                    card.Children.Add(formatRow);
+
+                    // ——— 协议示例 ———
+                    var exampleHeader = new TextBlock
+                    {
+                        Text = "协议示例",
+                        FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
+                    };
+                    card.Children.Add(exampleHeader);
+
+                    void AddExampleRow(string exampleText)
+                    {
+                        var exampleRow = new StackPanel
                         {
                             Orientation = Orientation.Horizontal,
-                            Margin = new Thickness(0, 0, 0, 3),
+                            Margin = new Thickness(0, 0, 0, 4),
                         };
-                        paramStack.Children.Add(new TextBlock
+                        var tbExample = new TextBox
                         {
-                            Text = name,
-                            FontSize = 11, FontFamily = codeFont,
-                            Foreground = textSecondary, Width = 72,
-                            VerticalAlignment = VerticalAlignment.Top,
-                        });
-                        paramStack.Children.Add(new TextBlock
+                            Text = exampleText,
+                            IsReadOnly = true, BorderThickness = new Thickness(0),
+                            FontSize = 12, FontFamily = codeFont,
+                            Foreground = primary,
+                            Background = Brushes.Transparent,
+                            Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center,
+                            Cursor = System.Windows.Input.Cursors.Arrow,
+                        };
+                        exampleRow.Children.Add(tbExample);
+
+                        var btnCopy = new Button
                         {
-                            Text = desc,
-                            FontSize = 11, FontFamily = yaheiFont,
-                            Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
-                        });
-                        card.Children.Add(paramStack);
+                            Content = "📋",
+                            Style = (Style)FindResource("SecondaryButtonStyle"),
+                            Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
+                            FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
+                            Margin = new Thickness(6, 0, 0, 0),
+                        };
+                        btnCopy.Tag = exampleText;
+                        btnCopy.Click += (s2, e2) =>
+                        {
+                            if (s2 is Button b2 && b2.Tag is string exp)
+                            {
+                                SafeSetClipboard(exp);
+                                ShowCopyToastAndShake(b2);
+                            }
+                        };
+                        exampleRow.Children.Add(btnCopy);
+                        card.Children.Add(exampleRow);
                     }
+
+                    AddExampleRow(ex.Example);
+
+                    // ——— 参数 ———
+                    if (ex.Params.Length > 0)
+                    {
+                        var paramsHeader = new TextBlock
+                        {
+                            Text = "参数",
+                            FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                            Foreground = textMuted, Margin = new Thickness(0, 8, 0, 4),
+                        };
+                        card.Children.Add(paramsHeader);
+
+                        foreach (var (name, desc) in ex.Params)
+                        {
+                            var paramStack = new StackPanel
+                            {
+                                Orientation = Orientation.Horizontal,
+                                Margin = new Thickness(0, 0, 0, 3),
+                            };
+                            paramStack.Children.Add(new TextBlock
+                            {
+                                Text = name,
+                                FontSize = 11, FontFamily = codeFont,
+                                Foreground = textSecondary, Width = 72,
+                                VerticalAlignment = VerticalAlignment.Top,
+                            });
+                            paramStack.Children.Add(new TextBlock
+                            {
+                                Text = desc,
+                                FontSize = 11, FontFamily = yaheiFont,
+                                Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
+                            });
+                            card.Children.Add(paramStack);
+                        }
+                    }
+
+                    // ——— 设备端代码 ———
+                    var codeHeader = new TextBlock
+                    {
+                        Text = "设备端代码",
+                        FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                        Foreground = textMuted, Margin = new Thickness(0, 10, 0, 6),
+                    };
+                    card.Children.Add(codeHeader);
+
+                    var codeBlock = new Border
+                    {
+                        Background = codeBg,
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(12, 10, 12, 10),
+                    };
+                    var codeText = new TextBlock
+                    {
+                        Text = ex.Code,
+                        FontSize = 11, FontFamily = codeFont,
+                        Foreground = codeFg,
+                        TextWrapping = TextWrapping.Wrap,
+                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                        LineHeight = 18,
+                    };
+                    codeBlock.Child = codeText;
+                    card.Children.Add(codeBlock);
                 }
-
-                // ——— 设备端代码 ———
-                var codeHeader = new TextBlock
-                {
-                    Text = "设备端代码",
-                    FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                    Foreground = textMuted, Margin = new Thickness(0, 10, 0, 6),
-                };
-                card.Children.Add(codeHeader);
-
-                var codeBlock = new Border
-                {
-                    Background = codeBg,
-                    CornerRadius = new CornerRadius(6),
-                    Padding = new Thickness(12, 10, 12, 10),
-                };
-                var codeText = new TextBlock
-                {
-                    Text = ex.Code,
-                    FontSize = 11, FontFamily = codeFont,
-                    Foreground = codeFg,
-                    TextWrapping = TextWrapping.Wrap,
-                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
-                    LineHeight = 18,
-                };
-                codeBlock.Child = codeText;
-                card.Children.Add(codeBlock);
 
                 contentBorder.Child = card;
                 groupStack.Children.Add(contentBorder);
@@ -2552,10 +2762,9 @@ namespace 串口助手
 
             var toast = new Popup
             {
-                PlacementTarget = btn,
-                Placement = PlacementMode.Top,
-                HorizontalOffset = 0,
-                VerticalOffset = -4,
+                Placement = PlacementMode.Mouse,
+                HorizontalOffset = -10,
+                VerticalOffset = 10,
                 StaysOpen = false,
                 AllowsTransparency = true,
                 Child = toastBorder,

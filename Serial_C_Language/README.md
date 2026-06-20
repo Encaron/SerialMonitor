@@ -1,7 +1,7 @@
 # Serial C Language — STM32 HAL 串口库
 
 > 一份 `.c` + 一份 `.h`，扔进 CubeMX 工程即可用。
-> 专为 **[Serial Monitor V2](https://github.com/Encaron/SerialMonitorV2)** 配套设计，也适合任何需要串口通信的 STM32 项目。
+> 专为 **[Serial Monitor V2](https://github.com/Encaron/SerialMonitor)** 配套设计，也适合任何需要串口通信的 STM32 项目。
 >
 > **🔗 配套测试工程**：[example/](example/) — STM32F407ZGT6 CMake 工程。包含完整的 draw 协议解析 + F5 增量同步 + OLED/LCD 双屏显示 + 双滑杆 PWM + 传感面板 + 波形 + 物理按键。详见 [example/README.md](example/README.md)。
 
@@ -146,13 +146,15 @@ Serial_Printf(&huart1, "[plot,ch1,%d][plot,ch2,%d]\r\n", adc1, adc2);
 // 按键面板——按键事件
 Serial_Printf(&huart1, "[key,KEY1,press]\r\n");
 
-// OLED 面板——绘图指令
+// OLED 面板——绘图指令（11 种图形 + F5 增量同步）
 Serial_Printf(&huart1, "[draw,line,0,0,128,64,#FFFFFF]\r\n");
+Serial_Printf(&huart1, "[draw,text,0,0,hello,24,#FFF]\r\n");      // 文字（替代旧 [display,...]）
+Serial_Printf(&huart1, "[draw,set,a1,circle,64,32,20,#0F0]\r\n"); // 增量同步
 ```
 
 PC 端收到后自动解析、路由到对应面板、渲染显示。
 
-**更多协议格式** → [Serial Monitor V2 使用示例](https://github.com/Encaron/SerialMonitorV2)
+**更多协议格式** → [Serial Monitor V2 使用示例](https://github.com/Encaron/SerialMonitor)
 
 ---
 

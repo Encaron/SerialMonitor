@@ -729,6 +729,20 @@ namespace 串口助手
         {
             tbSliderFeedbackName.Text = svm.Name;
             tbSliderFeedbackValue.Text = string.Format("[slider,{0},{1}]", svm.Name, svm.DisplayValue);
+            UpdateSliderProtocolPreview(svm);
+        }
+
+        private void UpdateSliderProtocolPreview(SliderViewModel svm)
+        {
+            if (tbSliderProtocolPreview == null || svm == null) return;
+            tbSliderProtocolPreview.Text = string.Format("[slider,{0},{1}]", svm.Name, svm.DisplayValue);
+        }
+
+        private void btnSliderProtocolCopy_Click(object sender, RoutedEventArgs e)
+        {
+            if (tbSliderProtocolPreview == null || string.IsNullOrEmpty(tbSliderProtocolPreview.Text)) return;
+            SafeSetClipboard(tbSliderProtocolPreview.Text);
+            if (sender is Button btn) ShowCopyToastAndShake(btn);
         }
 
         // ═══════════════════════════════════════
@@ -794,6 +808,7 @@ namespace 串口助手
             tbSliderCurrentValue.Text = vm.DisplayValue;
             tbSliderDetailRange.Text = $"{vm.MinValue} ~ {vm.MaxValue}";
             tbSliderDetailStep.Text = vm.Step.ToString();
+            UpdateSliderProtocolPreview(vm);
         }
 
         // ——— 单选属性编辑 ———
