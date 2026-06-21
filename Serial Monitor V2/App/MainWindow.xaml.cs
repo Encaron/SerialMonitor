@@ -177,8 +177,8 @@ namespace 串口助手
         {
             InitializeComponent();
 
-            // 双语：注入所有中文 key 到 Application 资源字典（中文即 key，恒等映射）
-            Locale.Initialize();
+            // 双语：注入所有中文 key 到 Application + Window 两级资源字典
+            Locale.Initialize(this.Resources);
 
             // 双语按钮：切语言时更新 "中/EN" 字重字号
             Locale.OnLangChanged = isZh =>

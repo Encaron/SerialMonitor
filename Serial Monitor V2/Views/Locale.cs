@@ -41,33 +41,31 @@ namespace 串口助手
         /// <summary>切语言后触发，参数 isZh。MainWindow 设此回调更新按钮字重字号。</summary>
         public static System.Action<bool> OnLangChanged = _ => { };
 
-        /// <summary>启动时调用一次：注入所有中文 key 到 Application 资源字典。</summary>
-        public static void Initialize()
+        /// <summary>Window 级别 Resources（DynamicResource 主要解析层），Initialize 时注入。</summary>
+        private static ResourceDictionary _windowResources;
+
+        /// <summary>启动时调用一次：注入所有中文 key 到 Application + Window 两级资源字典。</summary>
+        public static void Initialize(ResourceDictionary windowResources)
         {
+            _windowResources = windowResources;
             SwitchTo("zh");
         }
 
-        /// <summary>切换语言。zh → 所有 key 设回中文；en → 查 EnMap 替换。</summary>
+        /// <summary>切换语言。Application + Window 两级写入，和 Theme.cs 同机制。</summary>
         public static void SwitchTo(string lang)
         {
             Current = lang;
             bool isZh = (lang == "zh");
-            var resources = Application.Current.Resources;
 
             foreach (var zhKey in LocaleData.EnMap.Keys)
             {
-                if (isZh)
-                {
-                    resources[zhKey] = zhKey;              // 中文：key 即值，恒等映射
-                }
-                else
-                {
-                    var en = LocaleData.EnMap[zhKey];
-                    resources[zhKey] = en;                 // 英文：查映射表
-                }
+                var value = isZh ? zhKey : LocaleData.EnMap[zhKey];
+                Application.Current.Resources[zhKey] = value;
+                if (_windowResources != null)
+                    _windowResources[zhKey] = value;
             }
 
-            OnLangChanged?.Invoke(isZh);
+            OnLangChanged(isZh);
         }
     }
 }
