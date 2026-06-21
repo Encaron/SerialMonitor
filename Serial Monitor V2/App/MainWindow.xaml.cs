@@ -273,7 +273,7 @@ namespace 串口助手
                     if (_sensorVM == null) return;
                     if (_sensorVM.IsEditMode) {
                         _sensorVM.IsEditMode = false; _selectedCard = null; _detailCard = null;
-                        btnSensorEdit.Content = "编辑";
+                        btnSensorEdit.LocText("编辑");
                         if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive) _sensorRefreshTimer.Start();
                         RefreshAllRows();
                     }
@@ -327,7 +327,7 @@ namespace 串口助手
             if (!hasSarasa)
             {
                 fontMissing = true;
-                tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
+                tbPortInfo.LocText("💡 更纱黑体未安装 → 使用备用等宽字体");
                 tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
                 tbPortInfo.Visibility = Visibility.Visible;
             }
@@ -722,7 +722,7 @@ namespace 串口助手
 
                 // 状态栏
                 AnimateBrushColor(statusDotBrush, SuccessColor);
-                tbStatusText.Text = "已连接";
+                tbStatusText.LocText("已连接");
                 tbPortInfo.Text = $"{_session.PortName} @ {cbBaudRate.Text}";
                 tbPortInfo.Foreground = new SolidColorBrush(LogSystemColor);
                 tbPortInfo.Visibility = Visibility.Visible;
@@ -760,12 +760,12 @@ namespace 串口助手
                 cbFlowControl.IsEnabled = true;
 
                 AnimateBrushColor(statusDotBrush, StatusDotIdle);
-                tbStatusText.Text = "就绪";
+                tbStatusText.LocText("就绪");
                 // 波形冻结水印（串口已关，数据自然停止）
                 plotFrozenOverlay.Visibility = Visibility.Visible;
                 if (fontMissing)
                 {
-                    tbPortInfo.Text = "💡 更纱黑体未安装 → 使用备用等宽字体";
+                    tbPortInfo.LocText("💡 更纱黑体未安装 → 使用备用等宽字体");
                     tbPortInfo.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0x80, 0x00));
                     tbPortInfo.Visibility = Visibility.Visible;
                 }
@@ -1239,7 +1239,7 @@ namespace 串口助手
 
             if (_isPaused)
             {
-                btnPauseDisplay.Content = "▶ 继续显示";
+                btnPauseDisplay.LocText("▶ 继续显示");
                 btnPauseDisplay.Style = FindResource("PrimaryButtonStyle") as Style;
                 menuPauseDisplay.Header = "▶ 继续显示";
                 LogSystem("---- 暂停显示：界面已冻结，后台照常接收 ----");
@@ -1258,7 +1258,7 @@ namespace 串口助手
                 else
                     LogSystem("---- 继续显示 ----");
 
-                btnPauseDisplay.Content = "暂停显示";
+                btnPauseDisplay.LocText("暂停显示");
                 btnPauseDisplay.Style = FindResource("SecondaryButtonStyle") as Style;
                 menuPauseDisplay.Header = "⏸ 暂停显示";
             }
@@ -1933,7 +1933,7 @@ namespace 串口助手
                 _selectedCard = null;
                 _detailCard = null;
                 _normalDetailCard = null;
-                btnSensorEdit.Content = "编辑";
+                btnSensorEdit.LocText("编辑");
                 rightSensors.Visibility = Visibility.Collapsed;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
                     _sensorRefreshTimer.Start();
@@ -2942,14 +2942,14 @@ namespace 串口助手
             }
             switch (_currentTab)
             {
-                case "Receive":  tbSidePanelTitle.Text = "收发设置"; break;
-                case "Plot":     tbSidePanelTitle.Text = "绘图设置"; break;
-                case "Keys":     tbSidePanelTitle.Text = "按键属性"; break;
-                case "Sliders":  tbSidePanelTitle.Text = "滑杆属性"; break;
-                case "Joystick": tbSidePanelTitle.Text = "摇杆设置"; break;
-                case "OLED":     tbSidePanelTitle.Text = "OLED 设置"; break;
-                case "Sensors":  tbSidePanelTitle.Text = (_sensorVM?.IsEditMode == true) ? "卡片管理" : "传感面板"; break;
-                case "Settings": tbSidePanelTitle.Text = "设置"; break;
+                case "Receive":  tbSidePanelTitle.LocText("收发设置"); break;
+                case "Plot":     tbSidePanelTitle.LocText("绘图设置"); break;
+                case "Keys":     tbSidePanelTitle.LocText("按键属性"); break;
+                case "Sliders":  tbSidePanelTitle.LocText("滑杆属性"); break;
+                case "Joystick": tbSidePanelTitle.LocText("摇杆设置"); break;
+                case "OLED":     tbSidePanelTitle.LocText("OLED 设置"); break;
+                case "Sensors":  tbSidePanelTitle.LocText((_sensorVM?.IsEditMode == true) ? "卡片管理" : "传感面板"); break;
+                case "Settings": tbSidePanelTitle.LocText("设置"); break;
             }
             // 切换到按键/滑杆/传感面板时刷新侧面板
             if (_currentTab == "Keys") RefreshKeysSidePanel();
@@ -3188,7 +3188,7 @@ namespace 串口助手
                 }
             }
             // 更新按钮文案
-            btnPerspectiveToggle.Content = _isFreqDomain ? "📶 频域  →  时域 ⏱" : "⏱ 时域  →  频域 📶";
+            btnPerspectiveToggle.LocText(_isFreqDomain ? "📶 频域  →  时域 ⏱" : "⏱ 时域  →  频域 📶");
             // 刷新侧面板（时域/频域内容切换）+ 数据源下拉框
             RefreshContentVisibility();
             if (_isFreqDomain)
@@ -3222,7 +3222,7 @@ namespace 串口助手
                 panelTuningDrawer.Visibility = Visibility.Collapsed;
                 splitterTuning.Visibility = Visibility.Collapsed;
                 barTuningToggle.Height = 28;
-                btnTuningToggle.Content = "▲ 调参工作台";
+                btnTuningToggle.LocText("▲ 调参工作台");
             }
         }
 
@@ -3236,12 +3236,12 @@ namespace 串口助手
             if (_isFreqDomain)
             {
                 _plotVM.ClearFreq();
-                plotEmptyHint.Text = "等待 FFT 数据…";
+                plotEmptyHint.LocText("等待 FFT 数据…");
             }
             else
             {
                 _plotVM.Clear();
-                plotEmptyHint.Text = "等待串口数据…";
+                plotEmptyHint.LocText("等待串口数据…");
             }
             plotEmptyHint.Visibility = Visibility.Visible;
             plotHud.Visibility = Visibility.Collapsed;
@@ -3543,14 +3543,14 @@ namespace 串口助手
                 panelTuningDrawer.Visibility = Visibility.Visible;
                 splitterTuning.Visibility = Visibility.Visible;
                 panelTuningDrawer.Height = 160;
-                btnTuningToggle.Content = "▼ 收起";
+                btnTuningToggle.LocText("▼ 收起");
                 if (_plotVM != null) _plotVM.UseBackgroundRender = true;
             }
             else
             {
                 panelTuningDrawer.Visibility = Visibility.Collapsed;
                 splitterTuning.Visibility = Visibility.Collapsed;
-                btnTuningToggle.Content = "▲ 调参";
+                btnTuningToggle.LocText("▲ 调参");
                 if (_plotVM != null) _plotVM.UseBackgroundRender = false;
             }
         }
