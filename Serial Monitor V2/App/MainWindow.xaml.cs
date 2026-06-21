@@ -640,7 +640,7 @@ namespace 串口助手
             // 收到 [ctrl,slider,...] 是 PC→MCU 的发送路径，不建卡不更新
             if (subType == "slider")
             {
-                // TODO Phase B: 滑杆卡拖拽时走这里发串口
+                // [ctrl,slider,...] 由 Sensors.cs 直发串口，此处仅做 PC→MCU 路径守卫：不建卡不更新
                 return;
             }
 
