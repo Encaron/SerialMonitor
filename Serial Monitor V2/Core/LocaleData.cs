@@ -25,7 +25,23 @@ namespace 串口助手
             ["正弦波/三角波"] = "Sine / Triangle",
             ["未知 / 混合"] = "Unknown / Mixed",
 
-            // P3+ 逐面板补英文映射在此
+            // P3: 顶栏 + 图标栏
+            ["打开串口"] = "Open",
+            ["关闭串口"] = "Close",
+            ["打开/关闭串口（Ctrl+Enter）"] = "Open/Close (Ctrl+Enter)",
+            ["切换亮色/暗色主题"] = "Light/Dark Theme",
+            ["折叠侧面板"] = "Collapse Sidebar",
+            ["串口设置"] = "Settings",
+            ["管理标签显示"] = "Manage Tabs",
+            ["接收区"] = "Receive",
+            ["波形图"] = "Plot",
+            ["按键面板"] = "Keys",
+            ["滑杆面板"] = "Sliders",
+            ["OLED"] = "OLED",
+            ["摇杆面板"] = "Joystick",
+            ["传感面板"] = "Sensors",
+
+            // P4+ 逐面板补英文映射在此
         };
     }
 }

@@ -707,9 +707,9 @@
                     <ComboBox x:Name="cbPortName" Width="90"
                               DropDownOpened="cbPortName_DropDownOpened" Margin="0,0,6,0" />
                     <ComboBox x:Name="cbBaudRate" Width="90" IsEditable="True" Margin="0,0,6,0" />
-                    <Button x:Name="btnOpen" Content="打开串口"
+                    <Button x:Name="btnOpen" Content="{DynamicResource 打开串口}"
                             Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="76"
-                            Click="btnOpen_Click" ToolTip="打开/关闭串口（Ctrl+Enter）" />
+                            Click="btnOpen_Click" ToolTip="{DynamicResource 打开/关闭串口（Ctrl+Enter）}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <!-- 双语切换 -->
@@ -734,7 +734,7 @@
                             Background="{DynamicResource StatusBarBgBrush}"
                             BorderBrush="{DynamicResource InputBorderBrush}"
                             Padding="8,0" Margin="0,0,12,0" Cursor="Hand"
-                            Click="BtnThemeToggleTop_Click" ToolTip="切换亮色/暗色主题">
+                            Click="BtnThemeToggleTop_Click" ToolTip="{DynamicResource 切换亮色/暗色主题}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="tbThemeToggleLabel" VerticalAlignment="Center" FontSize="13"
                                        FontWeight="SemiBold"
@@ -765,10 +765,10 @@
                             Content="◀" Width="24" Height="24" Padding="0"
                             Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
                             Margin="8,4,0,0" HorizontalAlignment="Center"
-                            Click="BtnPanelCollapse_Click" ToolTip="折叠侧面板" />
+                            Click="BtnPanelCollapse_Click" ToolTip="{DynamicResource 折叠侧面板}" />
                     <RadioButton x:Name="tabSettings" DockPanel.Dock="Bottom"
                                  GroupName="IconBar" Style="{DynamicResource IconBarButtonStyle}"
-                                 ToolTip="串口设置" Margin="0,4" Checked="TabSettings_Checked">
+                                 ToolTip="{DynamicResource 串口设置}" Margin="0,4" Checked="TabSettings_Checked">
                         <Rectangle Width="18" Height="18"
                                    Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                             <Rectangle.OpacityMask>
@@ -782,7 +782,7 @@
                             Foreground="{DynamicResource TextMutedBrush}"
                             Background="Transparent" BorderThickness="0"
                             FontSize="20" FontWeight="Bold" Cursor="Hand"
-                            Content="+" ToolTip="管理标签显示" Margin="0,2"
+                            Content="+" ToolTip="{DynamicResource 管理标签显示}" Margin="0,2"
                             Click="BtnAddPanel_Click">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -793,7 +793,7 @@
                     <StackPanel Margin="0,4,0,0">
                         <RadioButton x:Name="tabReceive" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="接收区" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource 接收区}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -803,7 +803,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabPlot" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="波形图" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource 波形图}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -813,7 +813,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabKeys" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="按键面板" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource 按键面板}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -823,7 +823,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabSliders" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="滑杆面板" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource 滑杆面板}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -833,7 +833,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabOLED" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="OLED" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource OLED}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -843,7 +843,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabJoystick" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="摇杆面板" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource 摇杆面板}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>
@@ -853,7 +853,7 @@
                         </RadioButton>
                         <RadioButton x:Name="tabSensors" GroupName="IconBar"
                                      Style="{DynamicResource IconBarButtonStyle}"
-                                     ToolTip="传感面板" Checked="TabContent_Checked">
+                                     ToolTip="{DynamicResource 传感面板}" Checked="TabContent_Checked">
                             <Rectangle Width="18" Height="18"
                                        Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=RadioButton}}">
                                 <Rectangle.OpacityMask>

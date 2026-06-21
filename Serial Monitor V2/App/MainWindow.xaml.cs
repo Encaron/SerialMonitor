@@ -699,7 +699,7 @@ namespace 串口助手
                 // 连接成功后的 UI 更新
                 _lastSuccessfulPort = _session.PortName;
 
-                btnOpen.Content = "关闭串口";
+                btnOpen.LocText("关闭串口");
                 btnOpen.Background = new SolidColorBrush(SuccessColor);
                 btnOpen.BorderBrush = new SolidColorBrush(SuccessColor);
                 PulseElement(btnOpen);
@@ -746,7 +746,7 @@ namespace 串口助手
 
                 UpdateTrafficDisplay();
 
-                btnOpen.Content = "打开串口";
+                btnOpen.LocText("打开串口");
                 btnOpen.Background = new SolidColorBrush(PrimaryColor);
                 btnOpen.BorderBrush = new SolidColorBrush(PrimaryColor);
                 PulseElement(btnOpen);
