@@ -159,7 +159,7 @@ namespace 串口助手
         {
             if (vm.Type == "pressure")
                 return double.TryParse(vm.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double hpa)
-                    ? Math.Clamp(hpa / 1013.25 * 100, 0, 100) : 0;
+                    ? Math.Clamp(hpa / vm.PressureBaseline * 100, 0, 100) : 0;
             return double.TryParse(vm.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double hum)
                 ? Math.Clamp(hum, 0, 100) : 0;
         }
@@ -190,6 +190,12 @@ namespace 串口助手
                 Margin = new Thickness(0, 0, 0, 2),
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
+            // 气压卡基准值非标准 → 标题后加 ❗
+            if (vm.Type == "pressure" && Math.Abs(vm.PressureBaseline - 1013.25) > 0.01)
+            {
+                title.Text += " ❗";
+                title.ToolTip = T("非标准参考值");
+            }
             _cardTitleMap[vm] = title;
 
             // 主值
@@ -1141,8 +1147,8 @@ namespace 串口助手
             if (vm != null && _sensorVM.IsEditMode && _currentTab != "Sensors")
                 tabSensors.IsChecked = true;
 
-            // 编辑模式→slider/generic 卡直接跳详情面板（侧栏态3）
-            if (vm != null && _sensorVM.IsEditMode && (vm.Type == "slider" || vm.Type == "generic"))
+            // 编辑模式→slider/generic/pressure 卡直接跳详情面板（侧栏态3）
+            if (vm != null && _sensorVM.IsEditMode && (vm.Type == "slider" || vm.Type == "generic" || vm.Type == "pressure"))
             {
                 if (_detailCard != vm)
                 {
@@ -2106,8 +2112,8 @@ namespace 串口助手
             };
             Grid.SetColumn(nameBlock, 1);
 
-            // [⚙]——滑杆卡 / 通用卡 → 详情面板
-            if (card.Type == "slider" || card.Type == "generic")
+            // [⚙]——滑杆卡 / 通用卡 / 气压卡 → 详情面板
+            if (card.Type == "slider" || card.Type == "generic" || card.Type == "pressure")
             {
                 var cfgBtn = CreateSmallIconBtn("⚙", () =>
                 {
@@ -2243,6 +2249,14 @@ namespace 串口助手
                     card.SendIntervalMs = Math.Max(20, (int)v);
                 });
             }
+            if (card.Type == "pressure")
+            {
+                AddDetailNumberField(container, "气压基准值(hPa)：", card.PressureBaseline, v => {
+                    card.PressureBaseline = Math.Max(1, v);
+                    UpdateCardUI(card);
+                    SaveSensorPrefs();
+                });
+            }
             if (card.Type == "generic")
             {
                 // ——— 通用卡专属：单位 / 颜色 / 波形 ———
@@ -2288,9 +2302,10 @@ namespace 串口助手
         {
             var lb = new TextBlock
             {
-                Text = label, FontSize = 11,
+                FontSize = 11,
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            lb.LocText(label);
             lb.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(lb);
 
@@ -2712,6 +2727,8 @@ namespace 串口助手
             // 通用卡
             if (card.Type == "generic" && !string.IsNullOrEmpty(card.CustomUnit))
                 AddDetailRow(infoStack, "单位", card.CustomUnit);
+            if (card.Type == "pressure")
+                AddDetailRow(infoStack, "参考值", $"{card.PressureBaseline:F2} hPa");
 
             infoBorder.Child = infoStack;
             container.Children.Add(infoBorder);
@@ -2841,9 +2858,10 @@ namespace 串口助手
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
             var labelTb = new TextBlock
             {
-                Text = label + "：", FontSize = 11,
+                FontSize = 11,
                 Width = 62,
             };
+            labelTb.LocText(label + "：");
             labelTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
             row.Children.Add(labelTb);
             var valueTb = new TextBlock
