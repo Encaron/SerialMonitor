@@ -106,13 +106,13 @@ namespace 串口助手
             var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
             headerPanel.Children.Add(new TextBlock
             {
-                Text = (isCurrent ? "✓ " : "   ") + LogicValueMaps.DisplayJoyStyle(label),
+                Text = (isCurrent ? "✓ " : "   ") + T(LogicValueMaps.DisplayJoyStyle(label)),
                 FontSize = 12, FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
             });
             headerPanel.Children.Add(new TextBlock
             {
-                Text = "  " + desc, FontSize = 10,
+                Text = "  " + T(desc), FontSize = 10,
                 Foreground = (Brush)FindResource("TextMutedBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
             });
@@ -161,8 +161,8 @@ namespace 串口助手
             if (_prefsData.TryGetValue(JoyThumbStyleKey, out var ts) && ts is string tsStr) _thumbStyle = LogicValueMaps.MigrateStyle(tsStr);
             if (_prefsData.TryGetValue(JoyCustomPadKey, out var cp) && cp is string cpStr) _customPadStyle = cpStr;
             if (_prefsData.TryGetValue(JoyCustomThumbKey, out var ct) && ct is string ctStr) _customThumbStyle = ctStr;
-            btnJoystickPadStyle.Content = JoyPadLabel() + " ▾";
-            btnJoystickThumbStyle.Content = JoyThumbLabel() + " ▾";
+            btnJoystickPadStyle.Content = T(JoyPadLabel()) + " ▾";
+            btnJoystickThumbStyle.Content = T(JoyThumbLabel()) + " ▾";
         }
 
         private void SaveJoyStylePrefs()

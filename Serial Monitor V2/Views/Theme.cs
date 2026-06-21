@@ -93,7 +93,7 @@ namespace 串口助手
                 ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
                 : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
             // 顶栏紧凑切换按钮
-            tbThemeToggleLabel.Text = dark ? "亮" : "暗";
+            tbThemeToggleLabel.LocText(dark ? "亮" : "暗");
             imgThemeToggle.Source = new BitmapImage(new Uri(
                 dark ? "Icons/setting/theme/theme-sun.png" : "Icons/setting/theme/theme-moon.png",
                 UriKind.Relative));

@@ -1670,7 +1670,7 @@ namespace 串口助手
 
                     container.Children.Add(new TextBlock
                     {
-                        Text = _detailCard != null ? "卡片详情" : "卡片管理",
+                        Text = (string)Application.Current.Resources[_detailCard != null ? "卡片详情" : "卡片管理"],
                         Style = (Style)FindResource("CardHeaderStyle"),
                         Margin = new Thickness(0, 0, 0, 10),
                     });
@@ -2171,7 +2171,7 @@ namespace 串口助手
             // ← 返回行管理器
             var backBtn = new Button
             {
-                Content = "← 返回",
+                Content = (string)Application.Current.Resources["← 返回"],
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 24, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
                 FontSize = 11,
@@ -2619,7 +2619,7 @@ namespace 串口助手
             // ← 返回概览
             var backBtn = new Button
             {
-                Content = "← 返回",
+                Content = (string)Application.Current.Resources["← 返回"],
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 24, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
                 FontSize = 11, HorizontalAlignment = HorizontalAlignment.Left,

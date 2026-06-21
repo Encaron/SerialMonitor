@@ -718,7 +718,7 @@
                             Background="{DynamicResource StatusBarBgBrush}"
                             BorderBrush="{DynamicResource InputBorderBrush}"
                             Padding="8,0" Margin="0,0,12,0" Cursor="Hand"
-                            Click="BtnLangToggleTop_Click" ToolTip="切换中/English">
+                            Click="BtnLangToggleTop_Click" ToolTip="{DynamicResource 切换中/English}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="tbLangZh" Text="中" VerticalAlignment="Center"
                                        FontWeight="Bold" FontSize="14" />
@@ -888,7 +888,7 @@
                         <ScrollViewer x:Name="rightReceive" VerticalScrollBarVisibility="Auto" Visibility="Visible"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 时间戳}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbTimestampFormat"
                                               SelectionChanged="cbTimestampFormat_SelectionChanged"/>
@@ -901,13 +901,13 @@
                                 <CheckBox x:Name="chkSeparateSystemLog" Content="{DynamicResource 系统消息独立显示}" IsChecked="True"
                                           Checked="chkSeparateSystemLog_Changed" Unchecked="chkSeparateSystemLog_Changed"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 换行符}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbLineEnding"/>
                                 </Grid>
                                 <CheckBox x:Name="chkAutoRepeat" Content="{DynamicResource 定时发送}"
                                           Checked="chkAutoRepeat_Changed" Unchecked="chkAutoRepeat_Changed"/>
-                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 间隔(ms)}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Column="1" x:Name="tbRepeatInterval" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
@@ -919,7 +919,7 @@
                                 </Grid>
                                 <CheckBox x:Name="chkAutoClear" Content="{DynamicResource 发送后清空发送区}" Margin="0,8,0,0"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 接收模式}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbReceiveMode"
@@ -929,7 +929,7 @@
                                               SelectionChanged="cbReceiveCoding_SelectionChanged"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 发送模式}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbSendMode"
@@ -945,7 +945,7 @@
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <!-- 显示模式 -->
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 显示模式}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbPlotMode" Height="28"
                                               FontFamily="Microsoft YaHei" FontSize="12"
@@ -956,7 +956,7 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- X 轴：数据点数 -->
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 数据点数}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Column="1" x:Name="tbPlotXRange" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
@@ -970,7 +970,7 @@
                                 <!-- Y 轴 -->
                                 <CheckBox x:Name="chkPlotYAuto" Content="{DynamicResource Y 轴自动}" HorizontalAlignment="Left"
                                           Checked="chkPlotYAuto_Changed" Unchecked="chkPlotYAuto_Changed"/>
-                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 最小值}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Row="0" Grid.Column="1" x:Name="tbPlotYMin" Height="28"
@@ -1006,12 +1006,12 @@
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
                                            TextWrapping="Wrap" LineHeight="16">
-                                    <Run Text="🖱 操作：" FontWeight="SemiBold"/>
-                                    <Run Text="滚轮缩放"/>
-                                    <Run Text=" · 右键拖拽平移"/>
-                                    <Run Text=" · 悬停查看数值"/>
+                                    <Run Text="{DynamicResource 🖱 操作：}" FontWeight="SemiBold"/>
+                                    <Run Text="{DynamicResource 滚轮缩放}"/>
+                                    <Run Text="{DynamicResource  · 右键拖拽平移}"/>
+                                    <Run Text="{DynamicResource  · 悬停查看数值}"/>
                                     <LineBreak/>
-                                    <Run Text="📊 暂停后点上方「详细」按钮，选择曲线查看统计数据"/>
+                                    <Run Text="{DynamicResource 📊 暂停后点上方「详细」按钮，选择曲线查看统计数据}"/>
                                 </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
@@ -1023,7 +1023,7 @@
                                 <Border BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1"
                                         CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
                                 <StackPanel>
-                                    <TextBlock Text="数据源" FontSize="15" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 数据源}" FontSize="15" FontWeight="SemiBold"
                                                Foreground="{DynamicResource PrimaryBrush}" Margin="0,0,0,4"/>
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <ComboBox Grid.Column="0" x:Name="cbFreqSource" Height="28"
@@ -1041,7 +1041,7 @@
                                 </Border>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- FFT 点数 -->
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource FFT 点数}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbFreqSize" Height="28"
                                               FontFamily="Microsoft YaHei" FontSize="12"
@@ -1052,7 +1052,7 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- 采样率：bin→Hz 换算 -->
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 采样率}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Column="1" x:Name="tbFreqSampleRate" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
@@ -1064,7 +1064,7 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- 窗函数（PC 端 FFT 可用，[fft,...] 协议接收时仅标注） -->
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 窗函数}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbFreqWindow" Height="28"
                                               FontFamily="Microsoft YaHei" FontSize="12"
@@ -1075,7 +1075,7 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- 只读：有效频率范围 -->
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 频率范围}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBlock Grid.Column="1" x:Name="tbFreqRange" Text="—"
                                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" FontSize="12"/>
@@ -1095,16 +1095,8 @@
                                         Height="28" Click="btnPlotCsv_Click"/>
                                 <!-- 操作提示 -->
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
-                                           TextWrapping="Wrap" LineHeight="16">
-                                    <Run Text="🔬 数据源选 [plot,...] 通道 → PC 自动算 FFT" FontWeight="SemiBold"/>
-                                    <LineBreak/>
-                                    <Run Text="收到 [fft,...] 协议则覆盖自动频谱"/>
-                                    <LineBreak/>
-                                    <Run Text="🖱 滚轮缩放 · 右键拖拽平移"/>
-                                    <LineBreak/>
-                                    <Run Text="📊 暂停后点「详细」按钮查看频谱指标"/>
-                                </TextBlock>
+                                <TextBlock x:Name="tbFftHints" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" LineHeight="16"/>
                             </StackPanel>
                         </ScrollViewer>
                         <!-- 曲线详情（暂停后点击曲线） -->
@@ -1125,8 +1117,8 @@
                                 <!-- 幅值区 -->
                                 <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="📊 幅值" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource 📊 幅值}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 峰峰值 Vpp}" Style="{DynamicResource FormLabelStyle}"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailVpp" Style="{DynamicResource FormLabelStyle}"/>
@@ -1144,8 +1136,8 @@
                                 <!-- 频率/时间区 -->
                                 <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8" x:Name="borderDetailFreq">
                                     <StackPanel>
-                                        <TextBlock Text="⏱ 时间 / 频率" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource ⏱ 时间 / 频率}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 频率}" Style="{DynamicResource FormLabelStyle}"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailFreq" Style="{DynamicResource FormLabelStyle}"/>
@@ -1167,8 +1159,8 @@
                                 <!-- 波形特征区 -->
                                 <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="📈 波形特征" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource 📈 波形特征}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 双电平置信度}" Style="{DynamicResource FormLabelStyle}" x:Name="lblConf"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailConf" Style="{DynamicResource FormLabelStyle}"/>
@@ -1184,8 +1176,8 @@
                                 <!-- 数据区 -->
                                 <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="📦 数据" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource 📦 数据}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 数据点数}" Style="{DynamicResource FormLabelStyle}"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbDetailPoints" Style="{DynamicResource FormLabelStyle}"/>
@@ -1223,8 +1215,8 @@
                                 <!-- 频域指标 -->
                                 <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="📶 频域" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource 📶 频域}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 基频}" Style="{DynamicResource FormLabelStyle}"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbFreqDetailFund" Text="—" Style="{DynamicResource FormLabelStyle}"/>
@@ -1242,8 +1234,8 @@
                                 <!-- 数据区 -->
                                 <Border Background="{DynamicResource CardBgBrush}" Padding="10" CornerRadius="6" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="📦 数据" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource 📦 数据}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="24"/><RowDefinition Height="24"/></Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource FFT 点数}" Style="{DynamicResource FormLabelStyle}"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" x:Name="tbFreqDetailPoints" Text="—" Style="{DynamicResource FormLabelStyle}"/>
@@ -1274,14 +1266,14 @@
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <!-- 正常模式：最近发送反馈 -->
                                 <StackPanel x:Name="rightKeysSentFeedback" Visibility="Visible">
-                                    <TextBlock Text="按键反馈" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="{DynamicResource 按键反馈}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="按下：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 按下：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbKeyFeedbackName" FontSize="12" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource PrimaryBrush}" Text="—"
                                                        TextWrapping="Wrap" Margin="0,0,0,4"/>
-                                            <TextBlock Text="发送内容：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 发送内容：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbKeyFeedbackValue" FontSize="10"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
                                                        TextWrapping="Wrap" LineHeight="16" MaxWidth="180"/>
@@ -1289,7 +1281,7 @@
                                     </Border>
                                     <!-- 协议预览 -->
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <TextBlock Text="协议预览" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 协议预览}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                     <!-- 按下 -->
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6" Margin="0,0,0,4">
@@ -1321,12 +1313,12 @@
                                     </Border>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="16"
-                                               Text="点击左侧按键发送数据。消息回显可在接收区设置中开启。"/>
+                                               Text="{DynamicResource 点击左侧按键发送数据。消息回显可在接收区设置中开启。}"/>
                                 </StackPanel>
                                 <!-- 模块设置（点击模块名进入） -->
                                 <StackPanel x:Name="rightKeysModuleSettings" Visibility="Collapsed">
-                                    <TextBlock Text="模块设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{DynamicResource 模块设置}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模块名}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbModuleName" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1337,9 +1329,9 @@
                                                  LostFocus="tbModuleName_LostFocus"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <TextBlock Text="按下发送" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 按下发送}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模式}" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbModulePressMode"
                                                   Style="{DynamicResource KeyModeComboBoxStyle}"
@@ -1347,7 +1339,7 @@
                                     </Grid>
                                     <!-- 按下值快捷操作 -->
                                     <WrapPanel Margin="0,4,0,0">
-                                        <TextBlock Text="值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{DynamicResource 值：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="28" FontSize="9" Padding="4,0"
                                                 Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→无}"/>
@@ -1368,9 +1360,9 @@
                                                 Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→文本模式，值为 off}"/>
                                     </WrapPanel>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,6"/>
-                                    <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 松开发送}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模式}" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbModuleReleaseMode"
                                                   Style="{DynamicResource KeyModeComboBoxStyle}"
@@ -1378,7 +1370,7 @@
                                     </Grid>
                                     <!-- 松开值快捷操作 -->
                                     <WrapPanel Margin="0,4,0,0">
-                                        <TextBlock Text="值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{DynamicResource 值：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="28" FontSize="9" Padding="4,0"
                                                 Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→无}"/>
@@ -1404,7 +1396,7 @@
                                     <Button x:Name="btnModuleCustomColor" Content="{DynamicResource 🎨 自定义颜色…}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnKeysCustomColor_Click" Margin="0,4,0,0"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <Button Content="{DynamicResource 🔄 生成松开发送值}" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnModuleGenRelease" Content="{DynamicResource 🔄 生成松开发送值}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnModuleGenRelease_Click" Margin="0,0,0,6"
                                             ToolTip="为模块内所有按键的松开发送填入 [key,Name,up] 文本值"/>
                                     <Button x:Name="btnModuleDelete" Content="{DynamicResource 🗑 删除此模块}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1412,28 +1404,28 @@
                                 </StackPanel>
                                 <!-- 编辑模式无选中：提示 -->
                                 <StackPanel x:Name="rightKeysNoSelection" Visibility="Collapsed">
-                                    <TextBlock Text="按键属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="{DynamicResource 按键属性}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="18"
-                                               Text="选择左侧按键以编辑属性。Ctrl+点击可多选，Ctrl+A 全选。右键快速删除。"/>
+                                               Text="{DynamicResource 选择左侧按键以编辑属性。Ctrl+点击可多选，Ctrl+A 全选。右键快速删除。}"/>
                                 </StackPanel>
                                 <!-- 多选状态 -->
                                 <StackPanel x:Name="rightKeysMultiSelect" Visibility="Collapsed">
-                                    <TextBlock Text="批量编辑" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="{DynamicResource 批量编辑}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <TextBlock x:Name="tbKeysSelectedCount" FontSize="12"
                                                Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                    <TextBlock Text="按下发送" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 按下发送}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模式}" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbKeySendModeMulti"
                                                   Style="{DynamicResource KeyModeComboBoxStyle}"
                                                   SelectionChanged="cbKeySendModeMulti_Changed"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,6"/>
-                                    <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 松开发送}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模式}" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbKeyReleaseModeMulti"
                                                   Style="{DynamicResource KeyModeComboBoxStyle}"
@@ -1447,9 +1439,9 @@
                                 </StackPanel>
                                 <!-- 单选状态 -->
                                 <StackPanel x:Name="rightKeysSingleSelect" Visibility="Collapsed">
-                                    <TextBlock Text="按键属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="{DynamicResource 按键属性}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <!-- 名字 -->
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 名字}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbKeyName" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1465,15 +1457,15 @@
                                               Checked="chkKeySelfLock_Changed" Unchecked="chkKeySelfLock_Changed"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <!-- 按下发送 -->
-                                    <TextBlock Text="按下发送" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 按下发送}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模式}" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbKeyPressMode"
                                                   Style="{DynamicResource KeyModeComboBoxStyle}"
                                                   SelectionChanged="cbKeyPressMode_Changed"/>
                                     </Grid>
-                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 内容}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbKeyPressValue" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1485,15 +1477,15 @@
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <!-- 松开发送 -->
-                                    <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 松开发送}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 模式}" Style="{DynamicResource FormLabelStyle}"/>
                                         <ComboBox Grid.Column="1" x:Name="cbKeyReleaseMode"
                                                   Style="{DynamicResource KeyModeComboBoxStyle}"
                                                   SelectionChanged="cbKeyReleaseMode_Changed"/>
                                     </Grid>
-                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 内容}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbKeyReleaseValue" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1504,8 +1496,8 @@
                                                  LostFocus="tbKeyReleaseValue_LostFocus"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <TextBlock Text="外观" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{DynamicResource 外观}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 宽度}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbKeyWidth" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1515,7 +1507,7 @@
                                                  BorderThickness="1" Padding="6,2" Text="80"
                                                  LostFocus="tbKeyWidth_LostFocus"/>
                                     </Grid>
-                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 高度}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbKeyHeight" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1542,11 +1534,11 @@
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <!-- 正常模式：最近操作反馈 -->
                                 <StackPanel x:Name="rightSlidersFeedback" Visibility="Visible">
-                                    <TextBlock Text="滑杆反馈" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{DynamicResource 滑杆反馈}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,8"/>
                                     <!-- 快速预设 -->
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="8,6" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="快速预设" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6"/>
+                                            <TextBlock Text="{DynamicResource 快速预设}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6"/>
                                             <WrapPanel>
                                                 <Button Content="{DynamicResource 全部归零}" Style="{DynamicResource SecondaryButtonStyle}"
                                                         Height="24" FontSize="10" Padding="6,0" Margin="0,0,4,0"
@@ -1562,21 +1554,21 @@
                                     </Border>
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="最近操作：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 最近操作：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderFeedbackName" FontSize="12" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource PrimaryBrush}" Text="—"
                                                        TextWrapping="Wrap" Margin="0,0,0,4"/>
-                                            <TextBlock Text="当前值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 当前值：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderCurrentValue" FontSize="12"
                                                        FontFamily="Sarasa Mono SC, Consolas, Courier New"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—" Margin="0,0,0,2"/>
-                                            <TextBlock Text="范围：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 范围：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderDetailRange" FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—" Margin="0,0,0,2"/>
-                                            <TextBlock Text="步长：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 步长：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderDetailStep" FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—" Margin="0,0,0,4"/>
-                                            <TextBlock Text="发送内容：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="{DynamicResource 发送内容：}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="tbSliderFeedbackValue" FontSize="10"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Text="—"
                                                        TextWrapping="Wrap" LineHeight="16" MaxWidth="180"/>
@@ -1586,7 +1578,7 @@
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="协议预览" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="0" Text="{DynamicResource 协议预览}" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" x:Name="btnSliderProtocolCopy" Content="{DynamicResource 📋 复制}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"
@@ -1603,19 +1595,19 @@
                                     </Border>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="16"
-                                               Text="拖拽滑杆发送数值。拖拽过程中节流发送，松手时发送最终值。"/>
+                                               Text="{DynamicResource 拖拽滑杆发送数值。拖拽过程中节流发送，松手时发送最终值。}"/>
                                 </StackPanel>
                                 <!-- 编辑模式无选中 -->
                                 <StackPanel x:Name="rightSlidersNoSelection" Visibility="Collapsed">
-                                    <TextBlock Text="滑杆属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="{DynamicResource 滑杆属性}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                     <TextBlock FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                                TextWrapping="Wrap" LineHeight="18"
-                                               Text="选择左侧滑杆以编辑属性。"/>
+                                               Text="{DynamicResource 选择左侧滑杆以编辑属性。}"/>
                                 </StackPanel>
                                 <!-- 单选属性编辑 -->
                                 <StackPanel x:Name="rightSlidersSingleSelect" Visibility="Collapsed">
-                                    <TextBlock Text="滑杆属性" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{DynamicResource 滑杆属性}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{DynamicResource 名字}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Column="1" x:Name="tbSliderName" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
@@ -1626,7 +1618,7 @@
                                                  LostFocus="tbSliderName_LostFocus"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 最小值}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Row="0" Grid.Column="1" x:Name="tbSliderMin" Height="28"
@@ -1646,7 +1638,7 @@
                                                  LostFocus="tbSliderMax_LostFocus"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 步长}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Row="0" Grid.Column="1" x:Name="tbSliderStep" Height="28"
@@ -1656,7 +1648,7 @@
                                                  BorderBrush="{DynamicResource InputBorderBrush}"
                                                  BorderThickness="1" Padding="6,2" Text="1"
                                                  LostFocus="tbSliderStep_LostFocus"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="间隔(ms)" Style="{DynamicResource FormLabelStyle}"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource 间隔(ms)}" Style="{DynamicResource FormLabelStyle}"/>
                                         <TextBox Grid.Row="1" Grid.Column="1" x:Name="tbSliderInterval" Height="28"
                                                  FontFamily="Microsoft YaHei" FontSize="12"
                                                  Foreground="{DynamicResource TextPrimaryBrush}"
@@ -1693,8 +1685,8 @@
                         <ScrollViewer x:Name="rightJoystick" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <TextBlock Text="摇杆设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="{DynamicResource 摇杆设置}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 发送间隔}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Column="1" x:Name="tbJoystickInterval" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
@@ -1710,7 +1702,7 @@
                                 <Button x:Name="btnJoystickCenterSide" Content="{DynamicResource ⟲ 全部回中}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnJoystickCenter_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <TextBlock Text="摇杆反馈" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource 摇杆反馈}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
                                 <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
                                     <TextBlock x:Name="tbJoy1Feedback" FontSize="11"
@@ -1721,10 +1713,10 @@
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                            TextWrapping="Wrap" LineHeight="16">
-                                    <Run Text="🖱 操作：" FontWeight="SemiBold"/>
-                                    <Run Text="拖拽摇杆圆钮发送 X/Y 轴位置。松手时发送最终值。"/>
+                                    <Run Text="{DynamicResource 🖱 操作：}" FontWeight="SemiBold"/>
+                                    <Run Text="{DynamicResource 拖拽摇杆圆钮发送 X/Y 轴位置。松手时发送最终值。}"/>
                                     <LineBreak/>
-                                    <Run Text="协议：" FontWeight="SemiBold"/>
+                                    <Run Text="{DynamicResource 协议：}" FontWeight="SemiBold"/>
                                     <Run Text="[joystick,1,x1,y1,x2,y2]"/>
                                 </TextBlock>
                             </StackPanel>
@@ -1733,14 +1725,14 @@
                         <ScrollViewer x:Name="rightSensors" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <TextBlock Text="卡片管理" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                <TextBlock Text="{DynamicResource 卡片管理}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                 <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                            TextWrapping="Wrap" LineHeight="16">
-                                    <Run Text="📡 正常模式：" FontWeight="SemiBold"/>
-                                    <Run Text="侧栏显示卡片概览和快速跳转。"/>
+                                    <Run Text="{DynamicResource 📡 正常模式：}" FontWeight="SemiBold"/>
+                                    <Run Text="{DynamicResource 侧栏显示卡片概览和快速跳转。}"/>
                                     <LineBreak/>
-                                    <Run Text="✏ 编辑模式：" FontWeight="SemiBold"/>
-                                    <Run Text="侧栏变为行管理器——添加/删除/排序卡片和组。"/>
+                                    <Run Text="{DynamicResource ✏ 编辑模式：}" FontWeight="SemiBold"/>
+                                    <Run Text="{DynamicResource 侧栏变为行管理器——添加/删除/排序卡片和组。}"/>
                                 </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
@@ -1750,10 +1742,10 @@
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <!-- 默认：画布设置 -->
                                 <StackPanel x:Name="rightOLEDSettings" Visibility="Visible">
-                                <TextBlock Text="OLED 设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                <TextBlock Text="画布尺寸" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource OLED 设置}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                <TextBlock Text="{DynamicResource 画布尺寸}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 宽度}" Style="{DynamicResource FormLabelStyle}"/>
                                     <TextBox Grid.Row="0" Grid.Column="1" x:Name="tbOLEDWidth" Height="28"
@@ -1776,7 +1768,7 @@
                                     <TextBlock Grid.Row="1" Grid.Column="2" Text=" px" FontSize="11"
                                                Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="3,0,0,0"/>
                                 </Grid>
-                                <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid Margin="0,6,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{DynamicResource 预设尺寸}" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbOLEDPreset" Height="28"
                                               FontFamily="Microsoft YaHei" FontSize="12"
@@ -1786,7 +1778,7 @@
                                               SelectionChanged="cbOLEDPreset_Changed"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <TextBlock Text="橡皮擦大小" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource 橡皮擦大小}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
                                     <Slider x:Name="sliderEraserWidth" Grid.Column="0" Minimum="3" Maximum="20"
@@ -1801,38 +1793,20 @@
                                 <Button Content="{DynamicResource 🗑 清屏}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnOLEDClear_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
-                                           TextWrapping="Wrap" LineHeight="16">
-                                    <Run Text="坐标轴：起/中/终点标有刻度数字"/>
-                                    <LineBreak/>
-                                    <LineBreak/>
-                                    <Run Text="C 代码写法：" FontWeight="SemiBold"/>
-                                    <LineBreak/>
-                                    <Run Text="Serial_Printf(&amp;huart1,"/>
-                                    <LineBreak/>
-                                    <Run Text="  &quot;[display,0,0,\&quot;hello\&quot;,24]\r\n&quot;);"/>
-                                    <LineBreak/>
-                                    <Run Text="  &quot;[display,10,20,\&quot;ok\&quot;,16,#FF0000]\r\n&quot;);"/>
-                                    <LineBreak/>
-                                    <LineBreak/>
-                                    <Run Text="⚠ 内层引号前加 \ 转义" Foreground="#E74856"/>
-                                    <LineBreak/>
-                                    <Run Text="末尾 #RRGGBB 可选，不写=白色"/>
-                                    <LineBreak/>
-                                    <Run Text="[display-clear] 清屏"/>
-                                </TextBlock>
+                                <TextBlock x:Name="tbOledCodeHints" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
+                                           TextWrapping="Wrap" LineHeight="16"/>
                                 </StackPanel>
                                 <!-- 文字编辑模式 -->
                                 <StackPanel x:Name="rightOLEDTextEditor" Visibility="Collapsed">
                                     <Grid Margin="0,0,0,8">
-                                        <TextBlock Text="文字编辑" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"
+                                        <TextBlock Text="{DynamicResource 文字编辑}" Style="{DynamicResource CardHeaderStyle}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                         <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
                                                 Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
                                                 Click="btnTextEditCancel_Click" ToolTip="{DynamicResource 取消编辑}"/>
                                     </Grid>
                                     <!-- 位置 -->
-                                    <TextBlock Text="位置" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 位置}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                     <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,3,0">
@@ -1858,7 +1832,7 @@
                                     </Grid>
                                     <!-- 内容 -->
                                     <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="内容" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="0" Text="{DynamicResource 内容}" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="0" Padding="6,0" FontSize="10"
@@ -1872,7 +1846,7 @@
                                              BorderThickness="1" Padding="6,2" Margin="0,0,0,8"
                                              TextChanged="tbTextEditContent_Changed"/>
                                     <!-- 字号 -->
-                                    <TextBlock Text="字号" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 字号}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                     <ComboBox x:Name="cbTextEditFontSize" Height="28" Margin="0,0,0,8"
                                               FontFamily="Microsoft YaHei" FontSize="12"
@@ -1881,7 +1855,7 @@
                                               BorderBrush="{DynamicResource InputBorderBrush}"
                                               SelectionChanged="cbTextEditFontSize_Changed"/>
                                     <!-- 颜色 -->
-                                    <TextBlock Text="颜色" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 颜色}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                     <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border x:Name="textEditColorSwatch" Grid.Column="0" Width="32" Height="28" CornerRadius="4"
@@ -1923,7 +1897,7 @@
                                               Click="ShapeField_Changed"/>
                                     <!-- 线宽（填充时隐藏） -->
                                     <StackPanel x:Name="shapeLineWidthPanel" Margin="0,0,0,6">
-                                        <TextBlock Text="线宽" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Text="{DynamicResource 线宽}" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                         <ComboBox x:Name="cbShapeLineWidth" Height="28"
                                                   FontFamily="Microsoft YaHei" FontSize="12"
@@ -1933,7 +1907,7 @@
                                                   SelectionChanged="ShapeField_Changed"/>
                                     </StackPanel>
                                     <!-- 颜色 -->
-                                    <TextBlock Text="颜色" FontSize="11" FontWeight="SemiBold"
+                                    <TextBlock Text="{DynamicResource 颜色}" FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                                     <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Border x:Name="shapeEditColorSwatch" Grid.Column="0" Width="32" Height="28" CornerRadius="4"
@@ -1961,7 +1935,7 @@
                                 <StackPanel x:Name="sharedProtocolPreview" Visibility="Collapsed">
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="协议预览" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="0" Text="{DynamicResource 协议预览}" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" MinWidth="0" Padding="6,0" FontSize="11"
@@ -1982,7 +1956,7 @@
                         <ScrollViewer x:Name="rightSettings" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
-                                <TextBlock Text="设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                                <TextBlock Text="{DynamicResource 设置}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
                                 <Button x:Name="btnSettingsSerial" Content="{DynamicResource 📡 串口配置}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsSerial_Click"/>
                                 <Button x:Name="btnSettingsShortcuts" Content="{DynamicResource ⌨ 快捷键提示}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -2075,17 +2049,17 @@
                             Padding="6,4" SnapsToDevicePixels="True">
                             <avalonedit:TextEditor.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="📋 复制" Click="EditorContext_Copy_Click"
+                                    <MenuItem Header="{DynamicResource 📋 复制}" Click="EditorContext_Copy_Click"
                                               InputGestureText="Ctrl+C"
                                               Style="{StaticResource ContextMenuMenuItemStyle}"/>
-                                    <MenuItem Header="📄 全选" Click="EditorContext_SelectAll_Click"
+                                    <MenuItem Header="{DynamicResource 📄 全选}" Click="EditorContext_SelectAll_Click"
                                               InputGestureText="Ctrl+A"
                                               Style="{StaticResource ContextMenuMenuItemStyle}"/>
                                     <Separator Style="{StaticResource ContextMenuSeparatorStyle}"/>
-                                    <MenuItem Header="🗑 清空接收区" Click="EditorContext_Clear_Click"
+                                    <MenuItem Header="{DynamicResource 🗑 清空接收区}" Click="EditorContext_Clear_Click"
                                               InputGestureText="Ctrl+L"
                                               Style="{StaticResource ContextMenuMenuItemStyle}"/>
-                                    <MenuItem Header="⏸ 暂停显示" x:Name="menuPauseDisplay"
+                                    <MenuItem Header="{DynamicResource ⏸ 暂停显示}" x:Name="menuPauseDisplay"
                                               Click="EditorContext_Pause_Click"
                                               Style="{StaticResource ContextMenuMenuItemStyle}"/>
                                 </ContextMenu>
@@ -2106,12 +2080,12 @@
                         <Grid Grid.Row="0">
                             <TextBox x:Name="tbSend" Style="{DynamicResource SendTextBoxStyle}"
                                      PreviewKeyDown="tbSend_PreviewKeyDown" TextChanged="tbSend_TextChanged"/>
-                            <TextBlock x:Name="tbSendPlaceholder" Text="输入要发送的内容…"
+                            <TextBlock x:Name="tbSendPlaceholder" Text="{DynamicResource 输入要发送的内容…}"
                                        Foreground="{DynamicResource TextSubtleBrush}" FontFamily="Microsoft YaHei"
                                        FontSize="12" Padding="8,6,0,0" IsHitTestVisible="False"/>
                         </Grid>
                         <Grid Grid.Row="1" Margin="0,8,0,0">
-                            <TextBlock Text="Enter 发送  ·  Shift+Enter 换行  ·  Ctrl+L 清空接收  ·  Ctrl+P 暂停  ·  Ctrl+Enter 开关串口"
+                            <TextBlock Text="{DynamicResource Enter 发送  ·  Shift+Enter 换行  ·  Ctrl+L 清空接收  ·  Ctrl+P 暂停  ·  Ctrl+Enter 开关串口}"
                                        FontSize="10" Foreground="{DynamicResource TextSubtleBrush}" VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <TextBlock x:Name="tbHexWarning" Foreground="#E8A838" FontSize="11"
@@ -2180,7 +2154,7 @@
                                        Foreground="{DynamicResource PrimaryBrush}"/>
                         </Border>
                         <TextBlock x:Name="plotEmptyHint" Panel.ZIndex="0"
-                                   Text="等待串口数据…" FontSize="14"
+                                   Text="{DynamicResource 等待串口数据…}" FontSize="14"
                                    Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <!-- 串口断开波形冻结水印 -->
@@ -2188,7 +2162,7 @@
                                 Background="#40FFFFFF" CornerRadius="4" Padding="16,8"
                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                 Margin="0,0,16,16" Visibility="Collapsed" IsHitTestVisible="False">
-                            <TextBlock Text="串口已断开 · 数据冻结" FontSize="13"
+                            <TextBlock Text="{DynamicResource 串口已断开 · 数据冻结}" FontSize="13"
                                        Foreground="{DynamicResource TextSubtleBrush}" FontStyle="Italic"/>
                         </Border>
                     </Grid>
@@ -2234,7 +2208,7 @@
                             <Button x:Name="btnKeysEdit" Content="{DynamicResource 编辑}"
                                     Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
                                     Click="btnKeysEdit_Click" ToolTip="{DynamicResource 进入编辑模式}"/>
-                            <TextBlock Text="  Shift 切换大小写" FontSize="11"
+                            <TextBlock Text="{DynamicResource   Shift 切换大小写}" FontSize="11"
                                        Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0"
                                        Visibility="Collapsed"/>
                         </StackPanel>
@@ -2265,21 +2239,21 @@
                         <!-- 空状态提示（正常模式，无按键） -->
                         <StackPanel x:Name="keysEmptyHintNormal" VerticalAlignment="Center" HorizontalAlignment="Center"
                                     Visibility="Visible">
-                            <TextBlock Text="点击" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                            <TextBlock Text="{DynamicResource 点击}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="[编辑]" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock Text=" 开始添加按键" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                                <TextBlock Text="{DynamicResource [编辑]}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                <TextBlock Text="{DynamicResource  开始添加按键}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             </StackPanel>
                         </StackPanel>
                         <!-- 空状态提示（编辑模式，无按键） -->
                         <StackPanel x:Name="keysEmptyHintEdit" VerticalAlignment="Center" HorizontalAlignment="Center"
                                     Visibility="Collapsed">
-                            <TextBlock Text="点击" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                            <TextBlock Text="{DynamicResource 点击}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="[+ 添加]" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock Text=" 或 " FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
-                                <TextBlock Text="[⌨ 键盘布局]" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock Text=" 批量创建" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                                <TextBlock Text="{DynamicResource [+ 添加]}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                <TextBlock Text="{DynamicResource  或 }" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                                <TextBlock Text="{DynamicResource [⌨ 键盘布局]}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                <TextBlock Text="{DynamicResource  批量创建}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             </StackPanel>
                         </StackPanel>
                         <!-- 按键按钮区域（按行排列，键盘布局保持行列结构） -->
@@ -2325,19 +2299,19 @@
                         <!-- 空状态（正常模式，无滑杆） -->
                         <StackPanel x:Name="slidersEmptyHintNormal" VerticalAlignment="Center" HorizontalAlignment="Center"
                                     Visibility="Visible">
-                            <TextBlock Text="点击" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                            <TextBlock Text="{DynamicResource 点击}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="[编辑]" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock Text=" 开始添加滑杆" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                                <TextBlock Text="{DynamicResource [编辑]}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                <TextBlock Text="{DynamicResource  开始添加滑杆}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             </StackPanel>
                         </StackPanel>
                         <!-- 空状态（编辑模式，无滑杆） -->
                         <StackPanel x:Name="slidersEmptyHintEdit" VerticalAlignment="Center" HorizontalAlignment="Center"
                                     Visibility="Collapsed">
-                            <TextBlock Text="点击" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                            <TextBlock Text="{DynamicResource 点击}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="[+ 添加]" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                <TextBlock Text=" 创建滑杆控件" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
+                                <TextBlock Text="{DynamicResource [+ 添加]}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                <TextBlock Text="{DynamicResource  创建滑杆控件}" FontSize="14" FontStyle="Italic" Foreground="{DynamicResource TextSubtleBrush}"/>
                             </StackPanel>
                         </StackPanel>
                         <!-- 滑杆列表 -->
@@ -2375,8 +2349,8 @@
                                     Click="btnToolRect_Click">
                                 <Button.ContextMenu>
                                     <ContextMenu Placement="Bottom">
-                                        <MenuItem Header="▭ 矩形" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolRect_Click"/>
-                                        <MenuItem Header="▢ 圆角矩形" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolRoundedRect_Click"/>
+                                        <MenuItem Header="{DynamicResource ▭ 矩形}" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolRect_Click"/>
+                                        <MenuItem Header="{DynamicResource ▢ 圆角矩形}" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolRoundedRect_Click"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -2385,8 +2359,8 @@
                                     Click="btnToolCircle_Click">
                                 <Button.ContextMenu>
                                     <ContextMenu Placement="Bottom">
-                                        <MenuItem Header="◯ 圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolCircle_Click"/>
-                                        <MenuItem Header="⬭ 椭圆" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolEllipse_Click"/>
+                                        <MenuItem Header="{DynamicResource ◯ 圆}" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolCircle_Click"/>
+                                        <MenuItem Header="{DynamicResource ⬭ 椭圆}" Style="{StaticResource ContextMenuMenuItemStyle}" Click="SubToolEllipse_Click"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -2440,7 +2414,7 @@
                                 </Border>
                             </Viewbox>
                             <TextBlock x:Name="oledEmptyHint" Grid.Row="1" Grid.Column="1"
-                                       Text="等待串口数据…" FontSize="12" FontStyle="Italic" Foreground="#444444"
+                                       Text="{DynamicResource 等待串口数据…}" FontSize="12" FontStyle="Italic" Foreground="#444444"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
                         </Grid>
                     </Grid>
@@ -2456,13 +2430,13 @@
                             <Button x:Name="btnJoystickCenter" Content="{DynamicResource ⟲ 回中}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
                                     Click="btnJoystickCenter_Click" ToolTip="{DynamicResource 将所有摇杆归零}"/>
-                            <TextBlock Text="底板" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                            <TextBlock Text="{DynamicResource 底板}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                        VerticalAlignment="Center" Margin="8,0,2,0"/>
                             <Button x:Name="btnJoystickPadStyle" Content="手柄风 ▾"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
                                     Click="btnJoystickPadStyle_Click"
                                     ToolTip="{DynamicResource 切换摇杆底板（大圆盘）风格}"/>
-                            <TextBlock Text="拇指" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                            <TextBlock Text="{DynamicResource 拇指}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                        VerticalAlignment="Center" Margin="6,0,2,0"/>
                             <Button x:Name="btnJoystickThumbStyle" Content="手柄风 ▾"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
@@ -2504,8 +2478,8 @@
                             <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
-                            <TextBlock Text="串口配置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="{DynamicResource 串口配置}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource 数据位}" Style="{DynamicResource FormLabelStyle}"/>
                                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbDataBits"
@@ -2541,7 +2515,7 @@
                             <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
-                            <TextBlock Text="快捷键提示" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,16"/>
+                            <TextBlock Text="{DynamicResource 快捷键提示}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,16"/>
                             <StackPanel x:Name="shortcutListPanel"/>
                         </StackPanel>
                     </ScrollViewer>
@@ -2551,15 +2525,9 @@
                             <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
-                            <TextBlock Text="使用示例" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
-                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"
-                                       TextWrapping="Wrap">
-                                <Run Text="设备通过串口发送 "/><Run Text="[type,arg1,arg2,...]" FontFamily="Consolas"
-                                    Foreground="{DynamicResource PrimaryBrush}"/><Run Text=" 格式的消息，"/>
-                                <Run Text="工具自动解析并路由到对应面板。方括号 "/><Run Text="[ ]" FontFamily="Consolas"
-                                    Foreground="{DynamicResource PrimaryBrush}"/>
-                                <Run Text=" 包裹每条消息，参数用逗号分隔。含逗号的参数用双引号包裹。"/>
-                            </TextBlock>
+                            <TextBlock Text="{DynamicResource 使用示例}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="tbUsageExample" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"
+                                       TextWrapping="Wrap"/>
                             <StackPanel x:Name="examplesListPanel"/>
                         </StackPanel>
                     </ScrollViewer>
@@ -2569,13 +2537,13 @@
                             <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
-                            <TextBlock Text="素材自定义" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource 素材自定义}" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
                             <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"
                                        TextWrapping="Wrap"
-                                       Text="滑杆和摇杆支持自定义图片素材。将 PNG 放入素材文件夹，软件在下拉菜单中自动识别新风格。"/>
+                                       Text="{DynamicResource 滑杆和摇杆支持自定义图片素材。将 PNG 放入素材文件夹，软件在下拉菜单中自动识别新风格。}"/>
                             <!-- 路径 -->
                             <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,12,0,4"
-                                       Text="📂 素材文件夹"/>
+                                       Text="{DynamicResource 📂 素材文件夹}"/>
                             <Grid Margin="0,0,0,8">
                                 <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,8">
                                     <StackPanel>
@@ -2583,18 +2551,18 @@
                                                    Foreground="{DynamicResource PrimaryBrush}" TextWrapping="Wrap"
                                                    ToolTip="{DynamicResource 点击复制路径}"/>
                                         <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
-                                                   Text="👆 点击上方蓝色路径即可复制，粘贴到文件管理器打开此文件夹"/>
+                                                   Text="{DynamicResource 👆 点击上方蓝色路径即可复制，粘贴到文件管理器打开此文件夹}"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
-                                       Text="在此文件夹下创建 joystick/ 和 sliders/ 子目录，按下方命名规则放入 PNG 即可。"/>
+                                       Text="{DynamicResource 在此文件夹下创建 joystick/ 和 sliders/ 子目录，按下方命名规则放入 PNG 即可。}"/>
 
                             <!-- 摇杆 -->
                             <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,16,0,4"
-                                       Text="🕹 摇杆 — 底板 &amp; 拇指"/>
+                                       Text="{DynamicResource 🕹 摇杆 — 底板 &amp; 拇指}"/>
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,6"
-                                       Text="📍 操作：摇杆标签页 → 找到「⟲ 回中」按钮 → 旁边有「底板 ▾」和「拇指 ▾」两个下拉按钮 → 点开即见你的自定义风格。"/>
+                                       Text="{DynamicResource 📍 操作：摇杆标签页 → 找到「⟲ 回中」按钮 → 旁边有「底板 ▾」和「拇指 ▾」两个下拉按钮 → 点开即见你的自定义风格。}"/>
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -2603,25 +2571,25 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
-                                        <TextBlock Text="pad_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource pad_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBlock Text="底板   140×140 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="2" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
-                                        <TextBlock Text="thumb_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource thumb_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBlock Text="拇指    32×32 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                             <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"
-                                       Text="内置风格（手柄风 / 极简风 / 经典风）始终可用。同名 PNG 可覆盖内置的代码绘制。"/>
+                                       Text="{DynamicResource 内置风格（手柄风 / 极简风 / 经典风）始终可用。同名 PNG 可覆盖内置的代码绘制。}"/>
 
                             <!-- 滑杆 -->
                             <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}" Margin="0,12,0,4"
-                                       Text="🎚 滑杆 — 轨道 &amp; 滑钮"/>
+                                       Text="{DynamicResource 🎚 滑杆 — 轨道 &amp; 滑钮}"/>
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,6"
-                                       Text="📍 操作：滑杆标签页 → 点击 [编辑] → 右侧面板滚动到底部 → 点「轨道 ▾」或「拇指 ▾」下拉按钮选择风格。轨道和滑钮可以独立混搭。"/>
+                                       Text="{DynamicResource 📍 操作：滑杆标签页 → 点击 [编辑] → 右侧面板滚动到底部 → 点「轨道 ▾」或「拇指 ▾」下拉按钮选择风格。轨道和滑钮可以独立混搭。}"/>
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -2630,19 +2598,19 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
-                                        <TextBlock Text="track_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource track_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBlock Text="轨道横条   ≥200×4~12 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="2" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
-                                        <TextBlock Text="thumb_风格名.png" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
+                                        <TextBlock Text="{DynamicResource thumb_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBlock Text="拖拽滑钮   16~48 px 方形" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                             <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                       Text="内置风格（默认 / 极简）始终可用。删掉对应 PNG 文件后重启软件，菜单中自动消失。"/>
+                                       Text="{DynamicResource 内置风格（默认 / 极简）始终可用。删掉对应 PNG 文件后重启软件，菜单中自动消失。}"/>
                         </StackPanel>
                     </ScrollViewer>
                     <!-- 关于 -->
@@ -2660,12 +2628,12 @@
                                            Foreground="{DynamicResource PrimaryBrush}"/>
                             </Border>
                             <!-- 制作 -->
-                            <TextBlock Text="制作" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="{DynamicResource 制作}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
                             <TextBlock Text="冯毅力" FontSize="13"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
                             <!-- 技术栈 -->
-                            <TextBlock Text="技术栈" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="{DynamicResource 技术栈}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
                             <TextBlock FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16">
                                 <Run Text=".NET 8.0 · WPF"/><LineBreak/>
@@ -2673,7 +2641,7 @@
                                 <Run Text="CommunityToolkit.Mvvm"/>
                             </TextBlock>
                             <!-- 运行时 -->
-                            <TextBlock Text="运行时" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="{DynamicResource 运行时}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,4"/>
                             <TextBlock x:Name="tbAboutRuntime" FontSize="13"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
@@ -2694,7 +2662,7 @@
 
                             <!-- 数据路径 -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="数据" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource 数据}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
                                 <Button Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
@@ -2709,7 +2677,7 @@
 
                             <!-- Issue 反馈 -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="反馈" FontSize="11" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource 反馈}" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
                                 <Button Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
@@ -2736,7 +2704,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse x:Name="statusDot" Width="8" Height="8"
                              Fill="{DynamicResource StatusDotIdleBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="tbStatusText" Text="就绪" FontSize="11"
+                    <TextBlock x:Name="tbStatusText" Text="{DynamicResource 就绪}" FontSize="11"
                                Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     <TextBlock x:Name="tbTraffic" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="16,0,0,0" Visibility="Collapsed"

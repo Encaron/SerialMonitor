@@ -37,7 +37,7 @@ namespace 串口助手
             var itemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
             if (sendHistory.Count == 0)
             {
-                menu.Items.Add(new MenuItem { Header = "（暂无历史记录）", IsEnabled = false, Style = itemStyle });
+                menu.Items.Add(new MenuItem { Header = T("（暂无历史记录）"), IsEnabled = false, Style = itemStyle });
             }
             else
             {
@@ -142,7 +142,7 @@ namespace 串口助手
                     var menu = new ContextMenu { PlacementTarget = s as UIElement, Placement = PlacementMode.Bottom };
                     var menuItemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
 
-                    var editItem = new MenuItem { Header = "编辑标签", Style = menuItemStyle };
+                    var editItem = new MenuItem { Header = T("编辑标签"), Style = menuItemStyle };
                     string oldLabel = kv.Key;
                     editItem.Click += (s2, e2) =>
                     {
@@ -158,7 +158,7 @@ namespace 串口助手
                     };
                     menu.Items.Add(editItem);
 
-                    var deleteItem = new MenuItem { Header = "删除", Style = menuItemStyle };
+                    var deleteItem = new MenuItem { Header = T("删除"), Style = menuItemStyle };
                     deleteItem.Click += (s2, e2) =>
                     {
                         quickSends.Remove(oldLabel);
@@ -187,7 +187,7 @@ namespace 串口助手
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(1),
                 Cursor = Cursors.Hand,
-                ToolTip = "将当前输入区内容添加为快捷发送按钮",
+                ToolTip = T("将当前输入区内容添加为快捷发送按钮"),
                 SnapsToDevicePixels = true,
             };
             // "+" 按钮模板（虚线边框风格表示"添加"语义）
@@ -301,7 +301,7 @@ namespace 串口助手
 
             var cancelBtn = new Button
             {
-                Content = "取消",
+                Content = T("取消"),
                 Width = 64,
                 Height = 28,
                 Margin = new Thickness(0, 0, 8, 0),
@@ -337,7 +337,7 @@ namespace 串口助手
 
             var okBtn = new Button
             {
-                Content = "确定",
+                Content = T("确定"),
                 Width = 64,
                 Height = 28,
                 Foreground = Brushes.White,

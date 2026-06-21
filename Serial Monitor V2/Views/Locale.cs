@@ -41,6 +41,16 @@ namespace 串口助手
         /// <summary>切语言后触发，参数 isZh。MainWindow 设此回调更新按钮字重字号。</summary>
         public static System.Action<bool> OnLangChanged = _ => { };
 
+        /// <summary>切语言后重绘回调（使用示例页/快捷键页等运行时重建的 UI）。注册即自动跟，和 RegisterThemePanel 同机制。</summary>
+        private static readonly System.Collections.Generic.List<System.Action> _localeRebuildCallbacks = new();
+
+        /// <summary>注册切语言时自动调用的重建回调。新面板加一行 RegisterLocaleRebuild(() => ...) 即可。</summary>
+        public static void RegisterLocaleRebuild(System.Action rebuild)
+            => _localeRebuildCallbacks.Add(rebuild);
+
+        /// <summary>本次语言切换中缺失 EnMap 的 key。切英文后系统日志可打印，定位遗漏。</summary>
+        public static readonly System.Collections.Generic.HashSet<string> MissingKeys = new();
+
         /// <summary>Window 级别 Resources（DynamicResource 主要解析层），Initialize 时注入。</summary>
         private static ResourceDictionary _windowResources;
 
@@ -66,6 +76,10 @@ namespace 串口助手
             }
 
             OnLangChanged(isZh);
+
+            // 切语言后自动触发所有注册的重建回调（使用示例页、快捷键页等）
+            foreach (var cb in _localeRebuildCallbacks)
+                cb();
         }
     }
 }

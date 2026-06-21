@@ -460,7 +460,7 @@ namespace 串口助手
             });
             headerPanel.Children.Add(new TextBlock
             {
-                Text = "  " + desc, FontSize = 10,
+                Text = "  " + T(desc), FontSize = 10,
                 Foreground = (Brush)FindResource("TextMutedBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
             });

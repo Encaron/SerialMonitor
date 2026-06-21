@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Linq;
@@ -180,6 +181,11 @@ namespace 串口助手
             // 双语：注入所有中文 key 到 Application + Window 两级资源字典
             Locale.Initialize(this.Resources);
 
+            // 注册切语言时自动重建的页面（和 RegisterThemePanel 同机制：一处注册，自动跟）
+            Locale.RegisterLocaleRebuild(RefreshLocaleInlines);
+            Locale.RegisterLocaleRebuild(PopulateShortcutPage);
+            Locale.RegisterLocaleRebuild(PopulateExamplesPage);
+
             // 双语按钮：切语言时更新 "中/EN" 字重字号
             Locale.OnLangChanged = isZh =>
             {
@@ -199,11 +205,24 @@ namespace 串口助手
                 }
                 // 切语言后重绑侧栏标题等（避免 WPF 资源通知延迟导致不跟）
                 RefreshContentVisibility();
+
+                // 切英文后报告缺失的 EnMap key（帮助定位遗漏）
+                if (!isZh && Locale.MissingKeys.Count > 0)
+                {
+                    var list = string.Join(", ", Locale.MissingKeys.OrderBy(k => k));
+                    LogSystem($"[i18n] Missing EnMap keys ({Locale.MissingKeys.Count}): {list}");
+                    Locale.MissingKeys.Clear();
+                }
             };
 
-            // 弹窗 toggle：AttachPopupToggle 统一处理 PreviewMouseLeftButtonDown 拦截（StaysOpen 冲突）
+            // 弹窗 toggle：AttachPopupToggle 拦截 PreviewMouseLeftButtonDown（CreatePopup 默认 StaysOpen=true，无竞态）
             AttachPopupToggle(btnFilterMenu, () => _filterPopup);
             AttachPopupToggle(btnAddPanel, () => _addPanelPopup);
+
+            // ToolTip 含逗号或等号 → 不能用 XAML DynamicResource → C# 侧 SetResourceReference
+            cbParity.SetResourceReference(FrameworkElement.ToolTipProperty, "错误检测方式。None=不校验，Odd=奇校验，Even=偶校验");
+            cbFlowControl.SetResourceReference(FrameworkElement.ToolTipProperty, "数据流控制。None=无，RTS=硬件流控，XOnXOff=软件流控");
+            btnModuleGenRelease.SetResourceReference(FrameworkElement.ToolTipProperty, "为模块内所有按键的松开发送填入 [key,Name,up] 文本值");
 
             // 默认选中接收区图标（InitializeComponent 之后，避免 XAML 阶段触发事件）
             tabReceive.IsChecked = true;
@@ -395,11 +414,11 @@ namespace 串口助手
             RefreshQuickSendButtons();
 
             // 确保主题按钮背景在首次加载时正确（亮色模式下 ApplyTheme 尚未被调用）
-            btnThemeSwitch.Content = isDarkTheme ? "☀ 亮色模式" : "🌙 暗色模式";
+            btnThemeSwitch.LocText(isDarkTheme ? "☀ 亮色模式" : "🌙 暗色模式");
             btnThemeSwitch.Background = isDarkTheme
                 ? new SolidColorBrush(Color.FromRgb(0x3E, 0x3E, 0x42))
                 : new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0));
-            tbThemeToggleLabel.Text = isDarkTheme ? "亮" : "暗";
+            tbThemeToggleLabel.LocText(isDarkTheme ? "亮" : "暗");
             imgThemeToggle.Source = new BitmapImage(new Uri(
                 isDarkTheme ? "Icons/setting/theme/theme-sun.png" : "Icons/setting/theme/theme-moon.png",
                 UriKind.Relative));
@@ -430,7 +449,7 @@ namespace 串口助手
             {
                 tbAboutVersion.Text = $"{v}  →  v{_remoteVersion} 可用";
                 tbAboutVersion.Cursor = Cursors.Hand;
-                tbAboutVersion.ToolTip = "点击查看更新内容";
+                tbAboutVersion.ToolTip = T("点击查看更新内容");
 
                 // 按钮样式：PrimaryBrush 描边 + 半透明底色
                 var primaryBrush = (SolidColorBrush)FindResource("PrimaryBrush");
@@ -439,7 +458,7 @@ namespace 串口助手
                 bdAboutVersion.Background = new SolidColorBrush(primaryBrush.Color) { Opacity = 0.12 };
                 bdAboutVersion.Padding = new Thickness(12, 6, 12, 6);
                 bdAboutVersion.Cursor = Cursors.Hand;
-                bdAboutVersion.ToolTip = "点击查看更新内容";
+                bdAboutVersion.ToolTip = T("点击查看更新内容");
             }
             else
             {
@@ -1296,7 +1315,6 @@ namespace 串口助手
             if (btn == null) return;
 
             var popup = CreatePopup(btn);
-
             var border = new Border
             {
                 Background = (Brush)FindResource("CardBgBrush"),
@@ -1312,7 +1330,7 @@ namespace 串口助手
             // —— 协议主开关 ——
             var cbProtocol = new CheckBox
             {
-                Content = "📡 协议消息",
+                Content = T("📡 协议消息"),
                 IsChecked = _showProtocolMsgs,
                 FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
@@ -1348,7 +1366,7 @@ namespace 串口助手
             // —— 普通文本开关 ——
             var cbPlain = new CheckBox
             {
-                Content = "普通文本",
+                Content = T("普通文本"),
                 IsChecked = _showPlainText,
                 FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
@@ -1366,7 +1384,7 @@ namespace 串口助手
             RebuildProtocolSubItems(stack);
 
             // 点击 Popup 外部 → 关闭
-            // 窗口移动+失焦 → CreatePopup 已内置 LocationChanged+StaysOpen=false
+            // 窗口移动+失焦 → CreatePopup 已内置 LocationChanged
             MouseButtonEventHandler closeHandler = null;
             closeHandler = (s2, args2) =>
             {
@@ -1419,7 +1437,7 @@ namespace 串口助手
             {
                 var cb = new CheckBox
                 {
-                    Content = $"[{kv.Key}]  {kv.Value}",
+                    Content = $"[{kv.Key}]  {T(kv.Value)}",
                     IsChecked = _protocolTypeFilters[kv.Key],
                     IsEnabled = _showProtocolMsgs,
                     Opacity = _showProtocolMsgs ? 1.0 : 0.45,
@@ -2060,7 +2078,7 @@ namespace 串口助手
                 {
                     var groupHeader = new TextBlock
                     {
-                        Text = sc.Group,
+                        Text = T(sc.Group),
                         FontSize = 11,
                         FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = (Brush)FindResource("TextMutedBrush"),
@@ -2113,7 +2131,7 @@ namespace 串口助手
                 // 描述
                 var desc = new TextBlock
                 {
-                    Text = sc.Desc,
+                    Text = T(sc.Desc),
                     FontSize = 13,
                     Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     VerticalAlignment = VerticalAlignment.Center,
@@ -2296,7 +2314,7 @@ namespace 串口助手
                 // 标题
                 var titleText = new TextBlock
                 {
-                    Text = ex.Title,
+                    Text = T(ex.Title),
                     FontSize = 13, FontWeight = System.Windows.FontWeights.SemiBold,
                     Foreground = textPrimary, VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 0, 0, 0),
@@ -2307,7 +2325,7 @@ namespace 串口助手
                 // 复制代码按钮
                 var btnCopyCode = new Button
                 {
-                    Content = "📋 复制代码",
+                    Content = T("📋 复制代码"),
                     Style = (Style)FindResource("SecondaryButtonStyle"),
                     Height = 24, MinWidth = 0, Padding = new Thickness(8, 0, 8, 0),
                     FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
@@ -2354,7 +2372,7 @@ namespace 串口助手
                 // ——— 描述 ———
                 card.Children.Add(new TextBlock
                 {
-                    Text = ex.Desc,
+                    Text = T(ex.Desc),
                     FontSize = 12, FontFamily = yaheiFont,
                     Foreground = textSecondary, TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 8, 0, 10),
@@ -2369,7 +2387,7 @@ namespace 串口助手
                     // ── 子类型速查表 ──
                     var tableHeader = new TextBlock
                     {
-                        Text = "子类型速查",
+                        Text = T("子类型速查"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 0, 0, 6),
                     };
@@ -2440,7 +2458,7 @@ namespace 串口助手
                             {
                                 row.Children.Add(new TextBlock
                                 {
-                                    Text = note, FontSize = 10, FontFamily = yaheiFont,
+                                    Text = T(note), FontSize = 10, FontFamily = yaheiFont,
                                     Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
                                 });
                             }
@@ -2450,13 +2468,13 @@ namespace 串口助手
                         card.Children.Add(tblBorder);
                     }
 
-                    RenderTable("基础图形", basicShapes);
-                    RenderTable("进阶 & 增量同步", advancedShapes);
+                    RenderTable(T("基础图形"), basicShapes);
+                    RenderTable(T("进阶 & 增量同步"), advancedShapes);
 
                     // ── 规则说明 ──
                     var rulesText = new TextBlock
                     {
-                        Text = "fill → 填充模式（忽略线宽），a<度数> → 旋转（仅 rect / ellipse）",
+                        Text = T("fill → 填充模式（忽略线宽），a<度数> → 旋转（仅 rect / ellipse）"),
                         FontSize = 10, FontFamily = yaheiFont,
                         Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
                         Margin = new Thickness(0, 0, 0, 12),
@@ -2466,7 +2484,7 @@ namespace 串口助手
                     // ── 常用示例 ──
                     var exHeader = new TextBlock
                     {
-                        Text = "常用示例",
+                        Text = T("常用示例"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 4, 0, 4),
                     };
@@ -2501,7 +2519,7 @@ namespace 串口助手
 
                         exRow.Children.Add(new TextBlock
                         {
-                            Text = label,
+                            Text = T(label),
                             FontSize = 10, FontFamily = yaheiFont,
                             Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
                             Margin = new Thickness(6, 0, 6, 0),
@@ -2540,7 +2558,7 @@ namespace 串口助手
                     codeToggleRow.Children.Add(codeArrow);
                     codeToggleRow.Children.Add(new TextBlock
                     {
-                        Text = "设备端代码（MCU printf wrapper）",
+                        Text = T("设备端代码（MCU printf wrapper）"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
                     });
@@ -2555,7 +2573,7 @@ namespace 串口助手
                     };
                     codeContent.Child = new TextBlock
                     {
-                        Text = ex.Code,
+                        Text = T(ex.Code),
                         FontSize = 11, FontFamily = codeFont,
                         Foreground = codeFg,
                         TextWrapping = TextWrapping.Wrap,
@@ -2582,14 +2600,13 @@ namespace 串口助手
                     };
                     formatRow.Children.Add(new TextBlock
                     {
-                        Text = "协议格式",
+                        Text = T("协议格式"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
-                        Width = 72,
                     });
                     formatRow.Children.Add(new TextBlock
                     {
-                        Text = ex.Format,
+                        Text = T(ex.Format),
                         FontSize = 12, FontFamily = codeFont,
                         Foreground = textSecondary,
                         VerticalAlignment = VerticalAlignment.Center,
@@ -2599,7 +2616,7 @@ namespace 串口助手
                     // ——— 协议示例 ———
                     var exampleHeader = new TextBlock
                     {
-                        Text = "协议示例",
+                        Text = T("协议示例"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
                     };
@@ -2651,7 +2668,7 @@ namespace 串口助手
                     {
                         var paramsHeader = new TextBlock
                         {
-                            Text = "参数",
+                            Text = T("参数"),
                             FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                             Foreground = textMuted, Margin = new Thickness(0, 8, 0, 4),
                         };
@@ -2668,12 +2685,12 @@ namespace 串口助手
                             {
                                 Text = name,
                                 FontSize = 11, FontFamily = codeFont,
-                                Foreground = textSecondary, Width = 72,
+                                Foreground = textSecondary,
                                 VerticalAlignment = VerticalAlignment.Top,
                             });
                             paramStack.Children.Add(new TextBlock
                             {
-                                Text = desc,
+                                Text = T(desc),
                                 FontSize = 11, FontFamily = yaheiFont,
                                 Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
                             });
@@ -2684,7 +2701,7 @@ namespace 串口助手
                     // ——— 设备端代码 ———
                     var codeHeader = new TextBlock
                     {
-                        Text = "设备端代码",
+                        Text = T("设备端代码"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 10, 0, 6),
                     };
@@ -2698,7 +2715,7 @@ namespace 串口助手
                     };
                     var codeText = new TextBlock
                     {
-                        Text = ex.Code,
+                        Text = T(ex.Code),
                         FontSize = 11, FontFamily = codeFont,
                         Foreground = codeFg,
                         TextWrapping = TextWrapping.Wrap,
@@ -2785,7 +2802,7 @@ namespace 串口助手
             };
             toastBorder.Child = new TextBlock
             {
-                Text = "✓ 已复制",
+                Text = T("✓ 已复制"),
                 FontSize = 12,
                 Foreground = new SolidColorBrush(Colors.White),
                 FontFamily = btn.FontFamily,
@@ -2833,10 +2850,10 @@ namespace 串口助手
             {
                 PlacementTarget = placementTarget,
                 Placement = placement,
-                StaysOpen = false,
+                StaysOpen = true,  // 避免与 AttachPopupToggle 竞态；关闭由 toggle + 外部点击管
                 AllowsTransparency = true,
             };
-            // 窗口移动时自动关闭（StaysOpen=false 不管这个）
+            // 窗口移动时自动关闭
             EventHandler onMoved = null;
             onMoved = (_, _) => { popup.IsOpen = false; LocationChanged -= onMoved; };
             LocationChanged += onMoved;
@@ -2991,6 +3008,68 @@ namespace 串口助手
                 tabReceive.IsChecked = true;
         }
 
+        /// <summary>安全取双语资源：Application.Resources 有 → 翻译；没有 → 回退原文。</summary>
+        private string T(string zh)
+        {
+            var appRes = Application.Current.Resources;
+            if (appRes.Contains(zh) && appRes[zh] is string val)
+                return val;
+            // 只记录含中文的缺 key（纯英文/协议字符串不需要翻译）
+            if (ContainsCjk(zh))
+                Locale.MissingKeys.Add(zh);
+            return zh;
+        }
+
+        private static bool ContainsCjk(string s)
+        {
+            foreach (char c in s)
+                if (c >= 0x4E00 && c <= 0x9FFF) return true;
+            return false;
+        }
+
+        /// <summary>重建含逗号/等号的说明文字 Inlines（XAML DynamicResource 语法限制）</summary>
+        private void RefreshLocaleInlines()
+        {
+            // FFT 操作提示
+            tbFftHints.Inlines.Clear();
+            tbFftHints.Inlines.Add(new Run(T("🔬 数据源选 [plot,...] 通道 → PC 自动算 FFT")) { FontWeight = FontWeights.SemiBold });
+            tbFftHints.Inlines.Add(new LineBreak());
+            tbFftHints.Inlines.Add(new Run(T("收到 [fft,...] 协议则覆盖自动频谱")));
+            tbFftHints.Inlines.Add(new LineBreak());
+            tbFftHints.Inlines.Add(new Run(T("🖱 滚轮缩放 · 右键拖拽平移")));
+            tbFftHints.Inlines.Add(new LineBreak());
+            tbFftHints.Inlines.Add(new Run(T("📊 暂停后点「详细」按钮查看频谱指标")));
+
+            // OLED C 代码说明
+            tbOledCodeHints.Inlines.Clear();
+            tbOledCodeHints.Inlines.Add(new Run(T("坐标轴：起/中/终点标有刻度数字")));
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run(T("C 代码写法：")) { FontWeight = FontWeights.SemiBold });
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run("Serial_Printf(&huart1,"));
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run("  \"[display,0,0,\\\"hello\\\",24]\\r\\n\");"));
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run("  \"[display,10,20,\\\"ok\\\",16,#FF0000]\\r\\n\");"));
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run(T("⚠ 内层引号前加 \\ 转义")) { Foreground = new SolidColorBrush(Color.FromRgb(0xE7, 0x48, 0x56)) });
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run(T("末尾 #RRGGBB 可选，不写=白色")));
+            tbOledCodeHints.Inlines.Add(new LineBreak());
+            tbOledCodeHints.Inlines.Add(new Run(T("[display-clear] 清屏")));
+
+            // 使用示例
+            tbUsageExample.Inlines.Clear();
+            tbUsageExample.Inlines.Add(new Run(T("设备通过串口发送 ")));
+            tbUsageExample.Inlines.Add(new Run("[type,arg1,arg2,...]") { FontFamily = new System.Windows.Media.FontFamily("Consolas"), Foreground = (Brush)FindResource("PrimaryBrush") });
+            tbUsageExample.Inlines.Add(new Run(T(" 格式的消息，")));
+            tbUsageExample.Inlines.Add(new Run(T("工具自动解析并路由到对应面板。方括号 ")));
+            tbUsageExample.Inlines.Add(new Run("[ ]") { FontFamily = new System.Windows.Media.FontFamily("Consolas"), Foreground = (Brush)FindResource("PrimaryBrush") });
+            tbUsageExample.Inlines.Add(new Run(T(" 包裹每条消息，参数用逗号分隔。含逗号的参数用双引号包裹。")));
+        }
+
         private Popup _addPanelPopup;
 
         /// <summary>
@@ -3010,23 +3089,23 @@ namespace 串口助手
 
             // 标题
             panel.Children.Add(new TextBlock {
-                Text = "管理标签显示", FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Text = T("管理标签显示"), FontSize = 11, FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(14, 10, 14, 6),
             });
 
             // 接收区：常驻
-            AddPopupItem(panel, "📡 接收区", isVisible: true, canToggle: false);
+            AddPopupItem(panel, T("📡 接收区"), isVisible: true, canToggle: false);
             panel.Children.Add(new Separator { Margin = new Thickness(10, 4, 10, 4),
                 Background = (Brush)FindResource("CardBorderBrush") });
 
             // 可切换面板
-            AddPopupItem(panel, "📈 波形图", _panelVisible["Plot"], tab: "Plot");
-            AddPopupItem(panel, "🎮 按键面板", _panelVisible["Keys"], tab: "Keys");
-            AddPopupItem(panel, "🎚 滑杆面板", _panelVisible["Sliders"], tab: "Sliders");
-            AddPopupItem(panel, "📱 OLED", _panelVisible["OLED"], tab: "OLED");
-            AddPopupItem(panel, "🕹 摇杆面板", _panelVisible["Joystick"], tab: "Joystick");
-            AddPopupItem(panel, "📡 传感面板", _panelVisible["Sensors"], tab: "Sensors");
+            AddPopupItem(panel, T("📈 波形图"), _panelVisible["Plot"], tab: "Plot");
+            AddPopupItem(panel, T("🎮 按键面板"), _panelVisible["Keys"], tab: "Keys");
+            AddPopupItem(panel, T("🎚 滑杆面板"), _panelVisible["Sliders"], tab: "Sliders");
+            AddPopupItem(panel, T("📱 OLED"), _panelVisible["OLED"], tab: "OLED");
+            AddPopupItem(panel, T("🕹 摇杆面板"), _panelVisible["Joystick"], tab: "Joystick");
+            AddPopupItem(panel, T("📡 传感面板"), _panelVisible["Sensors"], tab: "Sensors");
 
             var border = new Border {
                 Background = (Brush)FindResource("StatusBarBgBrush"),
@@ -3146,14 +3225,14 @@ namespace 串口助手
                 colSidePanel.MinWidth = 0;
                 colSidePanel.Width = new GridLength(28);
                 btnPanelCollapse.Content = "▶";
-                btnPanelCollapse.ToolTip = "展开侧面板";
+                btnPanelCollapse.ToolTip = T("展开侧面板");
             }
             else
             {
                 colSidePanel.MinWidth = 120;
                 colSidePanel.Width = new GridLength(220);
                 btnPanelCollapse.Content = "◀";
-                btnPanelCollapse.ToolTip = "折叠侧面板";
+                btnPanelCollapse.ToolTip = T("折叠侧面板");
             }
         }
         // ═══ Phase 3: 波形图 ═══
