@@ -1250,7 +1250,7 @@ namespace 串口助手
             {
                 btnPauseDisplay.LocText("▶ 继续显示");
                 btnPauseDisplay.Style = FindResource("PrimaryButtonStyle") as Style;
-                menuPauseDisplay.Header = "▶ 继续显示";
+                menuPauseDisplay.LocText("▶ 继续显示");
                 LogSystem("---- 暂停显示：界面已冻结，后台照常接收 ----");
             }
             else
@@ -1269,7 +1269,7 @@ namespace 串口助手
 
                 btnPauseDisplay.LocText("暂停显示");
                 btnPauseDisplay.Style = FindResource("SecondaryButtonStyle") as Style;
-                menuPauseDisplay.Header = "⏸ 暂停显示";
+                menuPauseDisplay.LocText("⏸ 暂停显示");
             }
         }
 
