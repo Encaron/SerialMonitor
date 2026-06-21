@@ -41,7 +41,13 @@ namespace 串口助手
             ["摇杆面板"] = "Joystick",
             ["传感面板"] = "Sensors",
 
-            // P4+ 逐面板补英文映射在此
+            // P4.1: Keys
+            ["自定义颜色"] = "Custom Color",
+            ["取消"] = "Cancel",
+            ["确认"] = "OK",
+            ["（该按键没有配置发送内容）"] = "(No send content configured)",
+
+            // P4.2+ 逐面板补英文映射在此
         };
     }
 }

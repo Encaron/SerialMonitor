@@ -152,9 +152,10 @@ namespace 串口助手
             };
             var stack = new StackPanel();
             var title = new TextBlock {
-                Text = "自定义颜色", FontSize = 13, FontWeight = FontWeights.SemiBold,
+                FontSize = 13, FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextPrimaryBrush"), Margin = new Thickness(0, 0, 0, 8),
             };
+            title.LocText("自定义颜色");
             stack.Children.Add(title);
 
             // 40 色块 8×5
@@ -250,13 +251,15 @@ namespace 串口助手
             // 确认/取消按钮
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             var cancelBtn = new Button {
-                Content = "取消", Style = (Style)FindResource("SecondaryButtonStyle"),
+                Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0),
             };
+            cancelBtn.LocText("取消");
             var confirmBtn = new Button {
-                Content = "确认", Style = (Style)FindResource("PrimaryButtonStyle"),
+                Style = (Style)FindResource("PrimaryButtonStyle"),
                 Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(8, 0, 0, 0),
             };
+            confirmBtn.LocText("确认");
             btnRow.Children.Add(cancelBtn);
             btnRow.Children.Add(confirmBtn);
             stack.Children.Add(btnRow);
@@ -718,7 +721,7 @@ namespace 串口助手
             string press = keyVM.GetPressContent();
             string release = keyVM.GetReleaseContent();
             if (string.IsNullOrEmpty(press) && string.IsNullOrEmpty(release))
-                tbKeyFeedbackValue.Text = "（该按键没有配置发送内容）";
+                tbKeyFeedbackValue.LocText("（该按键没有配置发送内容）");
             else if (!string.IsNullOrEmpty(press) && !string.IsNullOrEmpty(release))
                 tbKeyFeedbackValue.Text = string.Format("↓ {0} ↑ {1}", Truncate(press, 60), Truncate(release, 60));
             else if (!string.IsNullOrEmpty(press))
