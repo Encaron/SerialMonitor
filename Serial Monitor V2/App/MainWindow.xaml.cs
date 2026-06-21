@@ -161,6 +161,18 @@ namespace 串口助手
             ["HudBorderBrush"]          = (Color.FromArgb(0x33,0x00,0x00,0x00), Color.FromArgb(0x33,0xFF,0xFF,0xFF)),
         };
 
+        // 图标栏面板注册表：名称 → (按钮, 主面板, 侧面板, 初始化, 退出编辑)
+        private class TabInfo { public string Name; public UIElement Panel; public UIElement SidePanel; public Action Init; public Action ExitEdit; }
+        private readonly Dictionary<string, TabInfo> _tabRegistry = new();
+
+        /// <summary>一处注册面板：自动绑定图标栏二次点击动画，所有显隐逻辑从注册表自动生成</summary>
+        private void RegisterTab(string name, RadioButton btn, UIElement panel, UIElement sidePanel, Action init = null, Action exitEdit = null)
+        {
+            btn.Tag = name;
+            btn.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(IconBarIcon_Click), handledEventsToo: true);
+            _tabRegistry[name] = new TabInfo { Name = name, Panel = panel, SidePanel = sidePanel, Init = init, ExitEdit = exitEdit };
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -220,11 +232,19 @@ namespace 串口助手
                     btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
             };
 
-            // 图标栏二次点击抖动：handledEventsToo=true 确保 ButtonBase 不吞事件
-            var icons = new RadioButton[] { tabReceive, tabPlot, tabKeys, tabSliders, tabOLED, tabJoystick, tabSensors, tabSettings };
-            foreach (var icon in icons)
-                icon.AddHandler(PreviewMouseLeftButtonDownEvent,
-                    new MouseButtonEventHandler(IconBarIcon_Click), handledEventsToo: true);
+            // 图标栏面板注册：一处注册 → 自动绑定动画 + 面板显隐
+            RegisterTab("Receive",  tabReceive,  panelReceive,  rightReceive);
+            RegisterTab("Plot",     tabPlot,     panelPlot,     rightPlot,     init: () => { EnsurePlotView(); if (!_isFreqDomain) RefreshTuningDrawer(); });
+            RegisterTab("Keys",     tabKeys,     panelKeys,     rightKeys,     init: InitKeyPanel,
+                exitEdit: () => { if (_keyVM != null && _keyVM.IsEditMode) { CancelKeysConfirm(); _keyVM.IsEditMode = false; _selectedKeys.Clear(); _selectedModuleGroupId = null; keysToolbarNormal.Visibility = Visibility.Visible; keysToolbarEdit.Visibility = Visibility.Collapsed; RefreshKeysUI(); RefreshKeysSidePanel(); } });
+            RegisterTab("Sliders",  tabSliders,  panelSliders,  rightSliders,  init: () => InitSliderPanel(),
+                exitEdit: () => { if (_sliderVM != null && _sliderVM.IsEditMode) { CancelSlidersConfirm(); _sliderVM.IsEditMode = false; _selectedSliders.Clear(); slidersToolbarNormal.Visibility = Visibility.Visible; slidersToolbarEdit.Visibility = Visibility.Collapsed; RefreshSlidersUI(); RefreshSlidersSidePanel(); } });
+            RegisterTab("OLED",     tabOLED,     panelOLED,     rightOLED,     init: InitOLEDPanel,
+                exitEdit: () => { if (_isEditingText) ExitTextEditMode(save: _editingTextOriginalKey != null); if (_selectedShape != null) DeselectShape(); ResetOLEDSidePanel(); });
+            RegisterTab("Joystick", tabJoystick, panelJoystick, rightJoystick, init: InitJoystickPanel);
+            RegisterTab("Sensors",  tabSensors,  panelSensors,  rightSensors,  init: InitSensorPanel,
+                exitEdit: () => { if (_sensorVM != null && _sensorVM.IsEditMode) { _sensorVM.IsEditMode = false; _selectedCard = null; _detailCard = null; _normalDetailCard = null; btnSensorEdit.Content = "编辑"; rightSensors.Visibility = Visibility.Collapsed; if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive) _sensorRefreshTimer.Start(); RefreshAllRows(); RefreshSensorSidePanel(); } });
+            RegisterTab("Settings", tabSettings, panelSettings, rightSettings);
 
             // 创建串口会话
             _session = new SerialPortSession(Dispatcher);
@@ -1846,61 +1866,29 @@ namespace 串口助手
         // ==================================================================
         private void TabContent_Checked(object sender, RoutedEventArgs e)
         {
-            // 切标签页时自动退出「正在离开」的面板的编辑模式（不保存，只有点"完成"才保存）
-            if (_currentTab == "Sensors" && _sensorVM != null && _sensorVM.IsEditMode)
-            {
-                _sensorVM.IsEditMode = false;
-                _selectedCard = null;
-                _detailCard = null;
-                _normalDetailCard = null;
-                btnSensorEdit.Content = "编辑";
-                rightSensors.Visibility = Visibility.Collapsed;
-                if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
-                    _sensorRefreshTimer.Start();
-                RefreshAllRows();
-                RefreshSensorSidePanel();
-            }
-            else if (_currentTab == "Keys" && _keyVM != null && _keyVM.IsEditMode)
-            {
-                CancelKeysConfirm();
-                _keyVM.IsEditMode = false; _selectedKeys.Clear(); _selectedModuleGroupId = null;
-                keysToolbarNormal.Visibility = Visibility.Visible; keysToolbarEdit.Visibility = Visibility.Collapsed;
-                RefreshKeysUI(); RefreshKeysSidePanel();
-            }
-            else if (_currentTab == "Sliders" && _sliderVM != null && _sliderVM.IsEditMode)
-            {
-                CancelSlidersConfirm();
-                _sliderVM.IsEditMode = false; _selectedSliders.Clear();
-                slidersToolbarNormal.Visibility = Visibility.Visible; slidersToolbarEdit.Visibility = Visibility.Collapsed;
-                RefreshSlidersUI(); RefreshSlidersSidePanel();
-            }
-            else if (_currentTab == "OLED")
-            {
-                if (_isEditingText) ExitTextEditMode(save: _editingTextOriginalKey != null);
-                if (_selectedShape != null) DeselectShape();
-                ResetOLEDSidePanel();
-            }
+            if (sender is not FrameworkElement fe || fe.Tag is not string newTab) return;
+            if (!_tabRegistry.TryGetValue(newTab, out var info)) return;
 
-            _currentSettingsPage = null; // 离开设置子页面
-            if (sender == tabReceive)      { _currentTab = "Receive"; _previousContentTab = "Receive"; }
-            else if (sender == tabPlot)    { _currentTab = "Plot";    _previousContentTab = "Plot";  EnsurePlotView(); if (!_isFreqDomain) RefreshTuningDrawer(); }
-            else if (sender == tabKeys)    { _currentTab = "Keys";    _previousContentTab = "Keys"; InitKeyPanel(); }
-            else if (sender == tabSliders) { _currentTab = "Sliders"; _previousContentTab = "Sliders"; InitSliderPanel(); }
-            else if (sender == tabOLED)    { _currentTab = "OLED";    _previousContentTab = "OLED"; InitOLEDPanel(); }
-            else if (sender == tabJoystick){ _currentTab = "Joystick"; _previousContentTab = "Joystick"; InitJoystickPanel(); }
-            else if (sender == tabSensors) { _currentTab = "Sensors"; _previousContentTab = "Sensors"; InitSensorPanel(); }
+            // 退出当前面板的编辑模式
+            if (_currentTab != null && _tabRegistry.TryGetValue(_currentTab, out var prev))
+                prev.ExitEdit?.Invoke();
+
+            _currentSettingsPage = null;
+            _currentTab = newTab;
+            _previousContentTab = newTab;
+            info.Init?.Invoke();
+
+            // Plot IsActive 管理
             if (_plotVM != null)
             {
                 bool wasActive = _plotVM.IsActive;
-                _plotVM.IsActive = (_currentTab == "Plot");
-                // 切回 Plot 时立即刷新积压数据（非 Plot 期间数据照存但未渲染）
-                if (!wasActive && _plotVM.IsActive)
-                    _plotVM.Flush();
+                _plotVM.IsActive = (newTab == "Plot");
+                if (!wasActive && _plotVM.IsActive) _plotVM.Flush();
             }
-            // 传感面板 IsActive 管理：切走停迷你波形定时器，切回重启
+            // 传感面板 IsActive 管理
             if (_sensorVM != null)
             {
-                _sensorVM.IsActive = (_currentTab == "Sensors");
+                _sensorVM.IsActive = (newTab == "Sensors");
                 if (_sensorVM.IsActive)
                 {
                     if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && !_sensorVM.IsEditMode)
@@ -2860,20 +2848,8 @@ namespace 串口助手
         /// </summary>
         private void IconBarIcon_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is not FrameworkElement fe) return;
-
-            string clicked;
-            if (sender == tabReceive)   clicked = "Receive";
-            else if (sender == tabPlot) clicked = "Plot";
-            else if (sender == tabKeys) clicked = "Keys";
-            else if (sender == tabSliders) clicked = "Sliders";
-            else if (sender == tabOLED) clicked = "OLED";
-            else if (sender == tabJoystick) clicked = "Joystick";
-            else if (sender == tabSensors) clicked = "Sensors";
-            else if (sender == tabSettings) clicked = "Settings";
-            else return;
-
-            if (clicked != _currentTab) return;
+            if (sender is not FrameworkElement fe || fe.Tag is not string tabName) return;
+            if (tabName != _currentTab) return; // 只在已激活图标上二次点击才抖动
 
             fe.RenderTransformOrigin = new Point(0.5, 0.5);
             var st = new ScaleTransform(1, 1);
@@ -2896,16 +2872,13 @@ namespace 串口助手
             // 设置面板有子页展开时 → 主区显示设置页；否则 → 保持 _previousContentTab 面板不动
             bool showSettingsPanel = _currentTab == "Settings" && _currentSettingsPage != null;
             string mainTab = showSettingsPanel ? null : _previousContentTab;
-            panelReceive.Visibility  = mainTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
-            panelPlot.Visibility     = mainTab == "Plot"     ? Visibility.Visible : Visibility.Collapsed;
-            panelKeys.Visibility     = mainTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
-            panelSliders.Visibility  = mainTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
-            panelOLED.Visibility     = mainTab == "OLED"     ? Visibility.Visible : Visibility.Collapsed;
-            panelJoystick.Visibility = mainTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
-            panelSensors.Visibility  = mainTab == "Sensors"  ? Visibility.Visible : Visibility.Collapsed;
-            panelSettings.Visibility = showSettingsPanel     ? Visibility.Visible : Visibility.Collapsed;
-            // 侧面板
-            rightReceive.Visibility  = _currentTab == "Receive"  ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var kv in _tabRegistry)
+            {
+                kv.Value.Panel.Visibility     = kv.Key == mainTab      ? Visibility.Visible : Visibility.Collapsed;
+                kv.Value.SidePanel.Visibility = kv.Key == _currentTab  ? Visibility.Visible : Visibility.Collapsed;
+            }
+            panelSettings.Visibility = showSettingsPanel ? Visibility.Visible : Visibility.Collapsed;
+            // Plot 侧面板特殊处理（频域/时域切换）
             if (_currentTab == "Plot")
             {
                 if (_isFreqDomain)
@@ -2930,12 +2903,6 @@ namespace 串口助手
                 rightPlotFreq.Visibility       = Visibility.Collapsed;
                 rightPlotDetailFreq.Visibility = Visibility.Collapsed;
             }
-            rightKeys.Visibility     = _currentTab == "Keys"     ? Visibility.Visible : Visibility.Collapsed;
-            rightSliders.Visibility  = _currentTab == "Sliders"  ? Visibility.Visible : Visibility.Collapsed;
-            rightJoystick.Visibility = _currentTab == "Joystick" ? Visibility.Visible : Visibility.Collapsed;
-            rightSensors.Visibility  = _currentTab == "Sensors" ? Visibility.Visible : Visibility.Collapsed;
-            rightOLED.Visibility    = _currentTab == "OLED"     ? Visibility.Visible : Visibility.Collapsed;
-            rightSettings.Visibility = _currentTab == "Settings" ? Visibility.Visible : Visibility.Collapsed;
             switch (_currentTab)
             {
                 case "Receive":  tbSidePanelTitle.Text = "收发设置"; break;
