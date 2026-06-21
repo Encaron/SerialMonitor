@@ -2026,8 +2026,8 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 临时方案（F5 全量同步改增量前）：帧间延迟，防双缓冲溢出。
-        /// 每次 SendRaw 后等 5ms，给 MCU 处理时间。20 图形 ≈ 100ms。
+        /// 帧间流控：全量同步时每次 SendRaw 后等 5ms，给 MCU 处理时间。
+        /// 20 图形 ≈ 100ms。正常编辑走 F5 增量（单条命令），不受此限。
         /// </summary>
         private void SyncAllShapesToDevice()
         {
