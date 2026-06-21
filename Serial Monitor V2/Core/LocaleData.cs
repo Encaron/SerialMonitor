@@ -13,7 +13,19 @@ namespace 串口助手
             ["EN"] = "EN",
             ["/"] = "/",
 
-            // P1 及以后逐面板补英文映射在此
+            // P2: PlotDetail — 按钮 + 信号类型 + 占位
+            ["▶ 继续"] = "▶ Resume",
+            ["⏸ 暂停"] = "⏸ Pause",
+            ["≤ 采样间隔"] = "≤ sample interval",
+            ["DC 电平"] = "DC Level",
+            ["方波"] = "Square Wave",
+            ["矩形波"] = "Rectangular",
+            ["斜边方波（滤波/容性）"] = "Sloped Square (filtered/cap.)",
+            ["脉冲/尖峰"] = "Pulse / Spike",
+            ["正弦波/三角波"] = "Sine / Triangle",
+            ["未知 / 混合"] = "Unknown / Mixed",
+
+            // P3+ 逐面板补英文映射在此
         };
     }
 }

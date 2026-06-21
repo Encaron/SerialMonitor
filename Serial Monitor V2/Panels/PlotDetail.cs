@@ -57,14 +57,14 @@ namespace 串口助手
                 _plotVM.TogglePause();
                 if (plotView != null)
                     plotView.Controller = new PlotController(); // 默认控制器：单击追踪框、右键平移、滚轮缩放
-                btnPlotPause.Content = "▶ 继续";
+                btnPlotPause.LocText("▶ 继续");
             }
             else
             {
                 _plotVM.TogglePause();
                 if (plotView != null)
                     plotView.Controller = null;
-                btnPlotPause.Content = "⏸ 暂停";
+                btnPlotPause.LocText("⏸ 暂停");
                 if (_plotShowDetail)
                     ReturnToPlotConfig();
 
@@ -119,8 +119,10 @@ namespace 串口助手
                 tbDetailDuty.Text  = $"{stats.DutyCycle:F1} %";
                 tbDetailHigh.Text  = stats.HighTime > 0 ? $"{stats.HighTime:F2} ms" : "—";
                 tbDetailLow.Text   = stats.LowTime  > 0 ? $"{stats.LowTime:F2} ms" : "—";
-                tbDetailRise.Text  = stats.RiseTime >= 0 ? $"{stats.RiseTime:F2} ms" : "≤ 采样间隔";
-                tbDetailFall.Text  = stats.FallTime >= 0 ? $"{stats.FallTime:F2} ms" : "≤ 采样间隔";
+                if (stats.RiseTime >= 0) { tbDetailRise.Text = $"{stats.RiseTime:F2} ms"; }
+                    else { tbDetailRise.LocText("≤ 采样间隔"); }
+                if (stats.FallTime >= 0) { tbDetailFall.Text = $"{stats.FallTime:F2} ms"; }
+                    else { tbDetailFall.LocText("≤ 采样间隔"); }
             }
             else
             {
@@ -168,7 +170,7 @@ namespace 串口助手
                 signalType = "正弦波/三角波";
             else
                 signalType = "未知 / 混合";
-            tbDetailSignalType.Text = signalType;
+            tbDetailSignalType.SetResourceReference(TextBlock.TextProperty, signalType);
 
             bool hasConf = stats.DualLevelConfidence > 10;
             lblConf.Visibility  = hasConf ? Visibility.Visible : Visibility.Collapsed;
