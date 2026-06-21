@@ -988,7 +988,7 @@ namespace 串口助手
 
             string currentHex = _drawColor;
             var fg = (Brush)FindResource("TextPrimaryBrush");
-            var popup = new Popup();
+            var popup = CreatePopup(placementTarget, PlacementMode.Right);
 
             var border = new Border {
                 Background = (Brush)FindResource("CardBgBrush"),
@@ -1062,10 +1062,6 @@ namespace 串口助手
 
             border.Child = stack;
             popup.Child = border;
-            popup.AllowsTransparency = true;
-            popup.PlacementTarget = placementTarget;
-            popup.Placement = PlacementMode.Right;
-            popup.StaysOpen = false;
             popup.PopupAnimation = PopupAnimation.None;
 
             cancelBtn.Click += (_, __) => popup.IsOpen = false;

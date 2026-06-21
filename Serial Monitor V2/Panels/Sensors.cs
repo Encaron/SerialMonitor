@@ -1413,13 +1413,7 @@ namespace 串口助手
         private void ShowAddCardPopup(UIElement placementTarget, SensorGroup group, int insertIndex,
             PlacementMode placement = PlacementMode.Right)
         {
-            var popup = new Popup
-            {
-                PlacementTarget = placementTarget,
-                Placement = placement,
-                StaysOpen = true,  // 手动控制关闭，避免点一下消失
-                AllowsTransparency = true,
-            };
+            var popup = CreatePopup(placementTarget, placement, staysOpen: true);
 
             var typeOptions = new[]
             {

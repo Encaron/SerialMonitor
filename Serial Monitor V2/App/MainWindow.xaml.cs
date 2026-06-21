@@ -1226,13 +1226,7 @@ namespace 串口助手
             var btn = sender as Button;
             if (btn == null) return;
 
-            var popup = new Popup
-            {
-                PlacementTarget = btn,
-                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-                StaysOpen = true,
-                AllowsTransparency = true,
-            };
+            var popup = CreatePopup(btn, staysOpen: true);
 
             var border = new Border
             {
@@ -2812,6 +2806,21 @@ namespace 串口助手
                 ShowCopyToastAndShake(btn);
         }
 
+        /// <summary>
+        /// 统一创建 Popup：自动设 PlacementTarget + AllowsTransparency，
+        /// 消除"忘设 → 暗色模式找不到主题色"的遗漏。
+        /// </summary>
+        private static Popup CreatePopup(UIElement placementTarget, PlacementMode placement = PlacementMode.Bottom, bool staysOpen = false)
+        {
+            return new Popup
+            {
+                PlacementTarget = placementTarget,
+                Placement = placement,
+                StaysOpen = staysOpen,
+                AllowsTransparency = true,
+            };
+        }
+
         private void SwitchSettingsPage(string page)
         {
             _currentSettingsPage = page;
@@ -3013,15 +3022,10 @@ namespace 串口助手
                 Child = panel,
             };
 
-            _addPanelPopup = new Popup {
-                PlacementTarget = btnAddPanel,
-                Placement = System.Windows.Controls.Primitives.PlacementMode.Left,
-                StaysOpen = true,
-                AllowsTransparency = true,
-                Child = border,
-                PopupAnimation = System.Windows.Controls.Primitives.PopupAnimation.Fade,
-                HorizontalOffset = -4,
-            };
+            _addPanelPopup = CreatePopup(btnAddPanel, System.Windows.Controls.Primitives.PlacementMode.Left, staysOpen: true);
+            _addPanelPopup.Child = border;
+            _addPanelPopup.PopupAnimation = System.Windows.Controls.Primitives.PopupAnimation.Fade;
+            _addPanelPopup.HorizontalOffset = -4;
             _addPanelPopup.Closed += (s2, e2) =>
             {
                 btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");
