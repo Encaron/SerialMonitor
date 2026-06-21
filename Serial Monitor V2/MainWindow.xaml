@@ -1035,7 +1035,7 @@
                                     <Button Grid.Column="1" Content="↻" Width="24" Height="24" MinWidth="0"
                                             Margin="6,0,0,0" FontSize="12" Padding="2,0"
                                             Style="{DynamicResource SecondaryButtonStyle}"
-                                            Click="btnFreqRefresh_Click" ToolTip="刷新数据源列表 + 重算频谱"/>
+                                            Click="btnFreqRefresh_Click" ToolTip="{DynamicResource 刷新数据源列表 + 重算频谱}"/>
                                     </Grid>
                                 </StackPanel>
                                 </Border>
@@ -1197,13 +1197,13 @@
                                 <StackPanel Margin="0,0,0,6">
                                     <Button Content="{DynamicResource 📄 复制数据}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyData_Click" Margin="0,0,0,4"
-                                            ToolTip="复制原始波形数据点（CSV，可贴 Excel）"/>
+                                            ToolTip="{DynamicResource 复制原始波形数据点（CSV，可贴 Excel）}"/>
                                     <Button Content="{DynamicResource 📊 复制统计}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyStats_Click" Margin="0,0,0,4"
-                                            ToolTip="复制波形分析统计（幅值/频率/占空比等）"/>
+                                            ToolTip="{DynamicResource 复制波形分析统计（幅值/频率/占空比等）}"/>
                                     <Button Content="{DynamicResource 📋 全部复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyAll_Click"
-                                            ToolTip="复制原始数据 + 分析统计，一份全带走"/>
+                                            ToolTip="{DynamicResource 复制原始数据 + 分析统计，一份全带走}"/>
                                 </StackPanel>
                                 </StackPanel>
                             </ScrollViewer>
@@ -1257,13 +1257,13 @@
                                 <StackPanel Margin="0,0,0,6">
                                     <Button Content="{DynamicResource 📄 复制数据}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyData_Click" Margin="0,0,0,4"
-                                            ToolTip="复制 FFT 频谱数据（CSV，可贴 Excel）"/>
+                                            ToolTip="{DynamicResource 复制 FFT 频谱数据（CSV，可贴 Excel）}"/>
                                     <Button Content="{DynamicResource 📊 复制指标}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyStats_Click" Margin="0,0,0,4"
-                                            ToolTip="复制频域分析指标"/>
+                                            ToolTip="{DynamicResource 复制频域分析指标}"/>
                                     <Button Content="{DynamicResource 📋 全部复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyAll_Click"
-                                            ToolTip="复制频谱数据 + 分析指标，一份全带走"/>
+                                            ToolTip="{DynamicResource 复制频谱数据 + 分析指标，一份全带走}"/>
                                 </StackPanel>
                                 </StackPanel>
                             </ScrollViewer>
@@ -1302,7 +1302,7 @@
                                             <Button Grid.Column="1" x:Name="btnKeyCopyDown" Content="📋"
                                                     Style="{DynamicResource SecondaryButtonStyle}"
                                                     Height="24" Width="32" MinWidth="0" Padding="0"
-                                                    FontSize="11" Click="btnKeyCopyDown_Click" ToolTip="复制按下"/>
+                                                    FontSize="11" Click="btnKeyCopyDown_Click" ToolTip="{DynamicResource 复制按下}"/>
                                         </Grid>
                                     </Border>
                                     <!-- 松开 -->
@@ -1316,7 +1316,7 @@
                                             <Button Grid.Column="1" x:Name="btnKeyCopyUp" Content="📋"
                                                     Style="{DynamicResource SecondaryButtonStyle}"
                                                     Height="24" Width="32" MinWidth="0" Padding="0"
-                                                    FontSize="11" Click="btnKeyCopyUp_Click" ToolTip="复制松开"/>
+                                                    FontSize="11" Click="btnKeyCopyUp_Click" ToolTip="{DynamicResource 复制松开}"/>
                                         </Grid>
                                     </Border>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
@@ -1350,22 +1350,22 @@
                                         <TextBlock Text="值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="28" FontSize="9" Padding="4,0"
-                                                Click="ModulePressValue_Click" ToolTip="按下→无"/>
+                                                Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→无}"/>
                                         <Button Content="{DynamicResource 名字}" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="34" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为按键名"/>
+                                                Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→文本模式，值为按键名}"/>
                                         <Button Content="up" Tag="up" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="26" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 up"/>
+                                                Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→文本模式，值为 up}"/>
                                         <Button Content="down" Tag="down" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="32" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 down"/>
+                                                Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→文本模式，值为 down}"/>
                                         <Button Content="on" Tag="on" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 on"/>
+                                                Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→文本模式，值为 on}"/>
                                         <Button Content="off" Tag="off" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为 off"/>
+                                                Click="ModulePressValue_Click" ToolTip="{DynamicResource 按下→文本模式，值为 off}"/>
                                     </WrapPanel>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,6"/>
                                     <TextBlock Text="松开发送" FontSize="11" FontWeight="SemiBold"
@@ -1381,22 +1381,22 @@
                                         <TextBlock Text="值：" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="28" FontSize="9" Padding="4,0"
-                                                Click="ModuleReleaseValue_Click" ToolTip="松开→无"/>
+                                                Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→无}"/>
                                         <Button Content="{DynamicResource 名字}" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="34" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为按键名"/>
+                                                Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→文本模式，值为按键名}"/>
                                         <Button Content="up" Tag="up" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="26" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 up"/>
+                                                Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→文本模式，值为 up}"/>
                                         <Button Content="down" Tag="down" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="32" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 down"/>
+                                                Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→文本模式，值为 down}"/>
                                         <Button Content="on" Tag="on" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 on"/>
+                                                Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→文本模式，值为 on}"/>
                                         <Button Content="off" Tag="off" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="24" FontSize="9" Padding="4,0" Margin="2,0,0,0"
-                                                Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为 off"/>
+                                                Click="ModuleReleaseValue_Click" ToolTip="{DynamicResource 松开→文本模式，值为 off}"/>
                                     </WrapPanel>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="统一颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
@@ -1591,7 +1591,7 @@
                                         <Button Grid.Column="1" x:Name="btnSliderProtocolCopy" Content="{DynamicResource 📋 复制}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" MinWidth="0" Padding="6,0" FontSize="11"
-                                                Click="btnSliderProtocolCopy_Click" ToolTip="复制协议到剪贴板"/>
+                                                Click="btnSliderProtocolCopy_Click" ToolTip="{DynamicResource 复制协议到剪贴板}"/>
                                     </Grid>
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6">
                                         <TextBox x:Name="tbSliderProtocolPreview" FontSize="12"
@@ -1829,7 +1829,7 @@
                                                    TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                         <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
                                                 Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
-                                                Click="btnTextEditCancel_Click" ToolTip="取消编辑"/>
+                                                Click="btnTextEditCancel_Click" ToolTip="{DynamicResource 取消编辑}"/>
                                     </Grid>
                                     <!-- 位置 -->
                                     <TextBlock Text="位置" FontSize="11" FontWeight="SemiBold"
@@ -1862,7 +1862,7 @@
                                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="0" Padding="6,0" FontSize="10"
-                                                Click="btnCopyTextContent_Click" ToolTip="复制文字内容"/>
+                                                Click="btnCopyTextContent_Click" ToolTip="{DynamicResource 复制文字内容}"/>
                                     </Grid>
                                     <TextBox x:Name="tbTextEditContent" Height="28"
                                              FontFamily="Microsoft YaHei" FontSize="12"
@@ -1893,7 +1893,7 @@
                                     <!-- 锁定按钮（编辑已有文字时也可见） -->
                                     <Button x:Name="btnTextLock" Content="{DynamicResource 🔓 锁定}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" MinWidth="0" Padding="6,0" Click="btnTextLock_Click"
-                                            ToolTip="锁定/解锁元素" Margin="0,0,0,8"/>
+                                            ToolTip="{DynamicResource 锁定/解锁元素}" Margin="0,0,0,8"/>
                                     <!-- 确定/取消（仅新建文字时显示） -->
                                     <Grid x:Name="textEditConfirmRow"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <Button Grid.Column="0" Content="{DynamicResource 确定}" Style="{DynamicResource PrimaryButtonStyle}"
@@ -1909,7 +1909,7 @@
                                                    TextTrimming="CharacterEllipsis" MaxWidth="160"/>
                                         <Button Content="✕" Width="22" Height="22" HorizontalAlignment="Right"
                                                 Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="0"
-                                                Click="btnShapeEditCancel_Click" ToolTip="取消选中"/>
+                                                Click="btnShapeEditCancel_Click" ToolTip="{DynamicResource 取消选中}"/>
                                     </Grid>
                                     <TextBlock x:Name="tbShapeEditType" FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
                                                Text="类型: —" Margin="0,0,0,8"/>
@@ -1954,7 +1954,7 @@
                                         <Button Grid.Column="0" Content="{DynamicResource 🗑 删除图形}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="28" Click="btnShapeDelete_Click" Foreground="#E53935" Margin="0,0,4,0"/>
                                         <Button x:Name="btnShapeLock" Grid.Column="1" Content="{DynamicResource 🔓 锁定}" Style="{DynamicResource SecondaryButtonStyle}"
-                                                Height="28" MinWidth="0" Padding="6,0" Click="btnShapeLock_Click" ToolTip="锁定/解锁元素"/>
+                                                Height="28" MinWidth="0" Padding="6,0" Click="btnShapeLock_Click" ToolTip="{DynamicResource 锁定/解锁元素}"/>
                                     </Grid>
                                 </StackPanel>
                                 <!-- 共享协议预览（选中任意控件时显示） -->
@@ -1965,7 +1965,7 @@
                                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" MinWidth="0" Padding="6,0" FontSize="11"
-                                                Click="btnCopyProtocol_Click" ToolTip="复制协议到剪贴板"/>
+                                                Click="btnCopyProtocol_Click" ToolTip="{DynamicResource 复制协议到剪贴板}"/>
                                     </Grid>
                                     <Border Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="8,6">
                                         <TextBox x:Name="tbProtocolPreview" FontSize="12"
@@ -2034,21 +2034,21 @@
                                 <Button x:Name="btnFilterMenu" Content="{DynamicResource 📡 筛选 ▾}"
                                         Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                         Padding="8,0" Click="BtnFilterMenu_Click"
-                                        ToolTip="筛选接收区显示内容"/>
+                                        ToolTip="{DynamicResource 筛选接收区显示内容}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Button x:Name="btnPauseDisplay" Content="{DynamicResource ⏸ 暂停}"
                                         Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
-                                        Click="btnPauseDisplay_Click" ToolTip="冻结接收区（Ctrl+P）"/>
+                                        Click="btnPauseDisplay_Click" ToolTip="{DynamicResource 冻结接收区（Ctrl+P）}"/>
                                 <Button Content="{DynamicResource 导出日志}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" MinWidth="0" Margin="6,0,0,0"
-                                        Click="btnExportLog_Click" ToolTip="导出日志"/>
+                                        Click="btnExportLog_Click" ToolTip="{DynamicResource 导出日志}"/>
                                 <Button Content="{DynamicResource 清空接收区}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" MinWidth="0" Margin="6,0,0,0"
-                                        Click="btnClearReceive_Click" ToolTip="清空（Ctrl+L）"/>
+                                        Click="btnClearReceive_Click" ToolTip="{DynamicResource 清空（Ctrl+L）}"/>
                                 <Button Content="{DynamicResource 🔍 搜索}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" MinWidth="0" Margin="6,0,0,0"
-                                        Click="btnSearch_Click" ToolTip="搜索（Ctrl+F）"/>
+                                        Click="btnSearch_Click" ToolTip="{DynamicResource 搜索（Ctrl+F）}"/>
                             </StackPanel>
                         </DockPanel>
                     </Border>
@@ -2098,7 +2098,7 @@
                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                 Margin="0,0,8,8" Visibility="Collapsed"
                                 Click="BtnScrollToBottom_Click"
-                                ToolTip="回到底部"/>
+                                ToolTip="{DynamicResource 回到底部}"/>
                     </Grid>
                     <WrapPanel Grid.Row="2" x:Name="quickSendPanel" Margin="0,6,0,4" Visibility="Collapsed"/>
                     <Grid Grid.Row="3">
@@ -2117,9 +2117,9 @@
                                 <TextBlock x:Name="tbHexWarning" Foreground="#E8A838" FontSize="11"
                                            VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"/>
                                 <Button Content="{DynamicResource 清空发送区}" Style="{DynamicResource SecondaryButtonStyle}"
-                                        Margin="0,0,8,0" Click="btnClearSend_Click" ToolTip="清空发送区"/>
+                                        Margin="0,0,8,0" Click="btnClearSend_Click" ToolTip="{DynamicResource 清空发送区}"/>
                                 <Button Content="▾" x:Name="btnSendHistory" Width="26" Height="32" FontSize="10"
-                                        Style="{DynamicResource SecondaryButtonStyle}" Click="btnSendHistory_Click" ToolTip="发送历史"/>
+                                        Style="{DynamicResource SecondaryButtonStyle}" Click="btnSendHistory_Click" ToolTip="{DynamicResource 发送历史}"/>
                                 <Button Content="{DynamicResource 发送}" x:Name="btnSend" Style="{DynamicResource PrimaryButtonStyle}"
                                         Margin="4,0,0,0" Click="btnSend_Click"/>
                             </StackPanel>
@@ -2143,7 +2143,7 @@
                             <!-- #10 FFT 视角切换 -->
                             <Button x:Name="btnPerspectiveToggle" Content="{DynamicResource ⏱ 时域  →  频域 📶}"
                                     Style="{DynamicResource PerspectiveToggleStyle}" Height="28" Padding="12,0"
-                                    Click="btnPerspectiveToggle_Click" ToolTip="切换时域/频域视角"/>
+                                    Click="btnPerspectiveToggle_Click" ToolTip="{DynamicResource 切换时域/频域视角}"/>
                             <Border Width="1" Height="20" Background="{DynamicResource SeparatorBrush}" Margin="8,0,6,0"
                                     VerticalAlignment="Center"/>
                             <Button x:Name="btnPlotPause" Content="{DynamicResource ⏸ 暂停}" Width="84"
@@ -2156,7 +2156,7 @@
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotFit_Click"/>
                             <Button x:Name="btnPlotDetail" Content="{DynamicResource 📊 详细}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0"
-                                    Click="btnPlotDetail_Click" ToolTip="暂停后查看指定曲线的统计数据"/>
+                                    Click="btnPlotDetail_Click" ToolTip="{DynamicResource 暂停后查看指定曲线的统计数据}"/>
                         </StackPanel>
                     </Border>
                     <!-- 波形图区域（PlotView 在 C# 中懒加载） -->
@@ -2203,7 +2203,7 @@
                                 FontSize="12"
                                 HorizontalAlignment="Center"
                                 Click="btnTuningToggle_Click"
-                                ToolTip="展开/收起调参滑杆"/>
+                                ToolTip="{DynamicResource 展开/收起调参滑杆}"/>
                     </Border>
                     <!-- 调参抽屉分隔条（#8） -->
                     <GridSplitter Grid.Row="3" x:Name="splitterTuning"
@@ -2233,7 +2233,7 @@
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="btnKeysEdit" Content="{DynamicResource 编辑}"
                                     Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
-                                    Click="btnKeysEdit_Click" ToolTip="进入编辑模式"/>
+                                    Click="btnKeysEdit_Click" ToolTip="{DynamicResource 进入编辑模式}"/>
                             <TextBlock Text="  Shift 切换大小写" FontSize="11"
                                        Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0"
                                        Visibility="Collapsed"/>
@@ -2247,16 +2247,16 @@
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="btnKeysDone" Content="{DynamicResource 完成}"
                                     Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
-                                    Click="btnKeysDone_Click" ToolTip="退出编辑模式"/>
+                                    Click="btnKeysDone_Click" ToolTip="{DynamicResource 退出编辑模式}"/>
                             <Button x:Name="btnKeysAdd" Content="{DynamicResource + 添加}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
-                                    Margin="6,0,0,0" Click="btnKeysAdd_Click" ToolTip="添加一个按键"/>
+                                    Margin="6,0,0,0" Click="btnKeysAdd_Click" ToolTip="{DynamicResource 添加一个按键}"/>
                             <Button x:Name="btnKeysLayout" Content="{DynamicResource ⌨ 键盘布局}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
-                                    Margin="6,0,0,0" Click="btnKeysLayout_Click" ToolTip="从键盘布局预设批量创建按键"/>
+                                    Margin="6,0,0,0" Click="btnKeysLayout_Click" ToolTip="{DynamicResource 从键盘布局预设批量创建按键}"/>
                             <Button x:Name="btnKeysClearAll" Content="{DynamicResource 🗑 清空全部}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
-                                    Margin="6,0,0,0" Click="btnKeysClearAll_Click" ToolTip="删除所有按键"
+                                    Margin="6,0,0,0" Click="btnKeysClearAll_Click" ToolTip="{DynamicResource 删除所有按键}"
                                     Foreground="#E74856"/>
                         </StackPanel>
                     </Border>
@@ -2354,23 +2354,23 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="6,3">
                         <StackPanel Orientation="Horizontal">
                             <!-- 锁定 -->
-                            <Button x:Name="btnLockCanvas" Content="🔒" Width="34" Height="34" ToolTip="解锁画布（默认锁定，只看不画）"
+                            <Button x:Name="btnLockCanvas" Content="🔒" Width="34" Height="34" ToolTip="{DynamicResource 解锁画布（默认锁定，只看不画）}"
                                     FontSize="18"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="1,0"
                                     Click="btnLockCanvas_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 选择 -->
-                            <Button x:Name="btnToolSelect" Content="↖" Width="24" Height="24" ToolTip="选择（点击选中/拖拽调整）"
+                            <Button x:Name="btnToolSelect" Content="↖" Width="24" Height="24" ToolTip="{DynamicResource 选择（点击选中/拖拽调整）}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolSelect_Click"/>
                             <!-- 绘图工具 -->
-                            <Button x:Name="btnToolPencil" Content="✏" Width="24" Height="24" ToolTip="画笔"
+                            <Button x:Name="btnToolPencil" Content="✏" Width="24" Height="24" ToolTip="{DynamicResource 画笔}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolPencil_Click"/>
-                            <Button x:Name="btnToolLine" Content="📏" Width="24" Height="24" ToolTip="直线"
+                            <Button x:Name="btnToolLine" Content="📏" Width="24" Height="24" ToolTip="{DynamicResource 直线}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolLine_Click"/>
-                            <Button x:Name="btnToolRect" Content="▭▾" Width="42" Height="24" ToolTip="矩形 (左键选择，右键切换类型)"
+                            <Button x:Name="btnToolRect" Content="▭▾" Width="42" Height="24" ToolTip="{DynamicResource 矩形 (左键选择，右键切换类型)}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolRect_Click">
                                 <Button.ContextMenu>
@@ -2380,7 +2380,7 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button x:Name="btnToolCircle" Content="◯▾" Width="42" Height="24" ToolTip="圆 (左键选择，右键切换类型)"
+                            <Button x:Name="btnToolCircle" Content="◯▾" Width="42" Height="24" ToolTip="{DynamicResource 圆 (左键选择，右键切换类型)}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolCircle_Click">
                                 <Button.ContextMenu>
@@ -2390,30 +2390,30 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button x:Name="btnToolTriangle" Content="△" Width="24" Height="24" ToolTip="三角形"
+                            <Button x:Name="btnToolTriangle" Content="△" Width="24" Height="24" ToolTip="{DynamicResource 三角形}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolTriangle_Click"/>
-                            <Button x:Name="btnToolArc" Content="⌒" Width="24" Height="24" ToolTip="弧线"
+                            <Button x:Name="btnToolArc" Content="⌒" Width="24" Height="24" ToolTip="{DynamicResource 弧线}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolArc_Click"/>
-                            <Button x:Name="btnToolText" Content="T" Width="24" Height="24" ToolTip="文字"
+                            <Button x:Name="btnToolText" Content="T" Width="24" Height="24" ToolTip="{DynamicResource 文字}"
                                     FontWeight="Bold"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolText_Click"/>
                             <!-- 橡皮擦 -->
-                            <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="橡皮擦"
+                            <Button x:Name="btnToolEraser" Content="🧹" Width="24" Height="24" ToolTip="{DynamicResource 橡皮擦}"
                                     Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0" Padding="2,0"
                                     Click="btnToolEraser_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 发送 -->
                             <Button x:Name="btnSendCanvas" Content="{DynamicResource 发送}" Height="26" MinWidth="0" Padding="8,0"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Click="btnSendCanvas_Click" ToolTip="重发全部图形到串口"/>
+                                    Click="btnSendCanvas_Click" ToolTip="{DynamicResource 重发全部图形到串口}"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 清屏 -->
                             <Button x:Name="btnOLEDClear" Content="{DynamicResource 🗑 清屏}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="26" MinWidth="0" Padding="8,0"
-                                    Click="btnOLEDClear_Click" ToolTip="清除 OLED 屏幕（display-clear）"/>
+                                    Click="btnOLEDClear_Click" ToolTip="{DynamicResource 清除 OLED 屏幕（display-clear）}"/>
                         </StackPanel>
                     </Border>
                     <Grid Grid.Row="1" Background="{DynamicResource WindowBgBrush}">
@@ -2455,19 +2455,19 @@
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="btnJoystickCenter" Content="{DynamicResource ⟲ 回中}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
-                                    Click="btnJoystickCenter_Click" ToolTip="将所有摇杆归零"/>
+                                    Click="btnJoystickCenter_Click" ToolTip="{DynamicResource 将所有摇杆归零}"/>
                             <TextBlock Text="底板" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                        VerticalAlignment="Center" Margin="8,0,2,0"/>
                             <Button x:Name="btnJoystickPadStyle" Content="手柄风 ▾"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
                                     Click="btnJoystickPadStyle_Click"
-                                    ToolTip="切换摇杆底板（大圆盘）风格"/>
+                                    ToolTip="{DynamicResource 切换摇杆底板（大圆盘）风格}"/>
                             <TextBlock Text="拇指" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
                                        VerticalAlignment="Center" Margin="6,0,2,0"/>
                             <Button x:Name="btnJoystickThumbStyle" Content="手柄风 ▾"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
                                     Click="btnJoystickThumbStyle_Click"
-                                    ToolTip="切换摇杆拇指（拖拽圆钮）风格"/>
+                                    ToolTip="{DynamicResource 切换摇杆拇指（拖拽圆钮）风格}"/>
                         </StackPanel>
                     </Border>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -2509,10 +2509,10 @@
                                 <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="数据位" Style="{DynamicResource FormLabelStyle}"/>
                                 <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbDataBits"
-                                          ToolTip="每个字节的数据位数。常用 8 位"/>
+                                          ToolTip="{DynamicResource 每个字节的数据位数。常用 8 位}"/>
                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="停止位" Style="{DynamicResource FormLabelStyle}"/>
                                 <ComboBox Grid.Row="1" Grid.Column="1" x:Name="cbStopBits"
-                                          ToolTip="每个字节后的停止位数。常用 1 位"/>
+                                          ToolTip="{DynamicResource 每个字节后的停止位数。常用 1 位}"/>
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="校验位" Style="{DynamicResource FormLabelStyle}"/>
                                 <ComboBox Grid.Row="2" Grid.Column="1" x:Name="cbParity"
                                           ToolTip="错误检测方式。None=不校验，Odd=奇校验，Even=偶校验"/>
@@ -2522,17 +2522,17 @@
                             </Grid>
                             <CheckBox x:Name="chkDtr" Content="{DynamicResource DTR（数据终端就绪）}" Margin="0,8,0,0"
                                       Checked="chkDtr_Changed" Unchecked="chkDtr_Changed"
-                                      ToolTip="数据终端就绪信号。某些设备需拉高此信号才开始工作"/>
+                                      ToolTip="{DynamicResource 数据终端就绪信号。某些设备需拉高此信号才开始工作}"/>
                             <CheckBox x:Name="chkRts" Content="{DynamicResource RTS（请求发送）}"
                                       Checked="chkRts_Changed" Unchecked="chkRts_Changed"
-                                      ToolTip="请求发送信号。用于硬件流控或唤醒目标设备"/>
+                                      ToolTip="{DynamicResource 请求发送信号。用于硬件流控或唤醒目标设备}"/>
                             <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                             <CheckBox x:Name="chkAutoReconnect" Content="{DynamicResource 自动重连}"
                                       Checked="chkAutoReconnect_Changed" Unchecked="chkAutoReconnect_Changed"
-                                      ToolTip="串口意外断开后自动尝试重新连接"/>
+                                      ToolTip="{DynamicResource 串口意外断开后自动尝试重新连接}"/>
                             <CheckBox x:Name="chkPersistTraffic" Content="{DynamicResource 串口打开时不重置流量计数}"
                                       Checked="chkPersistTraffic_Changed" Unchecked="chkPersistTraffic_Changed"
-                                      ToolTip="保持上次连接的收发字节计数，不清零"/>
+                                      ToolTip="{DynamicResource 保持上次连接的收发字节计数，不清零}"/>
                         </StackPanel>
                     </ScrollViewer>
                     <!-- 快捷键提示 -->
@@ -2581,7 +2581,7 @@
                                     <StackPanel>
                                         <TextBlock x:Name="tbAssetsPath" FontSize="11" FontFamily="Consolas"
                                                    Foreground="{DynamicResource PrimaryBrush}" TextWrapping="Wrap"
-                                                   ToolTip="点击复制路径"/>
+                                                   ToolTip="{DynamicResource 点击复制路径}"/>
                                         <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0"
                                                    Text="👆 点击上方蓝色路径即可复制，粘贴到文件管理器打开此文件夹"/>
                                     </StackPanel>
@@ -2741,7 +2741,7 @@
                     <TextBlock x:Name="tbTraffic" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="16,0,0,0" Visibility="Collapsed"
                                MouseRightButtonDown="tbTraffic_MouseRightButtonDown" Cursor="Hand"
-                               ToolTip="右键点击重置流量计数"/>
+                               ToolTip="{DynamicResource 右键点击重置流量计数}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <TextBlock x:Name="tbPortInfo" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
