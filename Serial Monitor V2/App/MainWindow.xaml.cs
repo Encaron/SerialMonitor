@@ -107,7 +107,7 @@ namespace 串口助手
 
         // ——— 版本更新检查 ———
         private string _updateUrl;          // 非 null 表示有新版本可用
-        private string _remoteVersion;      // "2.5.0"
+        private string _remoteVersion;      // "2.6.0"
 
         // ——— 接收区协议筛选 ———
         private bool _showProtocolMsgs = true;
@@ -959,43 +959,84 @@ namespace 串口助手
         }
 
         /// <summary>
-        /// 启动时扫描可用串口并自动选中上次使用的端口。
-        /// 优先级：上次记录的端口 > 仅有一个串口时自动选 > 多串口时选数字最小的 > 空白
+        /// 刷新端口列表并保留当前选择（若仍存在），否则按优先级自动选。
+        /// 启动时 / 下拉展开 / 设备插拔 统一入口。
         /// </summary>
-        private void ScanPortsAndAutoSelect()
+        private void RefreshPortList()
         {
+            string currentName = cbPortName.Text;
             string[] ports = SerialPort.GetPortNames().Distinct().ToArray();
-            if (ports.Length == 0) return;
 
-            // 填充串口号列表
             cbPortName.Items.Clear();
+
+            if (ports.Length == 0)
+            {
+                cbPortName.Text = "";
+                return;
+            }
+
             foreach (string p in ports)
                 cbPortName.Items.Add(p);
 
-            string selected = "";
+            // 当前选择的端口仍存在 → 保留
+            if (!string.IsNullOrEmpty(currentName) && Array.IndexOf(ports, currentName) >= 0)
+            {
+                cbPortName.Text = currentName;
+                return;
+            }
+
+            // 否则按优先级自动选
+            string selected = PickBestPort(ports);
+            if (!string.IsNullOrEmpty(selected))
+            {
+                cbPortName.Text = selected;
+                LogSystem(string.Format(T("---- 已自动选中 {0} ----"), selected));
+            }
+        }
+
+        /// <summary>
+        /// 从可用端口列表中按优先级选一个：
+        /// 上次成功端口 > 单端口直接选 > 数字最小
+        /// </summary>
+        private string PickBestPort(string[] ports)
+        {
+            if (ports.Length == 0) return "";
 
             // 1) 上次成功打开的端口仍存在 → 优先
             if (!string.IsNullOrEmpty(_lastSuccessfulPort) &&
                 Array.IndexOf(ports, _lastSuccessfulPort) >= 0)
-            {
-                selected = _lastSuccessfulPort;
-            }
+                return _lastSuccessfulPort;
+
             // 2) 只有一个串口 → 直接选
-            else if (ports.Length == 1)
-            {
-                selected = ports[0];
-            }
+            if (ports.Length == 1)
+                return ports[0];
+
             // 3) 多个串口 → 选数字最小的
-            else
+            string best = ports[0];
+            foreach (string p in ports)
             {
-                selected = ports[0];
-                foreach (string p in ports)
-                {
-                    if (string.Compare(p, selected, StringComparison.OrdinalIgnoreCase) < 0)
-                        selected = p;
-                }
+                if (string.Compare(p, best, StringComparison.OrdinalIgnoreCase) < 0)
+                    best = p;
+            }
+            return best;
+        }
+
+        private void ScanPortsAndAutoSelect()
+        {
+            string[] ports = SerialPort.GetPortNames().Distinct().ToArray();
+
+            cbPortName.Items.Clear();
+
+            if (ports.Length == 0)
+            {
+                cbPortName.Text = "";
+                return;
             }
 
+            foreach (string p in ports)
+                cbPortName.Items.Add(p);
+
+            string selected = PickBestPort(ports);
             if (!string.IsNullOrEmpty(selected))
             {
                 cbPortName.Text = selected;
@@ -1077,9 +1118,15 @@ namespace 串口助手
                         lastPortName = cbPortName.Text;
                         CloseSerialPort();
                     }
+                    // 设备移除后刷新端口列表，清掉已不存在的端口名
+                    if (!_session.IsOpen)
+                        RefreshPortList();
                 }
                 else if (wParam.ToInt32() == 0x8000) // DBT_DEVICEARRIVAL
                 {
+                    // 设备插入后刷新端口列表，新端口立即可见
+                    if (!_session.IsOpen)
+                        RefreshPortList();
                     if (chkAutoReconnect.IsChecked == true && !_session.IsOpen && !string.IsNullOrEmpty(lastPortName))
                     {
                         reconnectTimer.Start();
@@ -1185,12 +1232,7 @@ namespace 串口助手
 
         private void cbPortName_DropDownOpened(object sender, EventArgs e)
         {
-            string currentName = cbPortName.Text;
-            string[] names = SerialPort.GetPortNames().Distinct().ToArray();
-            cbPortName.Items.Clear();
-            foreach (string name in names)
-                cbPortName.Items.Add(name);
-            cbPortName.Text = currentName;
+            RefreshPortList();
         }
 
         private void btnSend_Click(object sender, RoutedEventArgs e)
