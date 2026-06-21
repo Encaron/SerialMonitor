@@ -42,14 +42,16 @@ namespace 串口助手
                 foreach (var kv in nameDict)
                     if (int.TryParse(kv.Key, out int gid) && kv.Value is string n) _groupNames[gid] = n;
 
-            // 初始化下拉框（存中文显示，读写通过 SendModeKey/Display 映射）
+            // 初始化下拉框（改用 ItemsSource + LocaleComboItem + SelectedValuePath，切语言时不重建只刷新）
             foreach (var cb in new ComboBox[] { cbKeyPressMode, cbKeyReleaseMode, cbKeySendModeMulti, cbKeyReleaseModeMulti, cbModulePressMode, cbModuleReleaseMode })
             {
-                cb.Items.Clear();
-                foreach (var k in LogicValueMaps.SendModeKeys)
-                    cb.Items.Add(LogicValueMaps.DisplaySendMode(k));
-                cb.Tag = null; // 无数据绑定，用 SelectedItem 原文
-                cb.SelectedIndex = 2; // "数据包"
+                var items = new LocaleComboItem[LogicValueMaps.SendModeKeys.Length];
+                for (int i = 0; i < items.Length; i++)
+                    items[i] = new LocaleComboItem(LogicValueMaps.SendModeKeys[i], LogicValueMaps.DisplaySendMode);
+                cb.ItemsSource = items;
+                cb.SelectedValuePath = "Key";
+                cb.Tag = null;
+                cb.SelectedValue = "packet"; // 默认数据包
             }
 
             InitColorPanels();
@@ -817,8 +819,8 @@ namespace 串口助手
                 var first = _selectedKeys[0];
                 bool samePress = _selectedKeys.All(k => k.PressSendMode == first.PressSendMode);
                 bool sameRelease = _selectedKeys.All(k => k.ReleaseSendMode == first.ReleaseSendMode);
-                cbKeySendModeMulti.SelectedItem = samePress ? LogicValueMaps.DisplaySendMode(first.PressSendMode) : null;
-                cbKeyReleaseModeMulti.SelectedItem = sameRelease ? LogicValueMaps.DisplaySendMode(first.ReleaseSendMode) : null;
+                cbKeySendModeMulti.SelectedValue = samePress ? first.PressSendMode : null;
+                cbKeyReleaseModeMulti.SelectedValue = sameRelease ? first.ReleaseSendMode : null;
                 return;
             }
 
@@ -828,9 +830,9 @@ namespace 串口助手
             rightKeysSingleSelect.Visibility = Visibility.Visible;
             tbKeyName.Text = key.Name;
             chkKeySelfLock.IsChecked = key.IsSelfLock;
-            cbKeyPressMode.SelectedItem = LogicValueMaps.DisplaySendMode(key.PressSendMode);
+            cbKeyPressMode.SelectedValue = key.PressSendMode;
             tbKeyPressValue.Text = key.PressSendValue;
-            cbKeyReleaseMode.SelectedItem = LogicValueMaps.DisplaySendMode(key.ReleaseSendMode);
+            cbKeyReleaseMode.SelectedValue = key.ReleaseSendMode;
             tbKeyReleaseValue.Text = key.ReleaseSendValue;
             // 模块布局键不可调大小
             tbKeyWidth.Text = key.Width.ToString();
@@ -843,16 +845,16 @@ namespace 串口助手
         // ——— 单选属性编辑 ———
         private void tbKeyName_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { _selectedKeys[0].Name = tbKeyName.Text; RefreshKeysUI(); } }
         private void chkKeySelfLock_Changed(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { _selectedKeys[0].IsSelfLock = chkKeySelfLock.IsChecked == true; _selectedKeys[0].IsPressed = false; RefreshKeysUI(); } }
-        private void cbKeyPressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count == 1 && cbKeyPressMode.SelectedItem != null) _selectedKeys[0].PressSendMode = LogicValueMaps.MigrateSendMode(cbKeyPressMode.SelectedItem.ToString()); }
+        private void cbKeyPressMode_Changed(object sender, SelectionChangedEventArgs e) { if (_rebuildingComboBox || _selectedKeys.Count != 1 || cbKeyPressMode.SelectedValue == null) return; _selectedKeys[0].PressSendMode = cbKeyPressMode.SelectedValue as string; }
         private void tbKeyPressValue_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) _selectedKeys[0].PressSendValue = tbKeyPressValue.Text; }
-        private void cbKeyReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count == 1 && cbKeyReleaseMode.SelectedItem != null) _selectedKeys[0].ReleaseSendMode = LogicValueMaps.MigrateSendMode(cbKeyReleaseMode.SelectedItem.ToString()); }
+        private void cbKeyReleaseMode_Changed(object sender, SelectionChangedEventArgs e) { if (_rebuildingComboBox || _selectedKeys.Count != 1 || cbKeyReleaseMode.SelectedValue == null) return; _selectedKeys[0].ReleaseSendMode = cbKeyReleaseMode.SelectedValue as string; }
         private void tbKeyReleaseValue_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) _selectedKeys[0].ReleaseSendValue = tbKeyReleaseValue.Text; }
         private void tbKeyWidth_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { if (double.TryParse(tbKeyWidth.Text, out double w) && w >= 20 && w <= 400) { _selectedKeys[0].Width = w; RefreshKeysUI(); } else tbKeyWidth.Text = _selectedKeys[0].Width.ToString(); } }
         private void tbKeyHeight_LostFocus(object sender, RoutedEventArgs e) { if (_selectedKeys.Count == 1) { if (double.TryParse(tbKeyHeight.Text, out double h) && h >= 20 && h <= 400) { _selectedKeys[0].Height = h; RefreshKeysUI(); } else tbKeyHeight.Text = _selectedKeys[0].Height.ToString(); } }
 
         // ——— 多选批量编辑 ———
-        private void cbKeySendModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count <= 1 || cbKeySendModeMulti.SelectedItem == null) return; string m = LogicValueMaps.MigrateSendMode(cbKeySendModeMulti.SelectedItem.ToString()); foreach (var k in _selectedKeys) k.PressSendMode = m; }
-        private void cbKeyReleaseModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_selectedKeys.Count <= 1 || cbKeyReleaseModeMulti.SelectedItem == null) return; string m = LogicValueMaps.MigrateSendMode(cbKeyReleaseModeMulti.SelectedItem.ToString()); foreach (var k in _selectedKeys) k.ReleaseSendMode = m; }
+        private void cbKeySendModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_rebuildingComboBox || _selectedKeys.Count <= 1 || cbKeySendModeMulti.SelectedValue == null) return; string m = cbKeySendModeMulti.SelectedValue as string; foreach (var k in _selectedKeys) k.PressSendMode = m; }
+        private void cbKeyReleaseModeMulti_Changed(object sender, SelectionChangedEventArgs e) { if (_rebuildingComboBox || _selectedKeys.Count <= 1 || cbKeyReleaseModeMulti.SelectedValue == null) return; string m = cbKeyReleaseModeMulti.SelectedValue as string; foreach (var k in _selectedKeys) k.ReleaseSendMode = m; }
 
         // ——— 模块设置 ———
         private void ShowModuleSettings(int gid) {
@@ -861,20 +863,20 @@ namespace 串口助手
             var gk = _keyVM.Keys.Where(k => k.GroupId == gid).ToList();
             var pressMode = gk.GroupBy(k => k.PressSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "packet";
             var releaseMode = gk.GroupBy(k => k.ReleaseSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).FirstOrDefault() ?? "packet";
-            cbModulePressMode.SelectedItem = LogicValueMaps.DisplaySendMode(pressMode);
-            cbModuleReleaseMode.SelectedItem = LogicValueMaps.DisplaySendMode(releaseMode);
+            cbModulePressMode.SelectedValue = pressMode;
+            cbModuleReleaseMode.SelectedValue = releaseMode;
         }
         private void tbModuleName_LostFocus(object sender, RoutedEventArgs e) { if (_selectedModuleGroupId == null) return; string nn = tbModuleName.Text?.Trim(); if (!string.IsNullOrEmpty(nn)) { _groupNames[_selectedModuleGroupId.Value] = nn; RefreshKeysUI(); } }
         private void cbModulePressMode_Changed(object sender, SelectionChangedEventArgs e) {
-            if (_selectedModuleGroupId == null || cbModulePressMode.SelectedItem == null) return;
-            string m = LogicValueMaps.MigrateSendMode(cbModulePressMode.SelectedItem.ToString()); int gid = _selectedModuleGroupId.Value;
+            if (_rebuildingComboBox || _selectedModuleGroupId == null || cbModulePressMode.SelectedValue == null) return;
+            string m = cbModulePressMode.SelectedValue as string; int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
             { k.PressSendMode = m; if (m == "text" && string.IsNullOrEmpty(k.PressSendValue)) k.PressSendValue = k.Name; }
             RefreshKeysUI();
         }
         private void cbModuleReleaseMode_Changed(object sender, SelectionChangedEventArgs e) {
-            if (_selectedModuleGroupId == null || cbModuleReleaseMode.SelectedItem == null) return;
-            string m = LogicValueMaps.MigrateSendMode(cbModuleReleaseMode.SelectedItem.ToString()); int gid = _selectedModuleGroupId.Value;
+            if (_rebuildingComboBox || _selectedModuleGroupId == null || cbModuleReleaseMode.SelectedValue == null) return;
+            string m = cbModuleReleaseMode.SelectedValue as string; int gid = _selectedModuleGroupId.Value;
             foreach (var k in _keyVM.Keys.Where(k => k.GroupId == gid))
             { k.ReleaseSendMode = m; if (m == "text" && string.IsNullOrEmpty(k.ReleaseSendValue)) k.ReleaseSendValue = k.Name; }
             RefreshKeysUI();

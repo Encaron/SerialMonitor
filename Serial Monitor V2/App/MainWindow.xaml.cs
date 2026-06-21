@@ -125,6 +125,11 @@ namespace 串口助手
         private string _currentSettingsPage; // null = 未展开子页 / "serial" / "shortcuts" / "about"
         private HashSet<string> _expandedExampleTypes = new(); // 使用示例页已展开的协议类型
         private bool _rebuildingComboBox; // 重建 ComboBox 项目时抑制 SelectionChanged 副作用
+        private bool _localeInlinesCached; // 切语言 Inlines Run 缓存是否已建
+        // Inlines Run 缓存：首次建好后，切语言只改 Text，不 Clear + 重建
+        private Run[] _fftHintRuns;
+        private Run[] _oledCodeRuns;
+        private Run[] _usageExampleRuns;
         private SearchPanel _searchPanel;
 
         // 图标栏面板显隐管理（决策 12改：+ 下拉菜单切换）
@@ -180,6 +185,8 @@ namespace 串口助手
             InitializeComponent();
 
             // 双语：注入所有中文 key 到 Application + Window 两级资源字典
+            // ⚠️ 硬约束 #41：RegisterLocaleRebuild 必须在 Initialize 之前。当前顺序历史原因无法调换，
+            //    故 Initialize 之后立即显式补调一次 RefreshLocaleInlines（见下方）
             Locale.Initialize(this.Resources);
 
             // 注册切语言时自动重建的页面（和 RegisterThemePanel 同机制：一处注册，自动跟）
@@ -188,6 +195,9 @@ namespace 串口助手
             Locale.RegisterLocaleRebuild(RefreshFreqSourceList);
             Locale.RegisterLocaleRebuild(RefreshStyleButtonLabels);
             // PopulateShortcutPage / PopulateExamplesPage 已改 LocText → SetResourceReference，切语言时 WPF 自动推，无需重建
+
+            // Initialize 里的 SwitchTo("zh") 执行时回调还没注册——补一次首次 Inlines 创建
+            RefreshLocaleInlines();
 
             // 双语按钮：切语言时更新 "中/EN" 字重字号
             Locale.OnLangChanged = isZh =>
@@ -335,10 +345,10 @@ namespace 串口助手
             tbPlotYMin.IsEnabled = false;
             tbPlotYMax.IsEnabled = false;
             // 显示模式下拉框
-            foreach (var k in LogicValueMaps.PlotModeKeys) cbPlotMode.Items.Add(LogicValueMaps.DisplayPlotMode(k));
+            cbPlotMode.ItemsSource = MakeComboItems(LogicValueMaps.PlotModeKeys, LogicValueMaps.DisplayPlotMode);
             cbPlotMode.SelectedIndex = 0;
             // #10 FFT: 窗函数
-            foreach (var k in LogicValueMaps.WindowFunctionKeys) cbFreqWindow.Items.Add(LogicValueMaps.DisplayWindowFunction(k));
+            cbFreqWindow.ItemsSource = MakeComboItems(LogicValueMaps.WindowFunctionKeys, LogicValueMaps.DisplayWindowFunction);
             cbFreqWindow.SelectedIndex = 0;
             // #10 FFT: FFT 点数选择
             cbFreqSize.Items.Add("64");
@@ -872,6 +882,7 @@ namespace 串口助手
 
         private void InitComboBoxItems()
         {
+            // 非 locale 的 ComboBox（纯数字/编码名，切语言不变）—— 保持 Items.Add
             cbBaudRate.Items.Add("2400");
             cbBaudRate.Items.Add("4800");
             cbBaudRate.Items.Add("9600");
@@ -899,20 +910,28 @@ namespace 串口助手
             cbStopBits.Items.Add("1.5");
             cbStopBits.Items.Add("2");
 
-            foreach (var k in LogicValueMaps.ParityKeys) cbParity.Items.Add(LogicValueMaps.DisplayParity(k));
-            foreach (var k in LogicValueMaps.IoModeKeys) cbReceiveMode.Items.Add(LogicValueMaps.DisplayIoMode(k));
-
             cbReceiveCoding.Items.Add("GBK");
             cbReceiveCoding.Items.Add("UTF-8");
-
-            foreach (var k in LogicValueMaps.IoModeKeys) cbSendMode.Items.Add(LogicValueMaps.DisplayIoMode(k));
 
             cbSendCoding.Items.Add("GBK");
             cbSendCoding.Items.Add("UTF-8");
 
-            foreach (var k in LogicValueMaps.TimestampFormatKeys) cbTimestampFormat.Items.Add(LogicValueMaps.DisplayTimestampFormat(k));
-            foreach (var k in LogicValueMaps.NewlineKeys) cbLineEnding.Items.Add(LogicValueMaps.DisplayNewline(k));
-            foreach (var k in LogicValueMaps.FlowControlKeys) cbFlowControl.Items.Add(LogicValueMaps.DisplayFlowControl(k));
+            // Locale 敏感的 ComboBox —— 用 ItemsSource + LocaleComboItem，切语言只需 ItemsSource 空→还原
+            cbParity.ItemsSource         = MakeComboItems(LogicValueMaps.ParityKeys, LogicValueMaps.DisplayParity);
+            cbReceiveMode.ItemsSource    = MakeComboItems(LogicValueMaps.IoModeKeys, LogicValueMaps.DisplayIoMode);
+            cbSendMode.ItemsSource       = MakeComboItems(LogicValueMaps.IoModeKeys, LogicValueMaps.DisplayIoMode);
+            cbTimestampFormat.ItemsSource = MakeComboItems(LogicValueMaps.TimestampFormatKeys, LogicValueMaps.DisplayTimestampFormat);
+            cbLineEnding.ItemsSource     = MakeComboItems(LogicValueMaps.NewlineKeys, LogicValueMaps.DisplayNewline);
+            cbFlowControl.ItemsSource    = MakeComboItems(LogicValueMaps.FlowControlKeys, LogicValueMaps.DisplayFlowControl);
+        }
+
+        /// <summary>从 key→display 函数创建 LocaleComboItem 列表，供 ItemsSource 使用</summary>
+        private static LocaleComboItem[] MakeComboItems(string[] keys, Func<string, string> display)
+        {
+            var items = new LocaleComboItem[keys.Length];
+            for (int i = 0; i < keys.Length; i++)
+                items[i] = new LocaleComboItem(keys[i], display);
+            return items;
         }
 
         private void SetDefaultValues()
@@ -3004,29 +3023,39 @@ namespace 串口助手
             return false;
         }
 
-        /// <summary>切语言时重建 ComboBox Items（Items 是静态字符串，不走 DynamicResource）</summary>
+        /// <summary>
+        /// 切语言时刷新 ComboBox 显示（ItemsSource 存 LocaleComboItem，
+        /// 只需刷新 Display 然后 ItemsSource 空→还原一次，不走 Clear + N×Add）。
+        /// </summary>
         private void RefreshComboBoxLocale()
         {
             if (_rebuildingComboBox) return;
             _rebuildingComboBox = true;
-            void Rebuild(ComboBox cb, string[] keys, Func<string, string> display)
+
+            void Rebuild(ComboBox cb)
             {
+                var src = cb.ItemsSource as LocaleComboItem[];
+                if (src == null) return;
                 int idx = cb.SelectedIndex;
-                cb.Items.Clear();
-                foreach (var k in keys) cb.Items.Add(display(k));
-                if (idx >= 0 && idx < cb.Items.Count) cb.SelectedIndex = idx;
+                foreach (var item in src) item.Refresh();
+                cb.ItemsSource = null;
+                cb.ItemsSource = src;
+                if (idx >= 0 && idx < src.Length) cb.SelectedIndex = idx;
             }
-            Rebuild(cbReceiveMode, LogicValueMaps.IoModeKeys, LogicValueMaps.DisplayIoMode);
-            Rebuild(cbSendMode, LogicValueMaps.IoModeKeys, LogicValueMaps.DisplayIoMode);
-            Rebuild(cbParity, LogicValueMaps.ParityKeys, LogicValueMaps.DisplayParity);
-            Rebuild(cbFlowControl, LogicValueMaps.FlowControlKeys, LogicValueMaps.DisplayFlowControl);
-            Rebuild(cbTimestampFormat, LogicValueMaps.TimestampFormatKeys, LogicValueMaps.DisplayTimestampFormat);
-            Rebuild(cbLineEnding, LogicValueMaps.NewlineKeys, LogicValueMaps.DisplayNewline);
-            Rebuild(cbPlotMode, LogicValueMaps.PlotModeKeys, LogicValueMaps.DisplayPlotMode);
-            Rebuild(cbFreqWindow, LogicValueMaps.WindowFunctionKeys, LogicValueMaps.DisplayWindowFunction);
-            // Keys 面板 — 按键发送模式
+
+            Rebuild(cbReceiveMode);
+            Rebuild(cbSendMode);
+            Rebuild(cbParity);
+            Rebuild(cbFlowControl);
+            Rebuild(cbTimestampFormat);
+            Rebuild(cbLineEnding);
+            Rebuild(cbPlotMode);
+            Rebuild(cbFreqWindow);
+
+            // Keys 面板 — 按键发送模式（ItemsSource 在 Keys.cs 初始化，但也要走同逻辑）
             foreach (var cb in new ComboBox[] { cbKeyPressMode, cbKeyReleaseMode, cbKeySendModeMulti, cbKeyReleaseModeMulti, cbModulePressMode, cbModuleReleaseMode })
-                Rebuild(cb, LogicValueMaps.SendModeKeys, LogicValueMaps.DisplaySendMode);
+                Rebuild(cb);
+
             _rebuildingComboBox = false;
         }
 
@@ -3039,47 +3068,97 @@ namespace 串口助手
                 btnJoystickThumbStyle.Content = JoyThumbLabel() + " ▾";
         }
 
-        /// <summary>重建含逗号/等号的说明文字 Inlines（XAML DynamicResource 语法限制）</summary>
+        /// <summary>
+        /// 切语言时刷新 Inlines 内可翻译的 Run.Text。首次调用创建 Run 并缓存，
+        /// 后续调用只改 Text，不触发 Clear + 重建（避免 ~22 次布局无效）。
+        /// </summary>
         private void RefreshLocaleInlines()
         {
-            // FFT 操作提示
-            tbFftHints.Inlines.Clear();
-            tbFftHints.Inlines.Add(new Run(T("🔬 数据源选 [plot,...] 通道 → PC 自动算 FFT")) { FontWeight = FontWeights.SemiBold });
-            tbFftHints.Inlines.Add(new LineBreak());
-            tbFftHints.Inlines.Add(new Run(T("收到 [fft,...] 协议则覆盖自动频谱")));
-            tbFftHints.Inlines.Add(new LineBreak());
-            tbFftHints.Inlines.Add(new Run(T("🖱 滚轮缩放 · 右键拖拽平移")));
-            tbFftHints.Inlines.Add(new LineBreak());
-            tbFftHints.Inlines.Add(new Run(T("📊 暂停后点「详细」按钮查看频谱指标")));
+            if (!_localeInlinesCached)
+            {
+                _localeInlinesCached = true;
 
-            // OLED C 代码说明
-            tbOledCodeHints.Inlines.Clear();
-            tbOledCodeHints.Inlines.Add(new Run(T("坐标轴：起/中/终点标有刻度数字")));
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run(T("C 代码写法：")) { FontWeight = FontWeights.SemiBold });
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run("Serial_Printf(&huart1,"));
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run("  \"[display,0,0,\\\"hello\\\",24]\\r\\n\");"));
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run("  \"[display,10,20,\\\"ok\\\",16,#FF0000]\\r\\n\");"));
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run(T("⚠ 内层引号前加 \\ 转义")) { Foreground = new SolidColorBrush(Color.FromRgb(0xE7, 0x48, 0x56)) });
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run(T("末尾 #RRGGBB 可选，不写=白色")));
-            tbOledCodeHints.Inlines.Add(new LineBreak());
-            tbOledCodeHints.Inlines.Add(new Run(T("[display-clear] 清屏")));
+                // ═══ FFT 操作提示 ═══
+                tbFftHints.Inlines.Clear();
+                var fftRuns = new List<Run>();
+                AddRun(tbFftHints, fftRuns, "🔬 数据源选 [plot,...] 通道 → PC 自动算 FFT", FontWeights.SemiBold, null, null);
+                tbFftHints.Inlines.Add(new LineBreak());
+                AddRun(tbFftHints, fftRuns, "收到 [fft,...] 协议则覆盖自动频谱", null, null, null);
+                tbFftHints.Inlines.Add(new LineBreak());
+                AddRun(tbFftHints, fftRuns, "🖱 滚轮缩放 · 右键拖拽平移", null, null, null);
+                tbFftHints.Inlines.Add(new LineBreak());
+                AddRun(tbFftHints, fftRuns, "📊 暂停后点「详细」按钮查看频谱指标", null, null, null);
+                _fftHintRuns = fftRuns.ToArray();
 
-            // 使用示例
-            tbUsageExample.Inlines.Clear();
-            tbUsageExample.Inlines.Add(new Run(T("设备通过串口发送 ")));
-            tbUsageExample.Inlines.Add(new Run("[type,arg1,arg2,...]") { FontFamily = new System.Windows.Media.FontFamily("Consolas"), Foreground = (Brush)FindResource("PrimaryBrush") });
-            tbUsageExample.Inlines.Add(new Run(T(" 格式的消息，")));
-            tbUsageExample.Inlines.Add(new Run(T("工具自动解析并路由到对应面板。方括号 ")));
-            tbUsageExample.Inlines.Add(new Run("[ ]") { FontFamily = new System.Windows.Media.FontFamily("Consolas"), Foreground = (Brush)FindResource("PrimaryBrush") });
-            tbUsageExample.Inlines.Add(new Run(T(" 包裹每条消息，参数用逗号分隔。含逗号的参数用双引号包裹。")));
+                // ═══ OLED C 代码说明 ═══
+                tbOledCodeHints.Inlines.Clear();
+                var oledRuns = new List<Run>();
+                AddRun(tbOledCodeHints, oledRuns, "坐标轴：起/中/终点标有刻度数字", null, null, null);
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                AddRun(tbOledCodeHints, oledRuns, "C 代码写法：", FontWeights.SemiBold, null, null);
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                // 以下为固定 C 代码示例，不翻译
+                tbOledCodeHints.Inlines.Add(new Run("Serial_Printf(&huart1,"));
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                tbOledCodeHints.Inlines.Add(new Run("  \"[display,0,0,\\\"hello\\\",24]\\r\\n\");"));
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                tbOledCodeHints.Inlines.Add(new Run("  \"[display,10,20,\\\"ok\\\",16,#FF0000]\\r\\n\");"));
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                var warnBrush = new SolidColorBrush(Color.FromRgb(0xE7, 0x48, 0x56));
+                AddRun(tbOledCodeHints, oledRuns, "⚠ 内层引号前加 \\ 转义", null, warnBrush, null);
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                AddRun(tbOledCodeHints, oledRuns, "末尾 #RRGGBB 可选，不写=白色", null, null, null);
+                tbOledCodeHints.Inlines.Add(new LineBreak());
+                AddRun(tbOledCodeHints, oledRuns, "[display-clear] 清屏", null, null, null);
+                _oledCodeRuns = oledRuns.ToArray();
+
+                // ═══ 使用示例 ═══
+                tbUsageExample.Inlines.Clear();
+                var usageRuns = new List<Run>();
+                AddRun(tbUsageExample, usageRuns, "设备通过串口发送 ", null, null, null);
+                var consolasFont = new System.Windows.Media.FontFamily("Consolas");
+                var primaryBrush = (Brush)FindResource("PrimaryBrush");
+                tbUsageExample.Inlines.Add(new Run("[type,arg1,arg2,...]") { FontFamily = consolasFont, Foreground = primaryBrush });
+                AddRun(tbUsageExample, usageRuns, " 格式的消息，", null, null, null);
+                AddRun(tbUsageExample, usageRuns, "工具自动解析并路由到对应面板。方括号 ", null, null, null);
+                tbUsageExample.Inlines.Add(new Run("[ ]") { FontFamily = consolasFont, Foreground = primaryBrush });
+                AddRun(tbUsageExample, usageRuns, " 包裹每条消息，参数用逗号分隔。含逗号的参数用双引号包裹。", null, null, null);
+                _usageExampleRuns = usageRuns.ToArray();
+            }
+            else
+            {
+                // 切语言：只更新缓存的 Run.Text，不重建 Inlines
+                RefreshCachedRuns(_fftHintRuns);
+                RefreshCachedRuns(_oledCodeRuns);
+                RefreshCachedRuns(_usageExampleRuns);
+            }
+        }
+
+        /// <summary>创建 Run 并加入 TextBlock 和缓存列表。
+        /// ⚠️ 硬约束 #40：只收中文 key，T() 内部算，API 层面杜绝存翻译结果。</summary>
+        private void AddRun(TextBlock tb, List<Run> cache, string zhKey,
+            FontWeight? weight, Brush foreground, FontFamily fontFamily)
+        {
+            var run = new Run(T(zhKey));
+            run.Tag = zhKey;
+            if (weight.HasValue) run.FontWeight = weight.Value;
+            if (foreground != null) run.Foreground = foreground;
+            if (fontFamily != null) run.FontFamily = fontFamily;
+            cache.Add(run);
+            tb.Inlines.Add(run);
+        }
+
+        /// <summary>重新计算并更新缓存 Run 的 Text（切语言时调用）。从 Tag 取中文 key 重译。</summary>
+        private void RefreshCachedRuns(Run[] runs)
+        {
+            foreach (var run in runs)
+            {
+                var zhKey = run.Tag as string;
+                if (!string.IsNullOrEmpty(zhKey))
+                    run.Text = T(zhKey);
+            }
         }
 
         private Popup _addPanelPopup;

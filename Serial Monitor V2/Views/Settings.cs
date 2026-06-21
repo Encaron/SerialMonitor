@@ -102,7 +102,8 @@ namespace 串口助手
 
                 if (prefs.TryGetValue("lineEnding", out object le) && le is string leStr)
                 {
-                    int idx = cbLineEnding.Items.IndexOf(leStr);
+                    var items = cbLineEnding.ItemsSource as LocaleComboItem[];
+                    int idx = items != null ? Array.FindIndex(items, it => it.Key == leStr) : -1;
                     if (idx >= 0) cbLineEnding.SelectedIndex = idx;
                 }
                 if (prefs.TryGetValue("autoClear", out object ac))
