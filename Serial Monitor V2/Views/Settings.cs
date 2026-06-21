@@ -68,6 +68,7 @@ namespace 串口助手
                 window["maximized"] = this.WindowState == WindowState.Maximized;
 
                 _prefsData["theme"] = isDarkTheme ? "Dark" : "Light";
+                _prefsData["language"] = Locale.Current;
                 _prefsData["lastPort"] = _lastSuccessfulPort;
 
                 var prefs = (Dictionary<string, object>)_prefsData["preferences"];

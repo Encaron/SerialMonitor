@@ -197,6 +197,8 @@ namespace 串口助手
                     tbLangZhSettings.FontWeight = FontWeights.Regular; tbLangZhSettings.FontSize = 11;
                     tbLangEnSettings.FontWeight = FontWeights.Bold;    tbLangEnSettings.FontSize = 14;
                 }
+                // 切语言后重绑侧栏标题等（避免 WPF 资源通知延迟导致不跟）
+                RefreshContentVisibility();
             };
 
             // 弹窗 toggle：AttachPopupToggle 统一处理 PreviewMouseLeftButtonDown 拦截（StaysOpen 冲突）
@@ -211,6 +213,13 @@ namespace 串口助手
 
             // 恢复上次窗口位置和大小（可能触发 ApplyTheme → UpdateThemeColors）
             LoadWindowSettings();
+
+            // 恢复上次语言选择（默认 zh，由 Locale.Initialize 已设好）
+            if (_prefsData != null && _prefsData.TryGetValue("language", out var langObj)
+                && langObj is string savedLang && savedLang != "zh")
+            {
+                Locale.SwitchTo(savedLang);
+            }
 
             // 加载图标栏面板显隐偏好
             if (_prefsData != null && _prefsData.TryGetValue("panelVisible", out var pvObj)
