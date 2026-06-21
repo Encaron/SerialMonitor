@@ -945,7 +945,7 @@ namespace 串口助手
         {
             _isLocked = !_isLocked;
             btnLockCanvas.Content = _isLocked ? "🔒" : "🔓";
-            btnLockCanvas.ToolTip = _isLocked ? "解锁画布" : "锁定画布";
+            btnLockCanvas.ToolTip = _isLocked ? T("解锁画布") : T("锁定画布");
             if (_isLocked)
             {
                 btnLockCanvas.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E53935"));
@@ -3118,7 +3118,7 @@ namespace 串口助手
                 // 锁定状态同步
                 bool txtLocked = IsElementLocked();
                 if (btnTextLock != null) btnTextLock.Visibility = Visibility.Visible;
-                btnTextLock.Content = txtLocked ? "🔒 解锁" : "🔓 锁定";
+                btnTextLock.LocText(txtLocked ? "🔒 解锁" : "🔓 锁定");
                 tbTextEditX.IsEnabled = !txtLocked;
                 tbTextEditY.IsEnabled = !txtLocked;
                 tbTextEditContent.IsEnabled = !txtLocked;
@@ -3130,7 +3130,7 @@ namespace 串口助手
 
             // 锁定状态同步
             bool shapeLocked = IsElementLocked();
-            btnShapeLock.Content = shapeLocked ? "🔒 解锁" : "🔓 锁定";
+            btnShapeLock.LocText(shapeLocked ? "🔒 解锁" : "🔓 锁定");
 
             // 初始化线宽下拉（只一次）
             if (cbShapeLineWidth.Items.Count == 0)
@@ -3203,8 +3203,9 @@ namespace 串口助手
         private (TextBox a, TextBox b) AddFieldRow(string label, string subA, string subB, string valA, string valB)
         {
             var row = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
-            var labelTb = new TextBlock { Text = label, FontSize = 11, FontWeight = FontWeights.SemiBold,
+            var labelTb = new TextBlock { FontSize = 11, FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 4) };
+            labelTb.LocText(label);
             labelTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             row.Children.Add(labelTb);
 
@@ -3216,8 +3217,9 @@ namespace 串口助手
             TextBox mkCol(string sub, string val, int col, Thickness margin)
             {
                 var sp = new StackPanel { Margin = margin };
-                var subTb = new TextBlock { Text = sub, FontSize = 10,
+                var subTb = new TextBlock { FontSize = 10,
                     Margin = new Thickness(0, 0, 0, 2) };
+                subTb.LocText(sub);
                 subTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 sp.Children.Add(subTb);
                 var tb = new TextBox { Text = val, Height = 28, FontFamily = new FontFamily("Microsoft YaHei"),
@@ -3273,9 +3275,11 @@ namespace 串口助手
             string[] typeNames = { "point", "rect", "circle", "line", "triangle", "ellipse", "fill", "rrect", "arc" };
             string[] typeLabels = { "点", "矩形", "圆", "直线", "三角形", "椭圆", "实心矩形", "圆角矩形", "弧线" };
             int ti = Array.IndexOf(typeNames, type);
-            string typeLabel = ti >= 0 ? typeLabels[ti] : type;
-            tbShapeEditTitle.Text = $"图形属性 — {typeLabel}";
-            tbShapeEditType.Text = isFilled ? $"类型: {typeLabel}（实心）" : $"类型: {typeLabel}";
+            string typeLabel = ti >= 0 ? T(typeLabels[ti]) : type;
+            tbShapeEditTitle.Text = string.Format(T("图形属性 — {0}"), typeLabel);
+            tbShapeEditType.Text = isFilled
+                ? string.Format(T("类型: {0}（实心）"), typeLabel)
+                : string.Format(T("类型: {0}"), typeLabel);
 
             // 默认隐藏（各 case 按需打开）
             cbShapeFill.Visibility = Visibility.Collapsed;
@@ -3592,8 +3596,8 @@ namespace 串口助手
 
             // 更新 UI
             string lockLabel = locked ? "🔒 解锁" : "🔓 锁定";
-            if (btnShapeLock != null) btnShapeLock.Content = lockLabel;
-            if (btnTextLock != null) btnTextLock.Content = lockLabel;
+            if (btnShapeLock != null) btnShapeLock.LocText(lockLabel);
+            if (btnTextLock != null) btnTextLock.LocText(lockLabel);
 
             // 锁定态：禁用所有字段 + 重建控点为灰色
             bool isLocked = locked;

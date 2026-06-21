@@ -528,6 +528,11 @@ namespace 串口助手
             ["pad_风格名.png"] = "pad_stylename.png",
             ["thumb_风格名.png"] = "thumb_stylename.png",
             ["track_风格名.png"] = "track_stylename.png",
+            // 素材尺寸标注
+            ["底板   140×140 px"] = "Base   140×140 px",
+            ["拇指    32×32 px"] = "Thumb    32×32 px",
+            ["轨道横条   ≥200×4~12 px"] = "Track bar   ≥200×4~12 px",
+            ["拖拽滑钮   16~48 px 方形"] = "Thumb knob   16~48 px square",
             // 风格菜单描述
             ["4px / 2px 轨道高度"] = "4px / 2px track height",
             ["16px / 12px 圆形拖钮"] = "16px / 12px round thumb",
@@ -779,6 +784,51 @@ namespace 串口助手
             ["文本"] = "Text",
             ["HEX"] = "HEX",
             ["数据包"] = "Packet",
+
+            // OLED 图形属性面板 — 图形类型
+            ["点"] = "Point",
+            ["矩形"] = "Rectangle",
+            ["圆"] = "Circle",
+            ["椭圆"] = "Ellipse",
+            ["实心矩形"] = "Filled Rect",
+            // OLED 图形属性 — 属性标签
+            ["尺寸"] = "Size",
+            ["圆心"] = "Center",
+            ["半径"] = "Radius",
+            ["半轴"] = "Semi-axis",
+            ["起点"] = "Start",
+            ["终点"] = "End",
+            ["圆角"] = "Radius",
+            ["宽"] = "W",
+            ["高"] = "H",
+            ["X"] = "X",
+            ["Y"] = "Y",
+            ["CX"] = "CX",
+            ["CY"] = "CY",
+            ["R"] = "R",
+            ["A"] = "A",
+            ["B"] = "B",
+            ["角度 (°)"] = "Angle (°)",
+            ["起始"] = "Start",
+            ["终止"] = "End",
+            ["顶点①"] = "Vertex①",
+            ["顶点②"] = "Vertex②",
+            ["顶点③"] = "Vertex③",
+            // OLED 图形属性 — 动态格式
+            ["图形属性 — {0}"] = "Properties — {0}",
+            ["类型: {0}"] = "Type: {0}",
+            ["类型: {0}（实心）"] = "Type: {0} (filled)",
+            // 杂项
+            ["⚠ 确认清空"] = "⚠ Confirm Clear",
+            ["⚠ 无效 HEX 字符: {0}"] = "⚠ Invalid HEX chars: {0}",
+            ["可用"] = "available",
+            // Sliders 特有风格
+            ["方块"] = "Square",
+            // OLED 画布锁定
+            ["解锁画布"] = "Unlock Canvas",
+            ["锁定画布"] = "Lock Canvas",
+            ["🔒 解锁"] = "🔒 Unlock",
+            ["🔓 锁定"] = "🔓 Lock",
 
         };
     }

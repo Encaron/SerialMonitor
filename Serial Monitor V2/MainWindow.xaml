@@ -2572,13 +2572,13 @@
                                 <Border Grid.Column="0" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource pad_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBlock Text="底板   140×140 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                        <TextBlock x:Name="tbAssetPadSize" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="2" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource thumb_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBlock Text="拇指    32×32 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                        <TextBlock x:Name="tbAssetJoystickThumb" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -2599,13 +2599,13 @@
                                 <Border Grid.Column="0" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource track_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBlock Text="轨道横条   ≥200×4~12 px" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                        <TextBlock x:Name="tbAssetTrackSize" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="2" Background="{DynamicResource SecondaryHoverBgBrush}" CornerRadius="4" Padding="10,10">
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource thumb_风格名.png}" FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBlock Text="拖拽滑钮   16~48 px 方形" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                        <TextBlock x:Name="tbAssetThumbKnobSize" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>

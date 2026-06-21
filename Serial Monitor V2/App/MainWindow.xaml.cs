@@ -274,6 +274,10 @@ namespace 串口助手
             tbAssetsPath.Text = assetsDir;
             tbAssetsPath.Cursor = System.Windows.Input.Cursors.Hand;
             tbAssetsPath.MouseLeftButtonDown += (s, e) => SafeSetClipboard(tbAssetsPath.Text);
+            tbAssetPadSize.SetResourceReference(TextBlock.TextProperty, "底板   140×140 px");
+            tbAssetJoystickThumb.SetResourceReference(TextBlock.TextProperty, "拇指    32×32 px");
+            tbAssetTrackSize.SetResourceReference(TextBlock.TextProperty, "轨道横条   ≥200×4~12 px");
+            tbAssetThumbKnobSize.SetResourceReference(TextBlock.TextProperty, "拖拽滑钮   16~48 px 方形");
 
             PopulateShortcutPage();
             PopulateExamplesPage();
@@ -447,7 +451,7 @@ namespace 串口助手
 
             if (_updateUrl != null)
             {
-                tbAboutVersion.Text = $"{v}  →  v{_remoteVersion} 可用";
+                tbAboutVersion.Text = $"{v}  →  v{_remoteVersion} " + T("可用");
                 tbAboutVersion.Cursor = Cursors.Hand;
                 tbAboutVersion.ToolTip = T("点击查看更新内容");
 
@@ -1488,7 +1492,7 @@ namespace 串口助手
             string invalid = DataConverter.ValidateHexString(tbSend.Text);
             if (!string.IsNullOrEmpty(invalid))
             {
-                tbHexWarning.Text = $"⚠ 无效 HEX 字符: {invalid}";
+                tbHexWarning.Text = string.Format(T("⚠ 无效 HEX 字符: {0}"), invalid);
                 tbHexWarning.Visibility = Visibility.Visible;
             }
             else

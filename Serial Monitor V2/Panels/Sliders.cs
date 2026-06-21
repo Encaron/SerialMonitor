@@ -164,7 +164,7 @@ namespace 串口助手
             if (_sliderVM == null || _sliderVM.Sliders.Count == 0) return;
             if (_slidersConfirmButton == btnSlidersClearAll) {
                 _sliderVM.ClearAll(); _selectedSliders.Clear();
-                CancelSlidersConfirm(); RefreshSlidersUI(); RefreshSlidersSidePanel();            } else { StartSlidersConfirm(btnSlidersClearAll, "⚠ 确认清空"); }
+                CancelSlidersConfirm(); RefreshSlidersUI(); RefreshSlidersSidePanel();            } else { StartSlidersConfirm(btnSlidersClearAll, T("⚠ 确认清空")); }
         }
         private void btnSliderDelete_Click(object sender, RoutedEventArgs e) {
             if (_selectedSliders.Count == 0) return;
