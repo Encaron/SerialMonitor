@@ -291,12 +291,12 @@ namespace 串口助手
                 // 关闭中的回调直接跳过（Close() 已冲刷缓冲区）
                 if (_isClosing) return;
 
-                if (_receiveMode == "HEX模式")
+                if (_receiveMode == "hex")
                 {
                     // HEX 模式照原样直接输出
                     LineReceived?.Invoke(DataConverter.BytesToHex(dataReceive));
                 }
-                else if (_receiveMode == "文本模式")
+                else if (_receiveMode == "text")
                 {
                     string text = DataConverter.BytesToText(dataReceive, _receiveCoding, _byteBuffer);
                     if (string.IsNullOrEmpty(text)) return;

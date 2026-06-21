@@ -37,7 +37,9 @@ namespace 串口助手
             var itemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
             if (sendHistory.Count == 0)
             {
-                menu.Items.Add(new MenuItem { Header = T("（暂无历史记录）"), IsEnabled = false, Style = itemStyle });
+                var emptyItem = new MenuItem { IsEnabled = false, Style = itemStyle };
+                emptyItem.LocText("（暂无历史记录）");
+                menu.Items.Add(emptyItem);
             }
             else
             {
@@ -142,7 +144,8 @@ namespace 串口助手
                     var menu = new ContextMenu { PlacementTarget = s as UIElement, Placement = PlacementMode.Bottom };
                     var menuItemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
 
-                    var editItem = new MenuItem { Header = T("编辑标签"), Style = menuItemStyle };
+                    var editItem = new MenuItem { Style = menuItemStyle };
+                    editItem.LocText("编辑标签");
                     string oldLabel = kv.Key;
                     editItem.Click += (s2, e2) =>
                     {
@@ -158,7 +161,8 @@ namespace 串口助手
                     };
                     menu.Items.Add(editItem);
 
-                    var deleteItem = new MenuItem { Header = T("删除"), Style = menuItemStyle };
+                    var deleteItem = new MenuItem { Style = menuItemStyle };
+                    deleteItem.LocText("删除");
                     deleteItem.Click += (s2, e2) =>
                     {
                         quickSends.Remove(oldLabel);
@@ -301,7 +305,6 @@ namespace 串口助手
 
             var cancelBtn = new Button
             {
-                Content = T("取消"),
                 Width = 64,
                 Height = 28,
                 Margin = new Thickness(0, 0, 8, 0),
@@ -313,6 +316,7 @@ namespace 串口助手
                 FontSize = 12,
                 SnapsToDevicePixels = true,
             };
+            cancelBtn.LocText("取消");
             cancelBtn.Click += (s, e2) => { dialog.DialogResult = false; dialog.Close(); };
             // 悬停效果（不依赖 DynamicResource 样式，避免弹窗视觉树找不到资源）
             var cancelFgHover = FindResource("TextPrimaryBrush") as Brush;
@@ -337,7 +341,6 @@ namespace 串口助手
 
             var okBtn = new Button
             {
-                Content = T("确定"),
                 Width = 64,
                 Height = 28,
                 Foreground = Brushes.White,
@@ -348,6 +351,7 @@ namespace 串口助手
                 FontSize = 12,
                 SnapsToDevicePixels = true,
             };
+            okBtn.LocText("确定");
             okBtn.Click += (s, e2) => { dialog.DialogResult = true; dialog.Close(); };
             var okBgHover = FindResource("PrimaryHoverBrush") as Brush;
             var okBgNormal = okBtn.Background;

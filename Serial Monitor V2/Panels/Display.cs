@@ -3369,10 +3369,10 @@ namespace 串口助手
                 shapeExtrasContainer.Children.Clear();
                 var note = new TextBlock
                 {
-                    Text = T("角度：右=0°，顺时针为正（下=90°）"),
                     FontSize = 10,
                     Margin = new Thickness(0, 2, 0, 4)
                 };
+                note.LocText("角度：右=0°，顺时针为正（下=90°）");
                 note.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 shapeExtrasContainer.Children.Add(note);
             }

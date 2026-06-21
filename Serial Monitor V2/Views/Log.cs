@@ -87,7 +87,7 @@ namespace 串口助手
             string timestamp = DateTime.Now.ToString("HH:mm:ss:fff");
             string msg;
 
-            if (sendMode == "文本模式")
+            if (sendMode == "text")
             {
                 // 转义真实换行符为字面量，避免换行符在编辑器中裂成多行导致着色失效
                 string safeText = text.Replace("\r\n", "\\r\\n").Replace("\n", "\\n").Replace("\r", "\\r");
@@ -98,7 +98,7 @@ namespace 串口助手
                 msg = $"{timestamp} ---- 已发送 HEX 消息 ({text.Length / 3 + 1} 字节) ----";
             }
 
-            if (sendMode == "HEX模式")
+            if (sendMode == "hex")
             {
                 AppendColoredLine(msg, LogSentColor, "sent");
                 string hexPreview = text.Length > 80 ? text.Substring(0, 80) + "..." : text;

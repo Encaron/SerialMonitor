@@ -109,7 +109,10 @@ namespace 串口助手
             }
             else
             {
-                tbDetailFreq.Text   = stats.FrequencyNote ?? "—";
+                if (stats.FrequencyNote == "未检测到明显周期")
+                    tbDetailFreq.LocText(stats.FrequencyNote);
+                else
+                    tbDetailFreq.Text = stats.FrequencyNote ?? "—";
                 tbDetailPeriod.Text = "—";
             }
 
@@ -260,7 +263,7 @@ namespace 串口助手
                 sb.AppendLine($"频率         {stats.Frequency:F2} Hz");
                 sb.AppendLine($"周期         {stats.Period:F2} ms");
             }
-            else sb.AppendLine($"周期检测     {stats.FrequencyNote ?? "—"}");
+            else sb.AppendLine($"{T("周期检测")}     {stats.FrequencyNote ?? "—"}");
             if (stats.DualLevelConfidence > 30 && stats.DutyCycle > 0)
             {
                 sb.AppendLine($"占空比       {stats.DutyCycle:F1} %");

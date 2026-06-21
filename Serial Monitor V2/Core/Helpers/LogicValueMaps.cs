@@ -77,5 +77,76 @@ namespace 串口助手
             "default" => "默认", "minimal" => "极简",
             _ => k,
         });
+
+        // ═══ 收发模式（串口用，和 SendMode 同 key 体系但不同显示名） ═══
+
+        public static readonly string[] IoModeKeys = { "hex", "text" };
+
+        public static string DisplayIoMode(string k) => Tr(k switch
+        {
+            "hex" => "HEX模式", "text" => "文本模式",
+            _ => k,
+        });
+
+        // ═══ 校验位 ═══
+
+        public static readonly string[] ParityKeys = { "none", "odd", "even" };
+
+        public static string DisplayParity(string k) => Tr(k switch
+        {
+            "none" => "无", "odd" => "奇校验", "even" => "偶校验",
+            _ => k,
+        });
+
+        // ═══ 流控 ═══
+
+        public static readonly string[] FlowControlKeys = { "none", "rts", "xonxoff" };
+
+        public static string DisplayFlowControl(string k) => Tr(k switch
+        {
+            "none" => "无", "rts" => "RTS/CTS", "xonxoff" => "XON/XOFF",
+            _ => k,
+        });
+
+        // ═══ 时间戳格式 ═══
+
+        public static readonly string[] TimestampFormatKeys = { "none", "HH:mm:ss", "HH:mm:ss:fff" };
+
+        public static string DisplayTimestampFormat(string k) => Tr(k switch
+        {
+            "none" => "不显示", "HH:mm:ss" => "HH:mm:ss", "HH:mm:ss:fff" => "HH:mm:ss:fff",
+            _ => k,
+        });
+
+        // ═══ 换行符 ═══
+
+        public static readonly string[] NewlineKeys = { "crlf", "lf", "cr", "none" };
+
+        public static string DisplayNewline(string k) => Tr(k switch
+        {
+            "crlf" => "\\r\\n", "lf" => "\\n", "cr" => "\\r", "none" => "无",
+            _ => k,
+        });
+
+        // ═══ 绘图模式 ═══
+
+        public static readonly string[] PlotModeKeys = { "roll", "sweep" };
+
+        public static string DisplayPlotMode(string k) => Tr(k switch
+        {
+            "roll" => "滚动", "sweep" => "扫描",
+            _ => k,
+        });
+
+        // ═══ 窗函数 ═══
+
+        public static readonly string[] WindowFunctionKeys = { "hanning", "rectangular", "hamming", "blackman" };
+
+        public static string DisplayWindowFunction(string k) => Tr(k switch
+        {
+            "hanning" => "汉宁 (Hanning)", "rectangular" => "矩形 (Rectangular)",
+            "hamming" => "汉明 (Hamming)", "blackman" => "布莱克曼 (Blackman)",
+            _ => k,
+        });
     }
 }

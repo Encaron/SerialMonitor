@@ -26,9 +26,9 @@ namespace 串口助手
         // ——— 串口参数状态 ———
 
         // receiveMode / receiveCoding 同时存于 MainWindow（UI 绑定）和 Session（DataReceived 处理）
-        private string receiveMode = "HEX模式";
+        private string receiveMode = "hex";
         private string receiveCoding = "GBK";
-        private string sendMode = "HEX模式";
+        private string sendMode = "hex";
         private string sendCoding = "GBK";
 
         // 串口会话（替代原来的 serialPort / byteBuffer / receiveLineBuffer / flushTimer）
@@ -124,6 +124,7 @@ namespace 串口助手
         private string _previousContentTab = "Receive";
         private string _currentSettingsPage; // null = 未展开子页 / "serial" / "shortcuts" / "about"
         private HashSet<string> _expandedExampleTypes = new(); // 使用示例页已展开的协议类型
+        private bool _rebuildingComboBox; // 重建 ComboBox 项目时抑制 SelectionChanged 副作用
         private SearchPanel _searchPanel;
 
         // 图标栏面板显隐管理（决策 12改：+ 下拉菜单切换）
@@ -183,8 +184,10 @@ namespace 串口助手
 
             // 注册切语言时自动重建的页面（和 RegisterThemePanel 同机制：一处注册，自动跟）
             Locale.RegisterLocaleRebuild(RefreshLocaleInlines);
-            Locale.RegisterLocaleRebuild(PopulateShortcutPage);
-            Locale.RegisterLocaleRebuild(PopulateExamplesPage);
+            Locale.RegisterLocaleRebuild(RefreshComboBoxLocale);
+            Locale.RegisterLocaleRebuild(RefreshFreqSourceList);
+            Locale.RegisterLocaleRebuild(RefreshStyleButtonLabels);
+            // PopulateShortcutPage / PopulateExamplesPage 已改 LocText → SetResourceReference，切语言时 WPF 自动推，无需重建
 
             // 双语按钮：切语言时更新 "中/EN" 字重字号
             Locale.OnLangChanged = isZh =>
@@ -213,6 +216,7 @@ namespace 串口助手
                     LogSystem($"[i18n] Missing EnMap keys ({Locale.MissingKeys.Count}): {list}");
                     Locale.MissingKeys.Clear();
                 }
+                LogSystem(isZh ? "---- 语言：中文 ----" : "---- Language: English ----");
             };
 
             // 弹窗 toggle：AttachPopupToggle 拦截 PreviewMouseLeftButtonDown（CreatePopup 默认 StaysOpen=true，无竞态）
@@ -327,14 +331,10 @@ namespace 串口助手
             tbPlotYMin.IsEnabled = false;
             tbPlotYMax.IsEnabled = false;
             // 显示模式下拉框
-            cbPlotMode.Items.Add("滚动 (Roll)");
-            cbPlotMode.Items.Add("扫描 (Sweep)");
+            foreach (var k in LogicValueMaps.PlotModeKeys) cbPlotMode.Items.Add(LogicValueMaps.DisplayPlotMode(k));
             cbPlotMode.SelectedIndex = 0;
             // #10 FFT: 窗函数
-            cbFreqWindow.Items.Add("汉宁 (Hanning)");
-            cbFreqWindow.Items.Add("矩形 (Rectangular)");
-            cbFreqWindow.Items.Add("汉明 (Hamming)");
-            cbFreqWindow.Items.Add("布莱克曼 (Blackman)");
+            foreach (var k in LogicValueMaps.WindowFunctionKeys) cbFreqWindow.Items.Add(LogicValueMaps.DisplayWindowFunction(k));
             cbFreqWindow.SelectedIndex = 0;
             // #10 FFT: FFT 点数选择
             cbFreqSize.Items.Add("64");
@@ -374,7 +374,7 @@ namespace 串口助手
                     _reconnectAttempts = 0;
                     cbPortName.Text = lastPortName;
                     OpenSerialPort();
-                    LogSystem($"---- 自动重连：已重新连接 {lastPortName} ----");
+                    LogSystem(string.Format(T("---- 自动重连：已重新连接 {0} ----"), lastPortName));
                 }
                 else
                 {
@@ -383,7 +383,7 @@ namespace 串口助手
                     {
                         reconnectTimer.Stop();
                         _reconnectAttempts = 0;
-                        LogSystem($"---- 自动重连超时：未检测到 {lastPortName} ----");
+                        LogSystem(string.Format(T("---- 自动重连超时：未检测到 {0} ----"), lastPortName));
                     }
                 }
             };
@@ -531,7 +531,7 @@ namespace 串口助手
             }
             catch (Exception ex)
             {
-                LogSystem($"协议路由异常：{ex.Message}");
+                LogSystem(string.Format(T("协议路由异常：{0}"), ex.Message));
             }
         }
 
@@ -597,7 +597,7 @@ namespace 串口助手
                         RouteCtrlMessage(msg.Args);
                     break;
                 default:
-                    LogSystem($"未知协议类型: [{msg.Type}]");
+                    LogSystem(string.Format(T("未知协议类型: [{0}]"), msg.Type));
                     break;
             }
         }
@@ -763,7 +763,7 @@ namespace 串口助手
                 UpdateTrafficDisplay();
 
                 // 日志
-                LogSystem($"---- 已打开串行端口 {_session.PortName} ----");
+                LogSystem(string.Format(T("---- 已打开串行端口 {0} ----"), _session.PortName));
                 // 清除冻结水印
                 plotFrozenOverlay.Visibility = Visibility.Collapsed;
             }
@@ -895,34 +895,20 @@ namespace 串口助手
             cbStopBits.Items.Add("1.5");
             cbStopBits.Items.Add("2");
 
-            cbParity.Items.Add("无");
-            cbParity.Items.Add("奇校验");
-            cbParity.Items.Add("偶校验");
-
-            cbReceiveMode.Items.Add("HEX模式");
-            cbReceiveMode.Items.Add("文本模式");
+            foreach (var k in LogicValueMaps.ParityKeys) cbParity.Items.Add(LogicValueMaps.DisplayParity(k));
+            foreach (var k in LogicValueMaps.IoModeKeys) cbReceiveMode.Items.Add(LogicValueMaps.DisplayIoMode(k));
 
             cbReceiveCoding.Items.Add("GBK");
             cbReceiveCoding.Items.Add("UTF-8");
 
-            cbSendMode.Items.Add("HEX模式");
-            cbSendMode.Items.Add("文本模式");
+            foreach (var k in LogicValueMaps.IoModeKeys) cbSendMode.Items.Add(LogicValueMaps.DisplayIoMode(k));
 
             cbSendCoding.Items.Add("GBK");
             cbSendCoding.Items.Add("UTF-8");
 
-            cbTimestampFormat.Items.Add("不显示");
-            cbTimestampFormat.Items.Add("HH:mm:ss");
-            cbTimestampFormat.Items.Add("HH:mm:ss:fff");
-
-            cbLineEnding.Items.Add("\\r\\n");
-            cbLineEnding.Items.Add("\\n");
-            cbLineEnding.Items.Add("\\r");
-            cbLineEnding.Items.Add("无");
-
-            cbFlowControl.Items.Add("无");
-            cbFlowControl.Items.Add("RTS/CTS");
-            cbFlowControl.Items.Add("XON/XOFF");
+            foreach (var k in LogicValueMaps.TimestampFormatKeys) cbTimestampFormat.Items.Add(LogicValueMaps.DisplayTimestampFormat(k));
+            foreach (var k in LogicValueMaps.NewlineKeys) cbLineEnding.Items.Add(LogicValueMaps.DisplayNewline(k));
+            foreach (var k in LogicValueMaps.FlowControlKeys) cbFlowControl.Items.Add(LogicValueMaps.DisplayFlowControl(k));
         }
 
         private void SetDefaultValues()
@@ -990,7 +976,7 @@ namespace 串口助手
             if (!string.IsNullOrEmpty(selected))
             {
                 cbPortName.Text = selected;
-                LogSystem($"---- 已自动选中 {selected} ----");
+                LogSystem(string.Format(T("---- 已自动选中 {0} ----"), selected));
             }
         }
 
@@ -1036,7 +1022,7 @@ namespace 串口助手
         {
             _session.ResetTraffic();
             UpdateTrafficDisplay();
-            LogSystem("---- 流量计数已重置 ----");
+            LogSystem(T("---- 流量计数已重置 ----"));
         }
 
         // ————————————————————————————————————————
@@ -1118,25 +1104,25 @@ namespace 串口助手
             }
             catch (UnauthorizedAccessException)
             {
-                LogSystem("串口打开失败：被其他程序占用或没有访问权限");
+                LogSystem(T("串口打开失败：被其他程序占用或没有访问权限"));
                 MessageBox.Show("串口被其他程序占用，或没有访问权限。\n请关闭其他串口工具后重试。",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (System.IO.IOException ex)
             {
-                LogSystem($"串口打开失败：硬件通信错误 — {ex.Message}");
+                LogSystem(string.Format(T("串口打开失败：硬件通信错误 — {0}"), ex.Message));
                 MessageBox.Show($"串口硬件通信错误：\n{ex.Message}",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (ArgumentException ex)
             {
-                LogSystem($"串口打开失败：参数无效 — {ex.Message}");
+                LogSystem(string.Format(T("串口打开失败：参数无效 — {0}"), ex.Message));
                 MessageBox.Show($"串口参数无效（端口名或波特率）：\n{ex.Message}",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (InvalidOperationException ex)
             {
-                LogSystem($"串口打开失败：已被占用 — {ex.Message}");
+                LogSystem(string.Format(T("串口打开失败：已被占用 — {0}"), ex.Message));
                 MessageBox.Show($"串口已被占用：\n{ex.Message}",
                                 "串口打开失败", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -1151,7 +1137,7 @@ namespace 串口助手
         {
             if (_session.IsOpen)
             {
-                LogSystem($"---- 关闭串行端口 {_session.PortName} ----");
+                LogSystem(string.Format(T("---- 关闭串行端口 {0} ----"), _session.PortName));
             }
 
             _session.Close();
@@ -1270,7 +1256,7 @@ namespace 串口助手
                 btnPauseDisplay.LocText("▶ 继续显示");
                 btnPauseDisplay.Style = FindResource("PrimaryButtonStyle") as Style;
                 menuPauseDisplay.LocText("▶ 继续显示");
-                LogSystem("---- 暂停显示：界面已冻结，后台照常接收 ----");
+                LogSystem(T("---- 暂停显示：界面已冻结，后台照常接收 ----"));
             }
             else
             {
@@ -1282,9 +1268,9 @@ namespace 串口助手
                 _pausedLines.Clear();
 
                 if (bufferedCount > 0)
-                    LogSystem($"---- 继续显示：补回暂停期间的 {bufferedCount} 条数据 ----");
+                    LogSystem(string.Format(T("---- 继续显示：补回暂停期间的 {0} 条数据 ----"), bufferedCount));
                 else
-                    LogSystem("---- 继续显示 ----");
+                    LogSystem(T("---- 继续显示 ----"));
 
                 btnPauseDisplay.LocText("暂停显示");
                 btnPauseDisplay.Style = FindResource("SecondaryButtonStyle") as Style;
@@ -1330,13 +1316,13 @@ namespace 串口助手
             // —— 协议主开关 ——
             var cbProtocol = new CheckBox
             {
-                Content = T("📡 协议消息"),
-                IsChecked = _showProtocolMsgs,
                 FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 Margin = new Thickness(0, 0, 0, 4),
             };
+            cbProtocol.LocText("📡 协议消息");
+            cbProtocol.IsChecked = _showProtocolMsgs;
             cbProtocol.Checked += (s2, args2) =>
             {
                 _showProtocolMsgs = true;
@@ -1366,13 +1352,13 @@ namespace 串口助手
             // —— 普通文本开关 ——
             var cbPlain = new CheckBox
             {
-                Content = T("普通文本"),
-                IsChecked = _showPlainText,
                 FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            cbPlain.LocText("普通文本");
+            cbPlain.IsChecked = _showPlainText;
             cbPlain.Checked += (s2, args2) => { _showPlainText = true; UpdateFilterButtonAppearance(); };
             cbPlain.Unchecked += (s2, args2) => { _showPlainText = false; UpdateFilterButtonAppearance(); };
             stack.Children.Add(cbPlain);
@@ -1483,7 +1469,7 @@ namespace 串口助手
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            if (sendMode == "HEX模式")
+            if (sendMode == "hex")
             {
                 AutoFormatHexInput();
                 UpdateHexWarning();
@@ -1525,26 +1511,16 @@ namespace 串口助手
             if (dialog.ShowDialog() == true)
             {
                 System.IO.File.WriteAllText(dialog.FileName, editor.Document.Text, System.Text.Encoding.UTF8);
-                LogSystem($"---- 日志已导出至 {dialog.FileName} ----");
+                LogSystem(string.Format(T("---- 日志已导出至 {0} ----"), dialog.FileName));
             }
         }
 
         private void cbReceiveMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (cbReceiveMode.SelectedItem == null) return;
-
-            string mode = cbReceiveMode.SelectedItem.ToString();
-            if (mode == "HEX模式")
-            {
-                cbReceiveCoding.IsEnabled = false;
-                receiveMode = "HEX模式";
-            }
-            else if (mode == "文本模式")
-            {
-                cbReceiveCoding.IsEnabled = true;
-                receiveMode = "文本模式";
-            }
-
+            if (_rebuildingComboBox || cbReceiveMode.SelectedItem == null || cbReceiveMode.SelectedIndex < 0) return;
+            string mode = LogicValueMaps.IoModeKeys[cbReceiveMode.SelectedIndex];
+            cbReceiveCoding.IsEnabled = mode == "text";
+            receiveMode = mode;
             _session.UpdateReceiveSettings(receiveMode, receiveCoding);
         }
 
@@ -1567,24 +1543,17 @@ namespace 串口助手
 
         private void cbSendMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (cbSendMode.SelectedItem == null) return;
-
-            string mode = cbSendMode.SelectedItem.ToString();
-            if (mode == "HEX模式")
+            if (_rebuildingComboBox || cbSendMode.SelectedItem == null || cbSendMode.SelectedIndex < 0) return;
+            string mode = LogicValueMaps.IoModeKeys[cbSendMode.SelectedIndex];
+            sendMode = mode;
+            if (mode == "hex")
             {
                 cbSendCoding.IsEnabled = false;
-                sendMode = "HEX模式";
-                // 切换到 HEX 时自动格式化现有内容
-                if (IsLoaded)
-                {
-                    AutoFormatHexInput();
-                    UpdateHexWarning();
-                }
+                if (IsLoaded) { AutoFormatHexInput(); UpdateHexWarning(); }
             }
-            else if (mode == "文本模式")
+            else
             {
                 cbSendCoding.IsEnabled = true;
-                sendMode = "文本模式";
                 tbHexWarning.Visibility = Visibility.Collapsed;
             }
         }
@@ -1609,14 +1578,13 @@ namespace 串口助手
         /// </summary>
         private void cbTimestampFormat_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!IsLoaded) return;
-            if (cbTimestampFormat.SelectedItem == null) return;
-
-            string format = cbTimestampFormat.SelectedItem.ToString();
-            if (format == "不显示")
-                LogSystem("---- 时间戳：关 ----");
+            if (!IsLoaded || _rebuildingComboBox) return;
+            if (cbTimestampFormat.SelectedItem == null || cbTimestampFormat.SelectedIndex < 0) return;
+            string key = LogicValueMaps.TimestampFormatKeys[cbTimestampFormat.SelectedIndex];
+            if (key == "none")
+                LogSystem(T("---- 时间戳：关 ----"));
             else
-                LogSystem($"---- 时间戳：{format} ----");
+                LogSystem(string.Format(T("---- 时间戳：{0} ----"), cbTimestampFormat.SelectedItem.ToString()));
         }
 
         /// <summary>
@@ -1633,7 +1601,7 @@ namespace 串口助手
                 {
                     autoSendTimer.Interval = TimeSpan.FromMilliseconds(ms);
                     autoSendTimer.Start();
-                    LogSystem($"---- 定时发送：开（每 {ms} ms）----");
+                    LogSystem(string.Format(T("---- 定时发送：开（每 {0} ms）----"), ms));
                 }
                 else
                 {
@@ -1645,7 +1613,7 @@ namespace 串口助手
             else
             {
                 autoSendTimer.Stop();
-                LogSystem("---- 定时发送：关 ----");
+                LogSystem(T("---- 定时发送：关 ----"));
             }
         }
 
@@ -1679,11 +1647,11 @@ namespace 串口助手
 
             if (chkShowEcho.IsChecked == true)
             {
-                LogSystem("---- 消息回显：开 ----");
+                LogSystem(T("---- 消息回显：开 ----"));
             }
             else
             {
-                LogSystem("---- 消息回显：关 ----");
+                LogSystem(T("---- 消息回显：关 ----"));
             }
         }
 
@@ -1700,11 +1668,11 @@ namespace 串口助手
 
             if (_showLineNumbers)
             {
-                LogSystem("---- 行号显示：开 ----");
+                LogSystem(T("---- 行号显示：开 ----"));
             }
             else
             {
-                LogSystem("---- 行号显示：关 ----");
+                LogSystem(T("---- 行号显示：关 ----"));
             }
         }
 
@@ -1729,7 +1697,7 @@ namespace 串口助手
                     FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
                 };
                 lbSystemLog.BeginAnimation(UIElement.OpacityProperty, fadeIn);
-                LogSystem("---- 系统消息独立显示：开 ----");
+                LogSystem(T("---- 系统消息独立显示：开 ----"));
             }
             else
             {
@@ -1745,7 +1713,7 @@ namespace 串口助手
                     lbSystemLog.BeginAnimation(UIElement.OpacityProperty, null);
                 };
                 lbSystemLog.BeginAnimation(UIElement.OpacityProperty, fadeOut);
-                LogSystem("---- 系统消息独立显示：关 ----");
+                LogSystem(T("---- 系统消息独立显示：关 ----"));
             }
         }
 
@@ -1758,9 +1726,9 @@ namespace 串口助手
             AnimateToggleSwitch(sender as CheckBox);
 
             if (chkAutoReconnect.IsChecked == true)
-                LogSystem("---- 自动重连：开 ----");
+                LogSystem(T("---- 自动重连：开 ----"));
             else
-                LogSystem("---- 自动重连：关 ----");
+                LogSystem(T("---- 自动重连：关 ----"));
         }
 
         /// <summary>
@@ -1774,7 +1742,7 @@ namespace 串口助手
             bool enable = chkDtr.IsChecked == true;
             _session.SetDtr(enable);
 
-            LogSystem($"---- DTR：{(enable ? "开" : "关")} ----");
+            LogSystem(string.Format(T("---- DTR：{0} ----"), T(enable ? "开" : "关")));
         }
 
         /// <summary>
@@ -1788,7 +1756,7 @@ namespace 串口助手
             bool enable = chkRts.IsChecked == true;
             _session.SetRts(enable);
 
-            LogSystem($"---- RTS：{(enable ? "开" : "关")} ----");
+            LogSystem(string.Format(T("---- RTS：{0} ----"), T(enable ? "开" : "关")));
         }
 
         /// <summary>
@@ -1800,9 +1768,9 @@ namespace 串口助手
             AnimateToggleSwitch(sender as CheckBox);
 
             if (chkPersistTraffic.IsChecked == true)
-                LogSystem("---- 流量计数持久化：开 ----");
+                LogSystem(T("---- 流量计数持久化：开 ----"));
             else
-                LogSystem("---- 流量计数持久化：关 ----");
+                LogSystem(T("---- 流量计数持久化：关 ----"));
         }
 
         // ==================================================================
@@ -1838,9 +1806,9 @@ namespace 串口助手
                 string leHex  = GetLineEndingHex();
                 if (!string.IsNullOrEmpty(leText))
                 {
-                    if (sendMode == "文本模式")
+                    if (sendMode == "text")
                         content += leText;
-                    else if (sendMode == "HEX模式" && !string.IsNullOrEmpty(leHex))
+                    else if (sendMode == "hex" && !string.IsNullOrEmpty(leHex))
                         content += " " + leHex;
                 }
             }
@@ -1850,12 +1818,12 @@ namespace 串口助手
             try
             {
                 byte[] dataSend;
-                if (sendMode == "HEX模式")
+                if (sendMode == "hex")
                 {
                     string invalidChars = DataConverter.ValidateHexString(content);
                     if (!string.IsNullOrEmpty(invalidChars))
                     {
-                        LogSystem($"HEX 输入含无效字符，已忽略：{invalidChars}");
+                        LogSystem(string.Format(T("HEX 输入含无效字符，已忽略：{0}"), invalidChars));
                     }
                     dataSend = DataConverter.HexToBytes(content);
                 }
@@ -1870,7 +1838,7 @@ namespace 串口助手
             }
             catch (Exception ex)
             {
-                LogSystem($"发送失败：{ex.Message}");
+                LogSystem(string.Format(T("发送失败：{0}"), ex.Message));
             }
         }
 
@@ -1883,14 +1851,12 @@ namespace 串口助手
         /// </summary>
         private string GetLineEndingText()
         {
-            string selected = cbLineEnding.SelectedItem?.ToString();
-            switch (selected)
+            if (cbLineEnding.SelectedIndex < 0) return "";
+            return LogicValueMaps.NewlineKeys[cbLineEnding.SelectedIndex] switch
             {
-                case "\\r\\n": return "\r\n";
-                case "\\n":    return "\n";
-                case "\\r":    return "\r";
-                default:       return "";
-            }
+                "crlf" => "\r\n", "lf" => "\n", "cr" => "\r",
+                _ => ""
+            };
         }
 
         /// <summary>
@@ -1898,14 +1864,12 @@ namespace 串口助手
         /// </summary>
         private string GetLineEndingHex()
         {
-            string selected = cbLineEnding.SelectedItem?.ToString();
-            switch (selected)
+            if (cbLineEnding.SelectedIndex < 0) return "";
+            return LogicValueMaps.NewlineKeys[cbLineEnding.SelectedIndex] switch
             {
-                case "\\r\\n": return "0D 0A";
-                case "\\n":    return "0A";
-                case "\\r":    return "0D";
-                default:       return "";
-            }
+                "crlf" => "0D 0A", "lf" => "0A", "cr" => "0D",
+                _ => ""
+            };
         }
 
         // ==================================================================
@@ -2078,12 +2042,12 @@ namespace 串口助手
                 {
                     var groupHeader = new TextBlock
                     {
-                        Text = T(sc.Group),
                         FontSize = 11,
                         FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = (Brush)FindResource("TextMutedBrush"),
                         Margin = new Thickness(0, lastGroup == null ? 0 : 12, 0, 4),
                     };
+                    groupHeader.LocText(sc.Group);
                     shortcutListPanel.Children.Add(groupHeader);
                     lastGroup = sc.Group;
                 }
@@ -2131,12 +2095,12 @@ namespace 串口助手
                 // 描述
                 var desc = new TextBlock
                 {
-                    Text = T(sc.Desc),
                     FontSize = 13,
                     Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(16, 0, 0, 0),
                 };
+                desc.LocText(sc.Desc);
                 row.Children.Add(desc);
 
                 shortcutListPanel.Children.Add(row);
@@ -2188,7 +2152,7 @@ namespace 串口助手
                 ("传感数据", "sensor",
                  "MCU 上报传感器数据，PC 端传感面板自动建卡。子类型决定卡片样式（竖条色/进度条/波形/开关）。",
                  "[sensor,子类型,卡片名,数值,辅助参数]",
-                 "[sensor,temp,芯片温度,42.5,45.0]",
+                 "[sensor,temp,Chip Temp,42.5,45.0]",
                  new[] { ("子类型",
                           "8 种（与添加卡片面板一致）：\n" +
                           "  temp      温度卡 — 黄色竖条 + 迷你波形\n" +
@@ -2207,7 +2171,7 @@ namespace 串口助手
                 ("控制指令", "ctrl",
                  "PC 端向 MCU 发送控制指令。开关卡点击自动发送，滑杆卡拖拽节流发送（间隔在卡片详情面板设置）。",
                  "[ctrl,子类型,卡片名,动作/数值]",
-                 "[ctrl,led,主板LED,on]",
+                 "[ctrl,led,Mainboard LED,on]",
                  new[] { ("子类型", "led / relay / slider（PC→MCU 方向。固件端自行解析，可扩展）"),
                          ("卡片名", "匹配传感面板中已存在的卡片名"),
                          ("动作", "开关类：on / off；滑杆类：浮点数值") },
@@ -2312,24 +2276,24 @@ namespace 串口助手
                 headerGrid.Children.Add(typeTag);
 
                 // 标题
-                var titleText = new TextBlock
+                var titleTb = new TextBlock
                 {
-                    Text = T(ex.Title),
                     FontSize = 13, FontWeight = System.Windows.FontWeights.SemiBold,
                     Foreground = textPrimary, VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(8, 0, 0, 0),
                 };
-                Grid.SetColumn(titleText, 2);
-                headerGrid.Children.Add(titleText);
+                titleTb.LocText(ex.Title);
+                Grid.SetColumn(titleTb, 2);
+                headerGrid.Children.Add(titleTb);
 
                 // 复制代码按钮
                 var btnCopyCode = new Button
                 {
-                    Content = T("📋 复制代码"),
                     Style = (Style)FindResource("SecondaryButtonStyle"),
                     Height = 24, MinWidth = 0, Padding = new Thickness(8, 0, 8, 0),
                     FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
                 };
+                btnCopyCode.LocText("📋 复制代码");
                 btnCopyCode.Tag = ex.Code;
                 btnCopyCode.Click += (s, e) =>
                 {
@@ -2370,13 +2334,14 @@ namespace 串口助手
                 };
 
                 // ——— 描述 ———
-                card.Children.Add(new TextBlock
+                var descTb = new TextBlock
                 {
-                    Text = T(ex.Desc),
                     FontSize = 12, FontFamily = yaheiFont,
                     Foreground = textSecondary, TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 8, 0, 10),
-                });
+                };
+                descTb.LocText(ex.Desc);
+                card.Children.Add(descTb);
 
                 if (ex.Type == "draw")
                 {
@@ -2387,10 +2352,10 @@ namespace 串口助手
                     // ── 子类型速查表 ──
                     var tableHeader = new TextBlock
                     {
-                        Text = T("子类型速查"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 0, 0, 6),
                     };
+                    tableHeader.LocText("子类型速查");
                     card.Children.Add(tableHeader);
 
                     var basicShapes = new (string Type, string Params, string Note)[]
@@ -2417,10 +2382,10 @@ namespace 串口助手
                     {
                         var titleTb = new TextBlock
                         {
-                            Text = title,
                             FontSize = 10, FontFamily = yaheiFont,
                             Foreground = textMuted, Margin = new Thickness(0, 6, 0, 4),
                         };
+                        titleTb.LocText(title);
                         card.Children.Add(titleTb);
 
                         var tblBorder = new Border
@@ -2456,11 +2421,13 @@ namespace 串口助手
                             });
                             if (!string.IsNullOrEmpty(note))
                             {
-                                row.Children.Add(new TextBlock
+                                var noteTb = new TextBlock
                                 {
-                                    Text = T(note), FontSize = 10, FontFamily = yaheiFont,
+                                    FontSize = 10, FontFamily = yaheiFont,
                                     Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
-                                });
+                                };
+                                noteTb.LocText(note);
+                                row.Children.Add(noteTb);
                             }
                             tblStack.Children.Add(row);
                         }
@@ -2468,26 +2435,26 @@ namespace 串口助手
                         card.Children.Add(tblBorder);
                     }
 
-                    RenderTable(T("基础图形"), basicShapes);
-                    RenderTable(T("进阶 & 增量同步"), advancedShapes);
+                    RenderTable("基础图形", basicShapes);
+                    RenderTable("进阶 & 增量同步", advancedShapes);
 
                     // ── 规则说明 ──
-                    var rulesText = new TextBlock
+                    var rulesTb = new TextBlock
                     {
-                        Text = T("fill → 填充模式（忽略线宽），a<度数> → 旋转（仅 rect / ellipse）"),
                         FontSize = 10, FontFamily = yaheiFont,
                         Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
                         Margin = new Thickness(0, 0, 0, 12),
                     };
-                    card.Children.Add(rulesText);
+                    rulesTb.LocText("fill → 填充模式（忽略线宽），a<度数> → 旋转（仅 rect / ellipse）");
+                    card.Children.Add(rulesTb);
 
                     // ── 常用示例 ──
                     var exHeader = new TextBlock
                     {
-                        Text = T("常用示例"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 4, 0, 4),
                     };
+                    exHeader.LocText("常用示例");
                     card.Children.Add(exHeader);
 
                     var drawExamples = new (string Example, string Label)[]
@@ -2517,13 +2484,14 @@ namespace 串口助手
                             Cursor = System.Windows.Input.Cursors.Arrow,
                         });
 
-                        exRow.Children.Add(new TextBlock
+                        var labelTb = new TextBlock
                         {
-                            Text = T(label),
                             FontSize = 10, FontFamily = yaheiFont,
                             Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
                             Margin = new Thickness(6, 0, 6, 0),
-                        });
+                        };
+                        labelTb.LocText(label);
+                        exRow.Children.Add(labelTb);
 
                         var btnCopyEx = new Button
                         {
@@ -2556,12 +2524,13 @@ namespace 串口助手
                         Margin = new Thickness(0, 0, 6, 0),
                     };
                     codeToggleRow.Children.Add(codeArrow);
-                    codeToggleRow.Children.Add(new TextBlock
+                    var codeToggleLabel = new TextBlock
                     {
-                        Text = T("设备端代码（MCU printf wrapper）"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
-                    });
+                    };
+                    codeToggleLabel.LocText("设备端代码（MCU printf wrapper）");
+                    codeToggleRow.Children.Add(codeToggleLabel);
                     card.Children.Add(codeToggleRow);
 
                     var codeContent = new Border
@@ -2573,7 +2542,7 @@ namespace 串口助手
                     };
                     codeContent.Child = new TextBlock
                     {
-                        Text = T(ex.Code),
+                        Text = ex.Code,
                         FontSize = 11, FontFamily = codeFont,
                         Foreground = codeFg,
                         TextWrapping = TextWrapping.Wrap,
@@ -2598,28 +2567,30 @@ namespace 串口助手
                         Orientation = Orientation.Horizontal,
                         Margin = new Thickness(0, 0, 0, 4),
                     };
-                    formatRow.Children.Add(new TextBlock
+                    var formatLabel = new TextBlock
                     {
-                        Text = T("协议格式"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, VerticalAlignment = VerticalAlignment.Center,
-                    });
-                    formatRow.Children.Add(new TextBlock
+                    };
+                    formatLabel.LocText("协议格式");
+                    formatRow.Children.Add(formatLabel);
+                    var formatValueTb = new TextBlock
                     {
-                        Text = T(ex.Format),
                         FontSize = 12, FontFamily = codeFont,
                         Foreground = textSecondary,
                         VerticalAlignment = VerticalAlignment.Center,
-                    });
+                    };
+                    formatValueTb.LocText(ex.Format);
+                    formatRow.Children.Add(formatValueTb);
                     card.Children.Add(formatRow);
 
                     // ——— 协议示例 ———
                     var exampleHeader = new TextBlock
                     {
-                        Text = T("协议示例"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 0, 0, 4),
                     };
+                    exampleHeader.LocText("协议示例");
                     card.Children.Add(exampleHeader);
 
                     void AddExampleRow(string exampleText)
@@ -2668,10 +2639,10 @@ namespace 串口助手
                     {
                         var paramsHeader = new TextBlock
                         {
-                            Text = T("参数"),
                             FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                             Foreground = textMuted, Margin = new Thickness(0, 8, 0, 4),
                         };
+                        paramsHeader.LocText("参数");
                         card.Children.Add(paramsHeader);
 
                         foreach (var (name, desc) in ex.Params)
@@ -2681,19 +2652,21 @@ namespace 串口助手
                                 Orientation = Orientation.Horizontal,
                                 Margin = new Thickness(0, 0, 0, 3),
                             };
-                            paramStack.Children.Add(new TextBlock
+                            var nameTb = new TextBlock
                             {
-                                Text = name,
                                 FontSize = 11, FontFamily = codeFont,
                                 Foreground = textSecondary,
                                 VerticalAlignment = VerticalAlignment.Top,
-                            });
-                            paramStack.Children.Add(new TextBlock
+                            };
+                            nameTb.LocText(name);
+                            paramStack.Children.Add(nameTb);
+                            var paramDescTb = new TextBlock
                             {
-                                Text = T(desc),
                                 FontSize = 11, FontFamily = yaheiFont,
                                 Foreground = textMuted, TextWrapping = TextWrapping.Wrap,
-                            });
+                            };
+                            paramDescTb.LocText(desc);
+                            paramStack.Children.Add(paramDescTb);
                             card.Children.Add(paramStack);
                         }
                     }
@@ -2701,10 +2674,10 @@ namespace 串口助手
                     // ——— 设备端代码 ———
                     var codeHeader = new TextBlock
                     {
-                        Text = T("设备端代码"),
                         FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                         Foreground = textMuted, Margin = new Thickness(0, 10, 0, 6),
                     };
+                    codeHeader.LocText("设备端代码");
                     card.Children.Add(codeHeader);
 
                     var codeBlock = new Border
@@ -2715,7 +2688,7 @@ namespace 串口助手
                     };
                     var codeText = new TextBlock
                     {
-                        Text = T(ex.Code),
+                        Text = ex.Code,
                         FontSize = 11, FontFamily = codeFont,
                         Foreground = codeFg,
                         TextWrapping = TextWrapping.Wrap,
@@ -3027,6 +3000,41 @@ namespace 串口助手
             return false;
         }
 
+        /// <summary>切语言时重建 ComboBox Items（Items 是静态字符串，不走 DynamicResource）</summary>
+        private void RefreshComboBoxLocale()
+        {
+            if (_rebuildingComboBox) return;
+            _rebuildingComboBox = true;
+            void Rebuild(ComboBox cb, string[] keys, Func<string, string> display)
+            {
+                int idx = cb.SelectedIndex;
+                cb.Items.Clear();
+                foreach (var k in keys) cb.Items.Add(display(k));
+                if (idx >= 0 && idx < cb.Items.Count) cb.SelectedIndex = idx;
+            }
+            Rebuild(cbReceiveMode, LogicValueMaps.IoModeKeys, LogicValueMaps.DisplayIoMode);
+            Rebuild(cbSendMode, LogicValueMaps.IoModeKeys, LogicValueMaps.DisplayIoMode);
+            Rebuild(cbParity, LogicValueMaps.ParityKeys, LogicValueMaps.DisplayParity);
+            Rebuild(cbFlowControl, LogicValueMaps.FlowControlKeys, LogicValueMaps.DisplayFlowControl);
+            Rebuild(cbTimestampFormat, LogicValueMaps.TimestampFormatKeys, LogicValueMaps.DisplayTimestampFormat);
+            Rebuild(cbLineEnding, LogicValueMaps.NewlineKeys, LogicValueMaps.DisplayNewline);
+            Rebuild(cbPlotMode, LogicValueMaps.PlotModeKeys, LogicValueMaps.DisplayPlotMode);
+            Rebuild(cbFreqWindow, LogicValueMaps.WindowFunctionKeys, LogicValueMaps.DisplayWindowFunction);
+            // Keys 面板 — 按键发送模式
+            foreach (var cb in new ComboBox[] { cbKeyPressMode, cbKeyReleaseMode, cbKeySendModeMulti, cbKeyReleaseModeMulti, cbModulePressMode, cbModuleReleaseMode })
+                Rebuild(cb, LogicValueMaps.SendModeKeys, LogicValueMaps.DisplaySendMode);
+            _rebuildingComboBox = false;
+        }
+
+        /// <summary>切语言时刷新风格按钮文字（和 ComboBox 同款问题——按钮 Content 不走 DynamicResource）</summary>
+        private void RefreshStyleButtonLabels()
+        {
+            if (btnJoystickPadStyle != null)
+                btnJoystickPadStyle.Content = JoyPadLabel() + " ▾";
+            if (btnJoystickThumbStyle != null)
+                btnJoystickThumbStyle.Content = JoyThumbLabel() + " ▾";
+        }
+
         /// <summary>重建含逗号/等号的说明文字 Inlines（XAML DynamicResource 语法限制）</summary>
         private void RefreshLocaleInlines()
         {
@@ -3088,11 +3096,13 @@ namespace 串口助手
             var panel = new StackPanel { MinWidth = 180 };
 
             // 标题
-            panel.Children.Add(new TextBlock {
-                Text = T("管理标签显示"), FontSize = 11, FontWeight = FontWeights.SemiBold,
+            var popupTitle = new TextBlock {
+                FontSize = 11, FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(14, 10, 14, 6),
-            });
+            };
+            popupTitle.LocText("管理标签显示");
+            panel.Children.Add(popupTitle);
 
             // 接收区：常驻
             AddPopupItem(panel, T("📡 接收区"), isVisible: true, canToggle: false);
@@ -3299,7 +3309,7 @@ namespace 串口助手
             }
             // 更新空提示
             if (plotEmptyHint.Visibility == Visibility.Visible)
-                plotEmptyHint.Text = _isFreqDomain ? "等待 FFT 数据…" : "等待串口数据…";
+                plotEmptyHint.LocText(_isFreqDomain ? "等待 FFT 数据…" : "等待串口数据…");
         }
 
         /// <summary>收起调参抽屉</summary>
@@ -3342,7 +3352,7 @@ namespace 串口助手
         {
             if (_plotVM == null || cbFreqSource.SelectedIndex < 0) return;
             string display = cbFreqSource.SelectedItem as string;
-            if (string.IsNullOrEmpty(display) || display == "（不选）")
+            if (cbFreqSource.SelectedIndex <= 0)
             {
                 _plotVM.SetFftSource(null);
                 UpdateFreqSideInfo();
@@ -3398,7 +3408,7 @@ namespace 串口助手
 
         private void cbFreqWindow_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (_plotVM == null) return;
+            if (_rebuildingComboBox || _plotVM == null) return;
             _plotVM.SetFftWindowType(cbFreqWindow.SelectedIndex);
             _plotVM.RecomputeFft();
             UpdateFreqSideInfo();
@@ -3474,7 +3484,7 @@ namespace 串口助手
             if (_plotVM == null) return;
             var current = cbFreqSource.SelectedItem as string;
             cbFreqSource.Items.Clear();
-            cbFreqSource.Items.Add("（不选）");
+            cbFreqSource.Items.Add(T("（不选）"));
             // [plot,...] 通道 → PC 自动算 FFT
             foreach (var n in _plotVM.GetChannelNames())
                 cbFreqSource.Items.Add($"📈 {n}");
@@ -3492,7 +3502,7 @@ namespace 串口助手
         private void UpdateFreqHud()
         {
             var sel = cbFreqSource.SelectedItem as string;
-            if (!string.IsNullOrEmpty(sel) && sel != "（不选）")
+            if (cbFreqSource.SelectedIndex > 0)
             {
                 freqHudLabel.Text = sel;
                 freqHud.Visibility = Visibility.Visible;
@@ -3585,7 +3595,7 @@ namespace 串口助手
                 }
                 if (string.IsNullOrEmpty(csv) || csv.IndexOf(',') < 0)
                 {
-                    LogSystem($"---- 无{(_isFreqDomain ? "频谱" : "波形")}数据可导出 ----");
+                    LogSystem(string.Format(T("---- 无{0}数据可导出 ----"), T(_isFreqDomain ? "频谱" : "波形")));
                     return;
                 }
                 var dlg = new Microsoft.Win32.SaveFileDialog
@@ -3596,10 +3606,10 @@ namespace 串口助手
                 if (dlg.ShowDialog() == true)
                 {
                     System.IO.File.WriteAllText(dlg.FileName, csv, Encoding.UTF8);
-                    LogSystem($"---- 波形数据已导出到: {dlg.FileName} ----");
+                    LogSystem(string.Format(T("---- 波形数据已导出到: {0} ----"), dlg.FileName));
                 }
             }
-            catch (Exception ex) { LogSystem($"---- 导出 CSV 失败: {ex.Message} ----"); }
+            catch (Exception ex) { LogSystem(string.Format(T("---- 导出 CSV 失败: {0} ----"), ex.Message)); }
         }
 
         private void btnPlotFit_Click(object sender, RoutedEventArgs e)
@@ -3896,6 +3906,7 @@ namespace 串口助手
 
         private void cbPlotMode_Changed(object sender, RoutedEventArgs e)
         {
+            if (_rebuildingComboBox) return;
             switch (cbPlotMode.SelectedIndex)
             {
                 case 0: _plotVM.DisplayMode = PlotDisplayMode.Scroll; break;

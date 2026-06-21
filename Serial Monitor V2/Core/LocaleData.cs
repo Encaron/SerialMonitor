@@ -687,6 +687,99 @@ namespace 串口助手
              "{ printf(\"[draw,clear]\\r\\n\"); }\r\n" +
              "void Draw_ClearColor(const char *c)\r\n" +
              "{ printf(\"[draw,clear,%s]\\r\\n\", c); }",
+
+            // 使用示例 — 协议描述
+            ["发送数值到 PC，在 Plot 面板实时绘制波形曲线。建议发送频率 10~100 Hz。"] = "Send values to PC; plots real-time waveform curves in the Plot panel. Recommended send rate 10~100 Hz.",
+            ["设备端按键按下/松开时通知 PC，KeyPanel 对应按键高亮并可选回传命令。"] = "Notifies PC on key press/release; KeyPanel highlights the corresponding key and can optionally send back commands.",
+            ["发送数值到 PC，Slider 面板对应滑块同步位置。常用于传感器反馈。"] = "Sends values to PC; Slider panel synchronizes the corresponding slider position. Commonly used for sensor feedback.",
+            ["发送摇杆坐标到 PC，Joystick 面板实时显示位置。常用于遥控器或姿态反馈。"] = "Sends joystick coordinates to PC; Joystick panel shows real-time position. Commonly used for remote control or attitude feedback.",
+            ["MCU 上报传感器数据，PC 端传感面板自动建卡。子类型决定卡片样式（竖条色/进度条/波形/开关）。"] = "MCU reports sensor data; PC Sensor panel auto-creates cards. Sub-type determines card style (color bar/progress/waveform/switch).",
+            ["PC 端向 MCU 发送控制指令。开关卡点击自动发送，滑杆卡拖拽节流发送（间隔在卡片详情面板设置）。"] = "PC sends control commands to MCU. Switch cards auto-send on click; slider cards throttle-send on drag (interval set in card detail panel).",
+            ["MCU 发送 FFT 频谱数据，PC 端频域页显示柱状图。PC 端亦可从 [plot,...] 原始波形自动滑窗 FFT（MCU 零代码）。"] = "MCU sends FFT spectrum data; PC Frequency page shows bar chart. PC can also auto FFT from [plot,...] raw waveform (zero MCU code).",
+            ["通过串口发送绘图指令，PC 虚拟 OLED 面板实时渲染。支持 11 种图形 + 清屏 + F5 增量同步（[draw,set,id,...]/[draw,del,id]）。旧 [display,...] 由 [draw,text,...] 取代。\n\n协议统一在 [draw,<type>,<params>...] 命名空间下。末尾可追加 fill（填充，忽略线宽）或 a<角度>（旋转度数，仅 rect/ellipse）。"] = "Send drawing commands via serial; PC virtual OLED panel renders in real-time. Supports 11 shapes + clear + F5 incremental sync ([draw,set,id,...]/[draw,del,id]). Legacy [display,...] replaced by [draw,text,...].\n\nProtocol unified under [draw,<type>,<params>...] namespace. Append fill (filled, ignores line width) or a<angle> (rotation degrees, rect/ellipse only).",
+            ["fill → 填充模式（忽略线宽），a<度数> → 旋转（仅 rect / ellipse）"] = "fill → filled mode (ignore line width), a<degrees> → rotation (rect / ellipse only)",
+            ["[joystick,id,x,y]"] = "[joystick,id,x,y]",
+            ["[draw,<type>,<params>...]"] = "[draw,<type>,<params>...]",
+
+            // 系统日志模板（{0} 为运行时参数）
+            ["开"] = "ON",
+            ["关"] = "OFF",
+            ["---- 已打开串行端口 {0} ----"] = "---- Port {0} opened ----",
+            ["---- 关闭串行端口 {0} ----"] = "---- Port {0} closed ----",
+            ["---- 流量计数已重置 ----"] = "---- Traffic counter reset ----",
+            ["---- 流量计数持久化：开 ----"] = "---- Traffic persist: ON ----",
+            ["---- 流量计数持久化：关 ----"] = "---- Traffic persist: OFF ----",
+            ["---- 暂停显示：界面已冻结，后台照常接收 ----"] = "---- Display paused: UI frozen, receiving in background ----",
+            ["---- 继续显示：补回暂停期间的 {0} 条数据 ----"] = "---- Resumed: {0} buffered messages ----",
+            ["---- 继续显示 ----"] = "---- Resumed ----",
+            ["---- 时间戳：关 ----"] = "---- Timestamp: OFF ----",
+            ["---- 时间戳：{0} ----"] = "---- Timestamp: {0} ----",
+            ["---- 定时发送：开（每 {0} ms）----"] = "---- Timed send: ON (every {0} ms) ----",
+            ["---- 定时发送：关 ----"] = "---- Timed send: OFF ----",
+            ["---- 消息回显：开 ----"] = "---- Echo: ON ----",
+            ["---- 消息回显：关 ----"] = "---- Echo: OFF ----",
+            ["---- 行号显示：开 ----"] = "---- Line numbers: ON ----",
+            ["---- 行号显示：关 ----"] = "---- Line numbers: OFF ----",
+            ["---- 系统消息独立显示：开 ----"] = "---- System messages separate: ON ----",
+            ["---- 系统消息独立显示：关 ----"] = "---- System messages separate: OFF ----",
+            ["---- 自动重连：开 ----"] = "---- Auto-reconnect: ON ----",
+            ["---- 自动重连：关 ----"] = "---- Auto-reconnect: OFF ----",
+            ["---- 自动重连：已重新连接 {0} ----"] = "---- Auto-reconnect: reconnected {0} ----",
+            ["---- 自动重连超时：未检测到 {0} ----"] = "---- Auto-reconnect timeout: {0} not found ----",
+            ["---- DTR：{0} ----"] = "---- DTR: {0} ----",
+            ["---- RTS：{0} ----"] = "---- RTS: {0} ----",
+            ["---- 已自动选中 {0} ----"] = "---- Auto-selected {0} ----",
+            ["---- 日志已导出至 {0} ----"] = "---- Log exported to {0} ----",
+            ["---- 波形数据已导出到: {0} ----"] = "---- Waveform data exported to: {0} ----",
+            ["---- 导出 CSV 失败: {0} ----"] = "---- CSV export failed: {0} ----",
+            ["---- 无{0}数据可导出 ----"] = "---- No {0} data to export ----",
+            ["串口打开失败：被其他程序占用或没有访问权限"] = "Port open failed: in use or access denied",
+            ["串口打开失败：硬件通信错误 — {0}"] = "Port open failed: hardware error — {0}",
+            ["串口打开失败：参数无效 — {0}"] = "Port open failed: invalid params — {0}",
+            ["串口打开失败：已被占用 — {0}"] = "Port open failed: port in use — {0}",
+            ["HEX 输入含无效字符，已忽略：{0}"] = "HEX input invalid chars ignored: {0}",
+            ["发送失败：{0}"] = "Send failed: {0}",
+            ["协议路由异常：{0}"] = "Protocol routing error: {0}",
+            ["未知协议类型: [{0}]"] = "Unknown protocol type: [{0}]",
+
+            // ComboBox 逻辑值 —— 收发模式
+            ["HEX模式"] = "HEX Mode",
+            ["文本模式"] = "Text Mode",
+            // 校验位
+            ["无"] = "None",
+            ["奇校验"] = "Odd",
+            ["偶校验"] = "Even",
+            // 流控
+            ["RTS/CTS"] = "RTS/CTS",
+            ["XON/XOFF"] = "XON/XOFF",
+            // 时间戳
+            ["不显示"] = "Off",
+            // 换行符 (显示用字面量)
+            ["\\r\\n"] = "\\r\\n",
+            ["\\n"] = "\\n",
+            ["\\r"] = "\\r",
+            // 绘图模式
+            ["滚动"] = "Roll",
+            ["扫描"] = "Sweep",
+            // 窗函数（始终双语显示）
+            ["汉宁 (Hanning)"] = "Hanning (汉宁)",
+            ["矩形 (Rectangular)"] = "Rectangular (矩形)",
+            ["汉明 (Hamming)"] = "Hamming (汉明)",
+            ["布莱克曼 (Blackman)"] = "Blackman (布莱克曼)",
+            // 波形分析
+            ["未检测到明显周期"] = "No significant period detected",
+            ["周期检测"] = "Period Detection",
+            // 使用示例 — 参数名（纯英文标识）
+            ["id"] = "id",
+            ["x"] = "x",
+            ["y"] = "y",
+            // FFT 数据源占位
+            ["（不选）"] = "(None)",
+            // Keys 面板发送模式 (LogicValueMaps.DisplaySendMode 用)
+            ["文本"] = "Text",
+            ["HEX"] = "HEX",
+            ["数据包"] = "Packet",
+
         };
     }
 }
