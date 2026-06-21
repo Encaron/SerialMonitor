@@ -177,6 +177,28 @@ namespace 串口助手
         {
             InitializeComponent();
 
+            // 双语：注入所有中文 key 到 Application 资源字典（中文即 key，恒等映射）
+            Locale.Initialize();
+
+            // 双语按钮：切语言时更新 "中/EN" 字重字号
+            Locale.OnLangChanged = isZh =>
+            {
+                if (isZh)
+                {
+                    tbLangZh.FontWeight = FontWeights.Bold;   tbLangZh.FontSize = 14;
+                    tbLangEn.FontWeight = FontWeights.Regular; tbLangEn.FontSize = 11;
+                    tbLangZhSettings.FontWeight = FontWeights.Bold;   tbLangZhSettings.FontSize = 14;
+                    tbLangEnSettings.FontWeight = FontWeights.Regular; tbLangEnSettings.FontSize = 11;
+                }
+                else
+                {
+                    tbLangZh.FontWeight = FontWeights.Regular; tbLangZh.FontSize = 11;
+                    tbLangEn.FontWeight = FontWeights.Bold;    tbLangEn.FontSize = 14;
+                    tbLangZhSettings.FontWeight = FontWeights.Regular; tbLangZhSettings.FontSize = 11;
+                    tbLangEnSettings.FontWeight = FontWeights.Bold;    tbLangEnSettings.FontSize = 14;
+                }
+            };
+
             // 弹窗 toggle：AttachPopupToggle 统一处理 PreviewMouseLeftButtonDown 拦截（StaysOpen 冲突）
             AttachPopupToggle(btnFilterMenu, () => _filterPopup);
             AttachPopupToggle(btnAddPanel, () => _addPanelPopup);

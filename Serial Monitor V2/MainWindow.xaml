@@ -712,6 +712,23 @@
                             Click="btnOpen_Click" ToolTip="打开/关闭串口（Ctrl+Enter）" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- 双语切换 -->
+                    <Button x:Name="btnLangToggleTop" Height="32"
+                            Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
+                            Background="{DynamicResource StatusBarBgBrush}"
+                            BorderBrush="{DynamicResource InputBorderBrush}"
+                            Padding="8,0" Margin="0,0,12,0" Cursor="Hand"
+                            Click="BtnLangToggleTop_Click" ToolTip="切换中/English">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="tbLangZh" Text="中" VerticalAlignment="Center"
+                                       FontWeight="Bold" FontSize="14" />
+                            <TextBlock x:Name="tbLangSlash" Text="/" VerticalAlignment="Center"
+                                       FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="2,0" />
+                            <TextBlock x:Name="tbLangEn" Text="EN" VerticalAlignment="Center"
+                                       FontWeight="Regular" FontSize="11" />
+                        </StackPanel>
+                    </Button>
+                    <!-- 主题切换 -->
                     <Button x:Name="btnThemeToggleTop" Height="32"
                             Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
                             Background="{DynamicResource StatusBarBgBrush}"
@@ -1977,6 +1994,20 @@
                                 <Button x:Name="btnSettingsAbout" Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAbout_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
+                                <!-- 双语切换 -->
+                                <Button x:Name="btnLangToggleSettings" Height="36"
+                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                        Click="BtnLangToggleSettings_Click">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock x:Name="tbLangZhSettings" Text="中" VerticalAlignment="Center"
+                                                   FontWeight="Bold" FontSize="14" />
+                                        <TextBlock x:Name="tbLangSlashSettings" Text="/" VerticalAlignment="Center"
+                                                   FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="2,0" />
+                                        <TextBlock x:Name="tbLangEnSettings" Text="EN" VerticalAlignment="Center"
+                                                   FontWeight="Regular" FontSize="11" />
+                                    </StackPanel>
+                                </Button>
+                                <!-- 主题切换 -->
                                 <Button x:Name="btnThemeSwitch" Height="36" FontSize="13"
                                         Content="🌙 暗色模式" Style="{DynamicResource SecondaryButtonStyle}"
                                         Click="btnThemeSwitch_Click"/>

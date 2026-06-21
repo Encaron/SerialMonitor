@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>&#x4e2d;&#x82f1;&#x53cc;&#x8bed;&#x5207;&#x6362; &mdash; &#x8bbe;&#x8ba1;&#x6587;&#x6863;</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <span id="markdown-mermaid" aria-hidden="true" data-config="{&quot;darkModeTheme&quot;:&quot;vscode&quot;,&quot;lightModeTheme&quot;:&quot;vscode&quot;,&quot;maxTextSize&quot;:50000,&quot;clickDrag&quot;:&quot;alt&quot;,&quot;showControls&quot;:&quot;onHoverOrFocus&quot;,&quot;resizable&quot;:true,&quot;maxHeight&quot;:&quot;&quot;}"></span>
+				<h1 id="中英双语切换--设计文档">中英双语切换 — 设计文档</h1>
+<blockquote>
+<p><strong>状态</strong>：方案设计，待实施<br>
+<strong>依赖</strong>：v2.6 主题迁移（SetResourceReference + RegisterThemePanel + CreatePopup）<br>
+<strong>设计原则</strong>：一处注册，自动跟 —— 和 v2.6 四轮结构改进同一原则</p>
+</blockquote>
+<hr>
+<h2 id="1-目标">1. 目标</h2>
+<ul>
+<li>运行时点按钮切换中/英文，和切主题亮/暗同体验——原地变化，不重建 UI，不闪烁</li>
+<li>加新面板时<strong>零额外负担</strong>——写 UI 的中文自动就是资源 key</li>
+<li>漏加英文映射不崩——缺英文处保留中文，用户一目了然</li>
+</ul>
+<hr>
+<h2 id="2-核心机制">2. 核心机制</h2>
+<h3 id="21-和主题颜色同一套-wpf-资源系统">2.1 和主题颜色同一套 WPF 资源系统</h3>
+<p>Theme.cs 切主题做的事：</p>
+<pre><code>Resources[&quot;CardBgBrush&quot;] = new SolidColorBrush(newColor);
+  → WPF 检测资源字典值变化
+    → 自动推给所有 SetResourceReference(ForegroundProperty, &quot;CardBgBrush&quot;) 的控件
+      → 控件颜色原地变化，不重建
+</code></pre>
+<p>双语做一模一样的事，只是值从 <code>SolidColorBrush</code> 换成 <code>string</code>：</p>
+<pre><code>Resources[&quot;清空全部&quot;] = &quot;Clear All&quot;;
+  → WPF 检测资源字典值变化
+    → 自动推给所有 SetResourceReference(ContentProperty, &quot;清空全部&quot;) 的控件
+      → 控件文字原地变化，不重建
+</code></pre>
+<p><code>SetResourceReference</code> 不挑类型——WPF 属性引擎对 <code>Brush</code> 还是 <code>string</code> 是同一套传播逻辑。</p>
+<h3 id="22-中文即-key">2.2 中文即 key</h3>
+<p>UI 控件的中文直接用作资源 key。不需要另一套 key 映射表。</p>
+<pre><code>写 UI：    btn.SetResourceReference(ContentProperty, &quot;清空全部&quot;)
+切中文：   Resources[&quot;清空全部&quot;] = &quot;清空全部&quot;    （恒等映射）
+切英文：   Resources[&quot;清空全部&quot;] = &quot;Clear All&quot;   （查英文映射表）
+</code></pre>
+<p><strong>好处</strong>：写 UI 的人不需要去另一个文件注册 key，中文写在哪里 key 就在哪里。</p>
+<hr>
+<h2 id="3-api-设计">3. API 设计</h2>
+<h3 id="31-loctext-扩展方法c-侧">3.1 <code>LocText</code> 扩展方法（C# 侧）</h3>
+<p>替代所有 <code>Content = &quot;中文&quot;</code> / <code>Text = &quot;中文&quot;</code> / <code>Header = &quot;中文&quot;</code>：</p>
+<pre><code class="language-csharp"><span class="hljs-comment">// Views/Locale.cs</span>
+
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title">LocaleExtensions</span>
+{
+    <span class="hljs-comment">// 常用控件 — 类型安全重载</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">LocText</span>(<span class="hljs-params"><span class="hljs-keyword">this</span> Button btn, <span class="hljs-built_in">string</span> zh</span>)</span>
+        =&gt; btn.SetResourceReference(Button.ContentProperty, zh);
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">LocText</span>(<span class="hljs-params"><span class="hljs-keyword">this</span> TextBlock tb, <span class="hljs-built_in">string</span> zh</span>)</span>
+        =&gt; tb.SetResourceReference(TextBlock.TextProperty, zh);
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">LocText</span>(<span class="hljs-params"><span class="hljs-keyword">this</span> MenuItem mi, <span class="hljs-built_in">string</span> zh</span>)</span>
+        =&gt; mi.SetResourceReference(HeaderedItemsControl.HeaderProperty, zh);
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">LocText</span>(<span class="hljs-params"><span class="hljs-keyword">this</span> Label lb, <span class="hljs-built_in">string</span> zh</span>)</span>
+        =&gt; lb.SetResourceReference(Label.ContentProperty, zh);
+
+    <span class="hljs-comment">// 通用回退 — 任何 FrameworkElement 任意属性</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">LocText</span>(<span class="hljs-params"><span class="hljs-keyword">this</span> FrameworkElement fe, DependencyProperty prop, <span class="hljs-built_in">string</span> zh</span>)</span>
+        =&gt; fe.SetResourceReference(prop, zh);
+}
+</code></pre>
+<p><strong>使用</strong>：</p>
+<pre><code class="language-csharp"><span class="hljs-comment">// 之前</span>
+<span class="hljs-keyword">var</span> btn = <span class="hljs-keyword">new</span> Button { Content = <span class="hljs-string">&quot;清空全部&quot;</span> };
+tb.Text = <span class="hljs-string">&quot;确认删除 {0}？&quot;</span>;
+
+<span class="hljs-comment">// 之后</span>
+<span class="hljs-keyword">var</span> btn = <span class="hljs-keyword">new</span> Button();   btn.LocText(<span class="hljs-string">&quot;清空全部&quot;</span>);
+tb.LocText(<span class="hljs-string">&quot;确认删除 {0}？&quot;</span>);
+</code></pre>
+<p><strong>设计意图</strong>：<code>LocText</code> 是唯一入口。不用它就没文字显示——和 <code>CreatePopup</code> 是唯一入口同一思路。</p>
+<h3 id="32-xaml-侧">3.2 XAML 侧</h3>
+<p>继续用现有的 <code>{DynamicResource}</code>，不建新的 MarkupExtension：</p>
+<pre><code class="language-xml"><span class="hljs-comment">&lt;!-- 之前 --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">Button</span> <span class="hljs-attr">Content</span>=<span class="hljs-string">&quot;打开串口&quot;</span> /&gt;</span>
+
+<span class="hljs-comment">&lt;!-- 之后 --&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">Button</span> <span class="hljs-attr">Content</span>=<span class="hljs-string">&quot;{DynamicResource 打开串口}&quot;</span> /&gt;</span>
+</code></pre>
+<p><code>DynamicResource</code> 和 <code>SetResourceReference</code> 底层同一套资源引用——WPF 统一推送。</p>
+<h3 id="33-英文映射表">3.3 英文映射表</h3>
+<p>一个文件，一个字典：</p>
+<pre><code class="language-csharp"><span class="hljs-comment">// Core/LocaleData.cs</span>
+
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title">LocaleData</span>
+{
+    <span class="hljs-comment"><span class="hljs-doctag">///</span> <span class="hljs-doctag">&lt;summary&gt;</span>英文映射：中文 key → English value<span class="hljs-doctag">&lt;/summary&gt;</span></span>
+    <span class="hljs-keyword">internal</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">readonly</span> Dictionary&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span>&gt; EnMap = <span class="hljs-keyword">new</span>()
+    {
+        <span class="hljs-comment">// ── 顶栏 ──</span>
+        [<span class="hljs-string">&quot;打开串口&quot;</span>] = <span class="hljs-string">&quot;Open&quot;</span>,
+        [<span class="hljs-string">&quot;关闭串口&quot;</span>] = <span class="hljs-string">&quot;Close&quot;</span>,
+
+        <span class="hljs-comment">// ── 接收区 ──</span>
+        [<span class="hljs-string">&quot;接收区&quot;</span>] = <span class="hljs-string">&quot;Receive&quot;</span>,
+
+        <span class="hljs-comment">// ── 通用 ──</span>
+        [<span class="hljs-string">&quot;确定&quot;</span>] = <span class="hljs-string">&quot;OK&quot;</span>,
+        [<span class="hljs-string">&quot;取消&quot;</span>] = <span class="hljs-string">&quot;Cancel&quot;</span>,
+        [<span class="hljs-string">&quot;完成&quot;</span>] = <span class="hljs-string">&quot;Done&quot;</span>,
+        [<span class="hljs-string">&quot;编辑&quot;</span>] = <span class="hljs-string">&quot;Edit&quot;</span>,
+        [<span class="hljs-string">&quot;删除&quot;</span>] = <span class="hljs-string">&quot;Delete&quot;</span>,
+        [<span class="hljs-string">&quot;保存&quot;</span>] = <span class="hljs-string">&quot;Save&quot;</span>,
+        [<span class="hljs-string">&quot;返回&quot;</span>] = <span class="hljs-string">&quot;Back&quot;</span>,
+
+        <span class="hljs-comment">// ── 格式化字符串 ──</span>
+        [<span class="hljs-string">&quot;确认删除 {0}？&quot;</span>] = <span class="hljs-string">&quot;Delete {0}?&quot;</span>,
+        [<span class="hljs-string">&quot;已复制: {0}&quot;</span>] = <span class="hljs-string">&quot;Copied: {0}&quot;</span>,
+    };
+}
+</code></pre>
+<p><strong>漏加英文映射的后果</strong>：该 key 不在 EnMap 里 → 不替换 → 保留中文显示。<strong>不崩，用户能看到并补上。</strong></p>
+<hr>
+<h2 id="4-语言切换">4. 语言切换</h2>
+<pre><code class="language-csharp"><span class="hljs-comment">// Views/Locale.cs</span>
+
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title">Locale</span>
+{
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-built_in">string</span> Current { <span class="hljs-keyword">get</span>; <span class="hljs-keyword">private</span> <span class="hljs-keyword">set</span>; } = <span class="hljs-string">&quot;zh&quot;</span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">SwitchTo</span>(<span class="hljs-params"><span class="hljs-built_in">string</span> lang</span>)</span>
+    {
+        Current = lang;
+
+        <span class="hljs-keyword">if</span> (lang == <span class="hljs-string">&quot;zh&quot;</span>)
+        {
+            <span class="hljs-comment">// 所有 key 设回中文（key 本身就是中文）</span>
+            <span class="hljs-keyword">foreach</span> (<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> LocaleData.EnMap.Keys)
+                Application.Current.Resources[key] = key;
+        }
+        <span class="hljs-keyword">else</span>
+        {
+            <span class="hljs-keyword">foreach</span> (<span class="hljs-keyword">var</span> (zh, en) <span class="hljs-keyword">in</span> LocaleData.EnMap)
+                Application.Current.Resources[zh] = en;
+        }
+
+        <span class="hljs-comment">// 切完语言 → 触发条件/格式化字符串刷新</span>
+        Theme.ReapplyThemePanels();
+    }
+}
+</code></pre>
+<p><strong>启动初始化</strong>：<code>App.xaml.cs</code> 或 <code>MainWindow</code> 构造函数末尾调 <code>Locale.SwitchTo(&quot;zh&quot;)</code>，把中文 key 全部注入 <code>Application.Current.Resources</code>——不注入的话 <code>DynamicResource</code> 拿不到初始值（不崩但文字不显示）。</p>
+<hr>
+<h2 id="5-格式化字符串处理">5. 格式化字符串处理</h2>
+<p>带参数的字符串（&quot;确认删除 {0}？&quot;、&quot;共 {0} 条&quot;）不能直接 SetResourceReference 到显示属性——因为参数是运行时填的。</p>
+<p><strong>策略</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>瞬态显示（Toast、确认文字）</td>
+<td><code>string.Format(template, args)</code> 即时拼，不绑资源</td>
+</tr>
+<tr>
+<td>持久显示（状态栏、标签页标题）</td>
+<td>少见，真需要时在 <code>ReapplyThemePanels</code> 回调里重新 Format</td>
+</tr>
+</tbody>
+</table>
+<p>切开语言时正在显示的格式化字符串极少（Toast 几秒消失），做不到完美实时跟但实际影响面极小。</p>
+<hr>
+<h2 id="6-加新面板流程含双语">6. 加新面板流程（含双语）</h2>
+<p>和 v2.6 已有的 8 步流程并排：</p>
+<pre><code>1.  XAML 画主 UI ─── {DynamicResource}，含文字
+2.  C# 建控件 ─── LocText(&quot;中文&quot;) 替代 Content=&quot;中文&quot;
+3.  条件色 ─── RegisterThemePanel(&quot;Name&quot;, callback)
+4.  Icon ─── RegisterTab(...) 一行
+5.  弹窗 ─── CreatePopup + AttachPopupToggle
+6.  透明按钮 ─── ApplyIconButtonTemplate
+7.  复制 ─── CopyWithFeedback
+8.  协议 ─── RouteMessage switch 加 case
+9.  英文映射 ─── 在 LocaleData.EnMap 末尾加条目
+</code></pre>
+<p><strong>第 9 步漏了</strong> → 该处保留中文 → 用户提 → 补一条映射。不影响功能。</p>
+<hr>
+<h2 id="7-切换入口">7. 切换入口</h2>
+<h3 id="71-位置">7.1 位置</h3>
+<ul>
+<li><strong>顶栏右上</strong>：双语切换 | 主题切换 | 帮助（点击跳转 HTML）| 版本号</li>
+<li><strong>设置页侧边栏</strong>：同功能，第二入口</li>
+</ul>
+<p>两个按钮调同一个 <code>Locale.SwitchTo(lang)</code>。</p>
+<h3 id="72-按钮设计">7.2 按钮设计</h3>
+<p>固定文字 <code>中/EN</code>，切换时不改内容，改<strong>字号和字重</strong>。</p>
+<pre><code>中文界面： 中（大·加粗） / EN（小·常规）
+英文界面： 中（小·常规） / EN（大·加粗）
+</code></pre>
+<p>XAML 结构：</p>
+<pre><code class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">Button</span> <span class="hljs-attr">x:Name</span>=<span class="hljs-string">&quot;btnLangToggleTop&quot;</span> <span class="hljs-attr">Height</span>=<span class="hljs-string">&quot;32&quot;</span>
+        <span class="hljs-attr">Style</span>=<span class="hljs-string">&quot;{DynamicResource SecondaryButtonStyle}&quot;</span> <span class="hljs-attr">MinWidth</span>=<span class="hljs-string">&quot;0&quot;</span>
+        <span class="hljs-attr">Background</span>=<span class="hljs-string">&quot;{DynamicResource StatusBarBgBrush}&quot;</span>
+        <span class="hljs-attr">BorderBrush</span>=<span class="hljs-string">&quot;{DynamicResource InputBorderBrush}&quot;</span>
+        <span class="hljs-attr">Padding</span>=<span class="hljs-string">&quot;8,0&quot;</span> <span class="hljs-attr">Margin</span>=<span class="hljs-string">&quot;0,0,12,0&quot;</span> <span class="hljs-attr">Cursor</span>=<span class="hljs-string">&quot;Hand&quot;</span>
+        <span class="hljs-attr">Click</span>=<span class="hljs-string">&quot;BtnLangToggleTop_Click&quot;</span> <span class="hljs-attr">ToolTip</span>=<span class="hljs-string">&quot;切换中/English&quot;</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">StackPanel</span> <span class="hljs-attr">Orientation</span>=<span class="hljs-string">&quot;Horizontal&quot;</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">TextBlock</span> <span class="hljs-attr">x:Name</span>=<span class="hljs-string">&quot;tbLangZh&quot;</span> <span class="hljs-attr">Text</span>=<span class="hljs-string">&quot;中&quot;</span> <span class="hljs-attr">VerticalAlignment</span>=<span class="hljs-string">&quot;Center&quot;</span>
+                   <span class="hljs-attr">FontWeight</span>=<span class="hljs-string">&quot;Bold&quot;</span> <span class="hljs-attr">FontSize</span>=<span class="hljs-string">&quot;14&quot;</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">TextBlock</span> <span class="hljs-attr">x:Name</span>=<span class="hljs-string">&quot;tbLangSlash&quot;</span> <span class="hljs-attr">Text</span>=<span class="hljs-string">&quot;/&quot;</span> <span class="hljs-attr">VerticalAlignment</span>=<span class="hljs-string">&quot;Center&quot;</span>
+                   <span class="hljs-attr">FontSize</span>=<span class="hljs-string">&quot;12&quot;</span> <span class="hljs-attr">Foreground</span>=<span class="hljs-string">&quot;{DynamicResource TextMutedBrush}&quot;</span> <span class="hljs-attr">Margin</span>=<span class="hljs-string">&quot;2,0&quot;</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-name">TextBlock</span> <span class="hljs-attr">x:Name</span>=<span class="hljs-string">&quot;tbLangEn&quot;</span> <span class="hljs-attr">Text</span>=<span class="hljs-string">&quot;EN&quot;</span> <span class="hljs-attr">VerticalAlignment</span>=<span class="hljs-string">&quot;Center&quot;</span>
+                   <span class="hljs-attr">FontWeight</span>=<span class="hljs-string">&quot;Regular&quot;</span> <span class="hljs-attr">FontSize</span>=<span class="hljs-string">&quot;11&quot;</span> /&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">StackPanel</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">Button</span>&gt;</span>
+</code></pre>
+<p>切语言时更新按钮（在 <code>Locale.SwitchTo</code> 内调，或事件直接设）：</p>
+<pre><code class="language-csharp"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">UpdateLangButton</span>(<span class="hljs-params"><span class="hljs-built_in">bool</span> isZh</span>)</span>
+{
+    <span class="hljs-keyword">if</span> (isZh)
+    {
+        tbLangZh.FontWeight = FontWeights.Bold;   tbLangZh.FontSize = <span class="hljs-number">14</span>;
+        tbLangEn.FontWeight = FontWeights.Regular; tbLangEn.FontSize = <span class="hljs-number">11</span>;
+    }
+    <span class="hljs-keyword">else</span>
+    {
+        tbLangZh.FontWeight = FontWeights.Regular; tbLangZh.FontSize = <span class="hljs-number">11</span>;
+        tbLangEn.FontWeight = FontWeights.Bold;    tbLangEn.FontSize = <span class="hljs-number">14</span>;
+    }
+}
+</code></pre>
+<h3 id="73-风格">7.3 风格</h3>
+<p>按钮背景/边框跟顶栏主题按钮一致：<code>StatusBarBgBrush</code> + <code>InputBorderBrush</code> + <code>SecondaryButtonStyle</code>。切主题时颜色自动跟——3 个 TextBlock 的 Foreground 不硬编码，靠父级 <code>SecondaryButtonStyle</code> 继承。</p>
+<hr>
+<h2 id="8-技术边界不做的事">8. 技术边界（不做的事）</h2>
+<table>
+<thead>
+<tr>
+<th>不做</th>
+<th>原因</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AvalonEdit SearchPanel 翻译</td>
+<td>库内部 UI，不能绑 WPF 资源</td>
+<td>搜索框永远英文</td>
+</tr>
+<tr>
+<td>MessageBox 按钮翻译</td>
+<td>Win32 原生对话框，跟 Windows 系统语言</td>
+<td>&quot;确定/取消&quot; 跟系统不跟应用</td>
+</tr>
+<tr>
+<td>重排布局</td>
+<td>中文→英文文字长度变化，极少数按钮可能变窄/溢出</td>
+<td>给关键按钮设 MinWidth，或不做——英文通常比中文短</td>
+</tr>
+<tr>
+<td>自动化测试</td>
+<td>WPF UI 字符串没有自动化测试框架</td>
+<td>切一次语言 + 7 面板逐个过 = 5 分钟肉眼验证</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="9-工作量">9. 工作量</h2>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>内容</th>
+<th style="text-align:center">量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td><code>Locale.cs</code> + <code>LocaleData.cs</code> 基础设施 + 启动注入</td>
+<td style="text-align:center">~80 行</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>XAML 硬编码 Content/Header/ToolTip → DynamicResource</td>
+<td style="text-align:center">~30 处</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>Panels/*.cs 内联字符串 → LocText</td>
+<td style="text-align:center">~50 处</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>App/MainWindow.xaml.cs 内联字符串 → LocText</td>
+<td style="text-align:center">~20 处</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>LocaleData.EnMap 英文映射</td>
+<td style="text-align:center">~100 条</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>顶栏切换按钮</td>
+<td style="text-align:center">~15 行</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>切语言后格式化字符串刷新（ReapplyThemePanels）</td>
+<td style="text-align:center">~10 行</td>
+</tr>
+<tr>
+<td><strong>合计</strong></td>
+<td></td>
+<td style="text-align:center"><strong>~100 处替换 + ~100 条英文映射</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>对比</strong>：v2.6 主题迁移 93 处 SetResourceReference + 5 面板 RegisterThemePanel。同一量级，同一工种。</p>
+</blockquote>
+<hr>
+<h2 id="10-和-v26-体系的对应关系">10. 和 v2.6 体系的对应关系</h2>
+<table>
+<thead>
+<tr>
+<th>v2.6 基础设施</th>
+<th>双语对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SetResourceReference(Property, &quot;CardBgBrush&quot;)</code></td>
+<td><code>LocText(&quot;中文&quot;)</code> — 同一个 API</td>
+</tr>
+<tr>
+<td><code>{DynamicResource CardBgBrush}</code> in XAML</td>
+<td><code>{DynamicResource 中文key}</code> — 同一个标记</td>
+</tr>
+<tr>
+<td>Theme.cs <code>Resources[key] = newValue</code> foreach 21 色</td>
+<td>Locale.SwitchTo <code>Resources[key] = value</code> foreach ~100 字符串</td>
+</tr>
+<tr>
+<td><code>RegisterThemePanel</code> 条件色回调</td>
+<td><code>Theme.ReapplyThemePanels()</code> 切语言后刷新格式化字符串</td>
+</tr>
+<tr>
+<td><code>CreatePopup</code> 唯一弹窗入口</td>
+<td><code>LocText</code> 唯一文字入口</td>
+</tr>
+<tr>
+<td>93 处 FindResource → SetResourceReference</td>
+<td>~100 处内联字符串 → LocText/DynamicResource</td>
+</tr>
+<tr>
+<td>净减 ~200 行样板</td>
+<td>净增英文映射 ~100 条（无法避免的翻译数据）</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="11-评估">11. 评估</h2>
+<h3 id="优势">优势</h3>
+<ul>
+<li><strong>零新概念</strong>：和切主题颜色完全同一个机制，项目里已验证</li>
+<li><strong>不闪不重建</strong>：WPF 资源属性引擎自动推，控件不动</li>
+<li><strong>漏英文不崩</strong>：缺英文保留中文，用户可见可补</li>
+<li><strong>加面板无负担</strong>：写 UI 时中文直接就是 key</li>
+<li><strong>和 v2.6 基础设施无缝衔接</strong>：<code>LocText</code> 走 <code>SetResourceReference</code>，和颜色同一套</li>
+</ul>
+<h3 id="风险">风险</h3>
+<ul>
+<li>格式化字符串切语言时做不到完美实时跟（影响面极小——瞬态文本）</li>
+<li>MessageBox/AvalonEdit 不跟（第三方/系统限制）</li>
+<li>100 处替换只能肉眼验证</li>
+</ul>
+<h3 id="遗留尾巴">遗留尾巴</h3>
+<ul>
+<li>以后可以替换 MessageBox 为 WPF 自定义 Dialog → 文字可控</li>
+<li>以后可以给格式化字符串设计专门的 <code>LocFormatText</code> 重载 → 切语言自动重算</li>
+</ul>
+
+            
+            
+        </body>
+        </html>

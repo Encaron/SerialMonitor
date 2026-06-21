@@ -1,0 +1,70 @@
+using System.Windows;
+using System.Windows.Controls;
+
+namespace 串口助手
+{
+    // ==================================================================
+    //  中英双语切换 —— 和 Theme.cs 同一套资源机制
+    //  LocText("中文") → SetResourceReference(prop, "中文")
+    //  SwitchTo("en") → foreach Resources[key] = enValue → WPF 自动推
+    //  中文即 key。漏英文映射 → 保留中文，不崩。
+    // ==================================================================
+
+    /// <summary>控件的 LocText 扩展方法：中文即 key，内部走 SetResourceReference。</summary>
+    internal static class LocaleExtensions
+    {
+        public static void LocText(this Button btn, string zh)
+            => btn.SetResourceReference(Button.ContentProperty, zh);
+
+        public static void LocText(this TextBlock tb, string zh)
+            => tb.SetResourceReference(TextBlock.TextProperty, zh);
+
+        public static void LocText(this MenuItem mi, string zh)
+            => mi.SetResourceReference(HeaderedItemsControl.HeaderProperty, zh);
+
+        public static void LocText(this Label lb, string zh)
+            => lb.SetResourceReference(Label.ContentProperty, zh);
+
+        /// <summary>通用：任意 FrameworkElement 的任意属性</summary>
+        public static void LocText(this FrameworkElement fe, DependencyProperty prop, string zh)
+            => fe.SetResourceReference(prop, zh);
+    }
+
+    /// <summary>语言切换入口。启动时调 Initialize()，切语言时调 SwitchTo(lang)。</summary>
+    internal static class Locale
+    {
+        public static string Current { get; private set; } = "zh";
+
+        /// <summary>切语言后触发，参数 isZh。MainWindow 设此回调更新按钮字重字号。</summary>
+        public static System.Action<bool> OnLangChanged = _ => { };
+
+        /// <summary>启动时调用一次：注入所有中文 key 到 Application 资源字典。</summary>
+        public static void Initialize()
+        {
+            SwitchTo("zh");
+        }
+
+        /// <summary>切换语言。zh → 所有 key 设回中文；en → 查 EnMap 替换。</summary>
+        public static void SwitchTo(string lang)
+        {
+            Current = lang;
+            bool isZh = (lang == "zh");
+            var resources = Application.Current.Resources;
+
+            foreach (var zhKey in LocaleData.EnMap.Keys)
+            {
+                if (isZh)
+                {
+                    resources[zhKey] = zhKey;              // 中文：key 即值，恒等映射
+                }
+                else
+                {
+                    var en = LocaleData.EnMap[zhKey];
+                    resources[zhKey] = en;                 // 英文：查映射表
+                }
+            }
+
+            OnLangChanged?.Invoke(isZh);
+        }
+    }
+}
