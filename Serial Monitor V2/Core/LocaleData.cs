@@ -63,7 +63,74 @@ namespace 串口助手
             ["🗑 删除此模块"] = "🗑 Delete Module",
             ["🗑 删除此按键"] = "🗑 Delete Key",
 
-            // P4.3+ 逐面板补英文映射在此
+            // P4.3: Joystick
+            ["⟲ 全部回中"] = "⟲ Center All",
+            ["⟲ 回中"] = "⟲ Center",
+
+            // P4.4: Display / OLED
+            ["🗑 清屏"] = "🗑 Clear",
+            ["选择颜色"] = "Pick Color",
+            ["🔓 锁定"] = "🔓 Locked",
+            ["实心填充"] = "Fill",
+            ["↑ 置顶"] = "↑ To Front",
+            ["↓ 置底"] = "↓ To Back",
+            ["🗑 删除图形"] = "🗑 Delete Shape",
+            ["🗑 删除此滑杆"] = "🗑 Delete Slider",
+
+            // Receive area
+            ["消息回显"] = "Echo",
+            ["行号显示"] = "Line Numbers",
+            ["系统消息独立显示"] = "Separate System Log",
+            ["定时发送"] = "Timed Send",
+            ["发送后清空发送区"] = "Clear After Send",
+            ["导出日志"] = "Export Log",
+            ["清空接收区"] = "Clear Receive",
+            ["🔍 搜索"] = "🔍 Search",
+            ["↓ 回到底部"] = "↓ To Bottom",
+            ["清空发送区"] = "Clear Send",
+            ["发送"] = "Send",
+
+            // Plot
+            ["Y 轴自动"] = "Auto Y",
+            ["显示标点"] = "Markers",
+            ["显示连线"] = "Lines",
+            ["数值显示"] = "Values",
+            ["🗑 清除全部曲线"] = "🗑 Clear All",
+            ["📥 导出 CSV"] = "📥 Export CSV",
+            ["← 返回绘图设置"] = "← Back to Plot",
+            ["← 返回频谱设置"] = "← Back to Spectrum",
+            ["📄 复制数据"] = "📄 Copy Data",
+            ["📊 复制统计"] = "📊 Copy Stats",
+            ["📋 全部复制"] = "📋 Copy All",
+            ["📊 复制指标"] = "📊 Copy Metrics",
+            ["🗑 清除频谱"] = "🗑 Clear Spectrum",
+            ["🗑 清除"] = "🗑 Clear",
+            ["📥 CSV"] = "📥 CSV",
+            ["🔍 适应"] = "🔍 Fit",
+            ["📊 详细"] = "📊 Detail",
+            ["▲ 调参工作台"] = "▲ Tuning Panel",
+
+            // Keys
+            ["🔄 生成松开发送值"] = "🔄 Gen Release",
+            ["自锁（点击保持按下，再点松开）"] = "Self-lock (click to hold, click again to release)",
+            ["全部归零"] = "All Zero",
+            ["全部置中"] = "All Mid",
+            ["全部最大"] = "All Max",
+            ["🗑 删除此模块"] = "🗑 Delete Module",
+
+            // Settings
+            ["📡 串口配置"] = "📡 Serial",
+            ["⌨ 快捷键提示"] = "⌨ Shortcuts",
+            ["📖 使用示例"] = "📖 Examples",
+            ["🎨 素材自定义"] = "🎨 Assets",
+            ["ℹ 关于"] = "ℹ About",
+            ["← 返回"] = "← Back",
+            ["DTR（数据终端就绪）"] = "DTR (Data Terminal Ready)",
+            ["RTS（请求发送）"] = "RTS (Request to Send)",
+            ["自动重连"] = "Auto Reconnect",
+            ["串口打开时不重置流量计数"] = "Preserve traffic on open",
+
+            // P5+ 补漏
         };
     }
 }

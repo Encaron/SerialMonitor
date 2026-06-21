@@ -894,18 +894,18 @@
                                               SelectionChanged="cbTimestampFormat_SelectionChanged"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <CheckBox x:Name="chkShowEcho" Content="消息回显" IsChecked="True"
+                                <CheckBox x:Name="chkShowEcho" Content="{DynamicResource 消息回显}" IsChecked="True"
                                           Checked="chkShowEcho_Changed" Unchecked="chkShowEcho_Changed"/>
-                                <CheckBox x:Name="chkShowLineNumbers" Content="行号显示" IsChecked="True"
+                                <CheckBox x:Name="chkShowLineNumbers" Content="{DynamicResource 行号显示}" IsChecked="True"
                                           Checked="chkShowLineNumbers_Changed" Unchecked="chkShowLineNumbers_Changed"/>
-                                <CheckBox x:Name="chkSeparateSystemLog" Content="系统消息独立显示" IsChecked="True"
+                                <CheckBox x:Name="chkSeparateSystemLog" Content="{DynamicResource 系统消息独立显示}" IsChecked="True"
                                           Checked="chkSeparateSystemLog_Changed" Unchecked="chkSeparateSystemLog_Changed"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="换行符" Style="{DynamicResource FormLabelStyle}"/>
                                     <ComboBox Grid.Column="1" x:Name="cbLineEnding"/>
                                 </Grid>
-                                <CheckBox x:Name="chkAutoRepeat" Content="定时发送"
+                                <CheckBox x:Name="chkAutoRepeat" Content="{DynamicResource 定时发送}"
                                           Checked="chkAutoRepeat_Changed" Unchecked="chkAutoRepeat_Changed"/>
                                 <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="间隔(ms)" Style="{DynamicResource FormLabelStyle}"/>
@@ -917,7 +917,7 @@
                                              BorderThickness="1" Padding="6,2" Text="1000"
                                              LostFocus="tbRepeatInterval_LostFocus"/>
                                 </Grid>
-                                <CheckBox x:Name="chkAutoClear" Content="发送后清空发送区" Margin="0,8,0,0"/>
+                                <CheckBox x:Name="chkAutoClear" Content="{DynamicResource 发送后清空发送区}" Margin="0,8,0,0"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
@@ -998,9 +998,9 @@
                                 <CheckBox x:Name="chkPlotValueHud" Content="数值显示" HorizontalAlignment="Left"
                                           Checked="chkPlotValueHud_Changed" Unchecked="chkPlotValueHud_Changed"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Button Content="🗑 清除全部曲线" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 🗑 清除全部曲线}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Margin="0,0,0,6" Click="btnPlotClear_Click"/>
-                                <Button Content="📥 导出 CSV" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 📥 导出 CSV}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnPlotCsv_Click"/>
                                 <!-- 操作提示 -->
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
@@ -1089,9 +1089,9 @@
                                 <CheckBox x:Name="chkFreqValueHud" Content="数值显示" HorizontalAlignment="Left"
                                           Checked="chkFreqValueHud_Changed" Unchecked="chkFreqValueHud_Changed"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Button Content="🗑 清除频谱" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 🗑 清除频谱}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Margin="0,0,0,6" Click="btnPlotClear_Click"/>
-                                <Button Content="📥 导出 CSV" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 📥 导出 CSV}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnPlotCsv_Click"/>
                                 <!-- 操作提示 -->
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
@@ -1114,7 +1114,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- 返回按钮 — 固定顶部，不随滚动消失 -->
-                            <Button x:Name="btnPlotDetailBack" Grid.Row="0" Content="← 返回绘图设置"
+                            <Button x:Name="btnPlotDetailBack" Grid.Row="0" Content="{DynamicResource ← 返回绘图设置}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" Margin="0,0,0,10" Click="btnPlotDetailBack_Click"/>
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
@@ -1195,13 +1195,13 @@
                                     </StackPanel>
                                 </Border>
                                 <StackPanel Margin="0,0,0,6">
-                                    <Button Content="📄 复制数据" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 📄 复制数据}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyData_Click" Margin="0,0,0,4"
                                             ToolTip="复制原始波形数据点（CSV，可贴 Excel）"/>
-                                    <Button Content="📊 复制统计" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 📊 复制统计}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyStats_Click" Margin="0,0,0,4"
                                             ToolTip="复制波形分析统计（幅值/频率/占空比等）"/>
-                                    <Button Content="📋 全部复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 📋 全部复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnPlotDetailCopyAll_Click"
                                             ToolTip="复制原始数据 + 分析统计，一份全带走"/>
                                 </StackPanel>
@@ -1215,7 +1215,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- 返回按钮 -->
-                            <Button x:Name="btnPlotDetailBackFreq" Grid.Row="0" Content="← 返回频谱设置"
+                            <Button x:Name="btnPlotDetailBackFreq" Grid.Row="0" Content="{DynamicResource ← 返回频谱设置}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" Margin="0,0,0,10" Click="btnPlotDetailBack_Click"/>
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
@@ -1255,13 +1255,13 @@
                                     </StackPanel>
                                 </Border>
                                 <StackPanel Margin="0,0,0,6">
-                                    <Button Content="📄 复制数据" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 📄 复制数据}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyData_Click" Margin="0,0,0,4"
                                             ToolTip="复制 FFT 频谱数据（CSV，可贴 Excel）"/>
                                     <Button Content="📊 复制指标" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyStats_Click" Margin="0,0,0,4"
                                             ToolTip="复制频域分析指标"/>
-                                    <Button Content="📋 全部复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 📋 全部复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyAll_Click"
                                             ToolTip="复制频谱数据 + 分析指标，一份全带走"/>
                                 </StackPanel>
@@ -1401,7 +1401,7 @@
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="统一颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
                                     <WrapPanel x:Name="moduleColorPanel" Orientation="Horizontal"/>
-                                    <Button x:Name="btnModuleCustomColor" Content="🎨 自定义颜色…" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnModuleCustomColor" Content="{DynamicResource 🎨 自定义颜色…}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnKeysCustomColor_Click" Margin="0,4,0,0"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <Button Content="🔄 生成松开发送值" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1442,7 +1442,7 @@
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
                                     <WrapPanel x:Name="keysColorPanelMulti" Orientation="Horizontal"/>
-                                    <Button x:Name="btnKeysMultiCustomColor" Content="🎨 自定义颜色…" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnKeysMultiCustomColor" Content="{DynamicResource 🎨 自定义颜色…}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnKeysCustomColor_Click" Margin="0,4,0,0"/>
                                 </StackPanel>
                                 <!-- 单选状态 -->
@@ -1528,7 +1528,7 @@
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
                                     <WrapPanel x:Name="keysColorPanel" Orientation="Horizontal"/>
-                                    <Button x:Name="btnKeysCustomColor" Content="🎨 自定义颜色…" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnKeysCustomColor" Content="{DynamicResource 🎨 自定义颜色…}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnKeysCustomColor_Click" Margin="0,4,0,0"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <Button Content="{DynamicResource 🗑 删除此按键}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1684,7 +1684,7 @@
                                                 HorizontalAlignment="Left" Click="btnSliderThumbStyle_Click"/>
                                     </Grid>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <Button Content="🗑 删除此滑杆" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 🗑 删除此滑杆}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnSliderDelete_Click" Foreground="#E74856"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1798,7 +1798,7 @@
                                                VerticalAlignment="Center" HorizontalAlignment="Right"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Button Content="🗑 清屏" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 🗑 清屏}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnOLEDClear_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <TextBlock FontSize="10" Foreground="{DynamicResource TextMutedBrush}"
@@ -1860,7 +1860,7 @@
                                     <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="内容" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Grid.Column="1" Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="0" Padding="6,0" FontSize="10"
                                                 Click="btnCopyTextContent_Click" ToolTip="复制文字内容"/>
                                     </Grid>
@@ -1887,7 +1887,7 @@
                                         <Border x:Name="textEditColorSwatch" Grid.Column="0" Width="32" Height="28" CornerRadius="4"
                                                 Background="#FFFFFF" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
                                                 MouseLeftButtonDown="textEditColorSwatch_Click" Cursor="Hand"/>
-                                        <Button Grid.Column="1" Content="选择颜色" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
+                                        <Button Grid.Column="1" Content="{DynamicResource 选择颜色}" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
                                                 Style="{DynamicResource SecondaryButtonStyle}" Click="textEditColorSwatch_Click"/>
                                     </Grid>
                                     <!-- 锁定按钮（编辑已有文字时也可见） -->
@@ -1939,7 +1939,7 @@
                                         <Border x:Name="shapeEditColorSwatch" Grid.Column="0" Width="32" Height="28" CornerRadius="4"
                                                 Background="#FFFFFF" BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1"
                                                 MouseLeftButtonDown="shapeEditColorSwatch_Click" Cursor="Hand"/>
-                                        <Button Grid.Column="1" Content="选择颜色" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
+                                        <Button Grid.Column="1" Content="{DynamicResource 选择颜色}" Height="28" MinWidth="0" Padding="8,0" Margin="4,0,0,0"
                                                 Style="{DynamicResource SecondaryButtonStyle}" Click="shapeEditColorSwatch_Click"/>
                                     </Grid>
                                     <!-- Z-order -->
@@ -1963,7 +1963,7 @@
                                     <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="协议预览" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Grid.Column="1" Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" MinWidth="0" Padding="6,0" FontSize="11"
                                                 Click="btnCopyProtocol_Click" ToolTip="复制协议到剪贴板"/>
                                     </Grid>
@@ -2040,13 +2040,13 @@
                                 <Button x:Name="btnPauseDisplay" Content="⏸ 暂停"
                                         Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                         Click="btnPauseDisplay_Click" ToolTip="冻结接收区（Ctrl+P）"/>
-                                <Button Content="导出日志" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 导出日志}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" MinWidth="0" Margin="6,0,0,0"
                                         Click="btnExportLog_Click" ToolTip="导出日志"/>
-                                <Button Content="清空接收区" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 清空接收区}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" MinWidth="0" Margin="6,0,0,0"
                                         Click="btnClearReceive_Click" ToolTip="清空（Ctrl+L）"/>
-                                <Button Content="🔍 搜索" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 🔍 搜索}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" MinWidth="0" Margin="6,0,0,0"
                                         Click="btnSearch_Click" ToolTip="搜索（Ctrl+F）"/>
                             </StackPanel>
@@ -2092,7 +2092,7 @@
                             </avalonedit:TextEditor.ContextMenu>
                         </avalonedit:TextEditor>
                         <Button x:Name="btnScrollToBottom" Grid.Row="1"
-                                Content="↓ 回到底部"
+                                Content="{DynamicResource ↓ 回到底部}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Height="28" MinWidth="0" Padding="8,0" FontSize="11"
                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
@@ -2116,11 +2116,11 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <TextBlock x:Name="tbHexWarning" Foreground="#E8A838" FontSize="11"
                                            VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed"/>
-                                <Button Content="清空发送区" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 清空发送区}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Margin="0,0,8,0" Click="btnClearSend_Click" ToolTip="清空发送区"/>
                                 <Button Content="▾" x:Name="btnSendHistory" Width="26" Height="32" FontSize="10"
                                         Style="{DynamicResource SecondaryButtonStyle}" Click="btnSendHistory_Click" ToolTip="发送历史"/>
-                                <Button Content="发送" x:Name="btnSend" Style="{DynamicResource PrimaryButtonStyle}"
+                                <Button Content="{DynamicResource 发送}" x:Name="btnSend" Style="{DynamicResource PrimaryButtonStyle}"
                                         Margin="4,0,0,0" Click="btnSend_Click"/>
                             </StackPanel>
                         </Grid>
@@ -2148,7 +2148,7 @@
                                     VerticalAlignment="Center"/>
                             <Button x:Name="btnPlotPause" Content="⏸ 暂停" Width="84"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" Click="btnPlotPause_Click"/>
-                            <Button x:Name="btnPlotClear" Content="🗑 清除"
+                            <Button x:Name="btnPlotClear" Content="{DynamicResource 🗑 清除}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotClear_Click"/>
                             <Button x:Name="btnPlotCsv" Content="📥 CSV"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotCsv_Click"/>
@@ -2485,7 +2485,7 @@
                     <Border Grid.Row="0"
                             Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
-                        <Button x:Name="btnSensorEdit" Content="编辑"
+                        <Button x:Name="btnSensorEdit" Content="{DynamicResource 编辑}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Height="28" MinWidth="0" Padding="10,0"
                                 HorizontalAlignment="Left"
@@ -2501,7 +2501,7 @@
                     <!-- 串口配置 -->
                     <ScrollViewer x:Name="settingsSerialPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="16,12">
-                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
                             <TextBlock Text="串口配置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
@@ -2538,7 +2538,7 @@
                     <!-- 快捷键提示 -->
                     <ScrollViewer x:Name="settingsShortcutsPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="16,12">
-                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
                             <TextBlock Text="快捷键提示" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,16"/>
@@ -2548,7 +2548,7 @@
                     <!-- 使用示例 -->
                     <ScrollViewer x:Name="settingsExamplesPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="16,12">
-                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
                             <TextBlock Text="使用示例" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
@@ -2566,7 +2566,7 @@
                     <!-- 素材自定义 -->
                     <ScrollViewer x:Name="settingsAssetsPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="16,12">
-                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,12"/>
                             <TextBlock Text="素材自定义" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,4"/>
@@ -2648,7 +2648,7 @@
                     <!-- 关于 -->
                     <ScrollViewer x:Name="settingsAboutPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="16,12">
-                            <Button Content="← 返回" Style="{DynamicResource SecondaryButtonStyle}"
+                            <Button Content="{DynamicResource ← 返回}" Style="{DynamicResource SecondaryButtonStyle}"
                                     Height="28" MinWidth="0" Padding="10,0" HorizontalAlignment="Left"
                                     Click="BtnSettingsBack_Click" Margin="0,0,0,16"/>
                             <TextBlock Text="Serial Monitor" FontSize="18" FontWeight="Bold"
@@ -2681,7 +2681,7 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Text="GitHub" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
-                                <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
                                         Margin="8,0,0,0" Click="BtnCopyGitHub_Click"/>
                             </StackPanel>
@@ -2696,7 +2696,7 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Text="数据" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
-                                <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
                                         Margin="8,0,0,0" Click="BtnCopyDataPath_Click"/>
                             </StackPanel>
@@ -2711,7 +2711,7 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Text="反馈" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Width="50"/>
-                                <Button Content="📋 复制" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
                                         Margin="8,0,0,0" Click="BtnCopyIssues_Click"/>
                                 <Button Content="↗ 打开" Style="{DynamicResource SecondaryButtonStyle}"
