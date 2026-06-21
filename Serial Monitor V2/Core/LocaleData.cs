@@ -156,7 +156,14 @@ namespace 串口助手
             ["协议预览"] = "Protocol Preview",
             ["── 换行 ──"] = "── Break ──",
 
-            // P5: Settings + misc补漏
+            // P5: 收尾
+            ["确定"] = "OK",
+            ["📡 筛选 ▾"] = "📡 Filter ▾",
+            ["⏱ 时域  →  频域 📶"] = "⏱ Time → Freq 📶",
+            ["⌨ 键盘布局"] = "⌨ Layout",
+            ["↗ 打开"] = "↗ Open",
+            ["🌙 暗色模式"] = "🌙 Dark Mode",
+            ["☀ 亮色模式"] = "☀ Light Mode",
         };
     }
 }

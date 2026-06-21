@@ -968,7 +968,7 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- Y 轴 -->
-                                <CheckBox x:Name="chkPlotYAuto" Content="Y 轴自动" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkPlotYAuto" Content="{DynamicResource Y 轴自动}" HorizontalAlignment="Left"
                                           Checked="chkPlotYAuto_Changed" Unchecked="chkPlotYAuto_Changed"/>
                                 <Grid Margin="0,4,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="32"/></Grid.RowDefinitions>
@@ -991,11 +991,11 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- 显示选项 -->
-                                <CheckBox x:Name="chkPlotMarkers" Content="显示标点" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkPlotMarkers" Content="{DynamicResource 显示标点}" HorizontalAlignment="Left"
                                           Checked="chkPlotMarkers_Changed" Unchecked="chkPlotMarkers_Changed"/>
-                                <CheckBox x:Name="chkPlotLines" Content="显示连线" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkPlotLines" Content="{DynamicResource 显示连线}" HorizontalAlignment="Left"
                                           Checked="chkPlotLines_Changed" Unchecked="chkPlotLines_Changed"/>
-                                <CheckBox x:Name="chkPlotValueHud" Content="数值显示" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkPlotValueHud" Content="{DynamicResource 数值显示}" HorizontalAlignment="Left"
                                           Checked="chkPlotValueHud_Changed" Unchecked="chkPlotValueHud_Changed"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Button Content="{DynamicResource 🗑 清除全部曲线}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1082,11 +1082,11 @@
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- 显示选项 -->
-                                <CheckBox x:Name="chkFreqMarkers" Content="显示标点" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkFreqMarkers" Content="{DynamicResource 显示标点}" HorizontalAlignment="Left"
                                           Checked="chkFreqMarkers_Changed" Unchecked="chkFreqMarkers_Changed"/>
-                                <CheckBox x:Name="chkFreqLines" Content="显示连线" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkFreqLines" Content="{DynamicResource 显示连线}" HorizontalAlignment="Left"
                                           Checked="chkFreqLines_Changed" Unchecked="chkFreqLines_Changed"/>
-                                <CheckBox x:Name="chkFreqValueHud" Content="数值显示" HorizontalAlignment="Left"
+                                <CheckBox x:Name="chkFreqValueHud" Content="{DynamicResource 数值显示}" HorizontalAlignment="Left"
                                           Checked="chkFreqValueHud_Changed" Unchecked="chkFreqValueHud_Changed"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <Button Content="{DynamicResource 🗑 清除频谱}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1258,7 +1258,7 @@
                                     <Button Content="{DynamicResource 📄 复制数据}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyData_Click" Margin="0,0,0,4"
                                             ToolTip="复制 FFT 频谱数据（CSV，可贴 Excel）"/>
-                                    <Button Content="📊 复制指标" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 📊 复制指标}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnFreqDetailCopyStats_Click" Margin="0,0,0,4"
                                             ToolTip="复制频域分析指标"/>
                                     <Button Content="{DynamicResource 📋 全部复制}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1351,7 +1351,7 @@
                                         <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="28" FontSize="9" Padding="4,0"
                                                 Click="ModulePressValue_Click" ToolTip="按下→无"/>
-                                        <Button Content="名字" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Content="{DynamicResource 名字}" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="34" FontSize="9" Padding="4,0" Margin="2,0,0,0"
                                                 Click="ModulePressValue_Click" ToolTip="按下→文本模式，值为按键名"/>
                                         <Button Content="up" Tag="up" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1382,7 +1382,7 @@
                                         <Button Content="null" Tag="null" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="28" FontSize="9" Padding="4,0"
                                                 Click="ModuleReleaseValue_Click" ToolTip="松开→无"/>
-                                        <Button Content="名字" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Content="{DynamicResource 名字}" Tag="name" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="22" MinWidth="34" FontSize="9" Padding="4,0" Margin="2,0,0,0"
                                                 Click="ModuleReleaseValue_Click" ToolTip="松开→文本模式，值为按键名"/>
                                         <Button Content="up" Tag="up" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1404,7 +1404,7 @@
                                     <Button x:Name="btnModuleCustomColor" Content="{DynamicResource 🎨 自定义颜色…}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnKeysCustomColor_Click" Margin="0,4,0,0"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <Button Content="🔄 生成松开发送值" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 🔄 生成松开发送值}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnModuleGenRelease_Click" Margin="0,0,0,6"
                                             ToolTip="为模块内所有按键的松开发送填入 [key,Name,up] 文本值"/>
                                     <Button x:Name="btnModuleDelete" Content="{DynamicResource 🗑 删除此模块}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -1460,7 +1460,7 @@
                                                  LostFocus="tbKeyName_LostFocus"/>
                                     </Grid>
                                     <!-- 自锁 -->
-                                    <CheckBox x:Name="chkKeySelfLock" Content="自锁（点击保持按下，再点松开）"
+                                    <CheckBox x:Name="chkKeySelfLock" Content="{DynamicResource 自锁（点击保持按下，再点松开）}"
                                               HorizontalAlignment="Left" Margin="0,8,0,0"
                                               Checked="chkKeySelfLock_Changed" Unchecked="chkKeySelfLock_Changed"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
@@ -1548,13 +1548,13 @@
                                         <StackPanel>
                                             <TextBlock Text="快速预设" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6"/>
                                             <WrapPanel>
-                                                <Button Content="全部归零" Style="{DynamicResource SecondaryButtonStyle}"
+                                                <Button Content="{DynamicResource 全部归零}" Style="{DynamicResource SecondaryButtonStyle}"
                                                         Height="24" FontSize="10" Padding="6,0" Margin="0,0,4,0"
                                                         Click="btnSlidersPresetZero_Click"/>
-                                                <Button Content="全部置中" Style="{DynamicResource SecondaryButtonStyle}"
+                                                <Button Content="{DynamicResource 全部置中}" Style="{DynamicResource SecondaryButtonStyle}"
                                                         Height="24" FontSize="10" Padding="6,0" Margin="0,0,4,0"
                                                         Click="btnSlidersPresetMid_Click"/>
-                                                <Button Content="全部最大" Style="{DynamicResource SecondaryButtonStyle}"
+                                                <Button Content="{DynamicResource 全部最大}" Style="{DynamicResource SecondaryButtonStyle}"
                                                         Height="24" FontSize="10" Padding="6,0"
                                                         Click="btnSlidersPresetMax_Click"/>
                                             </WrapPanel>
@@ -1707,7 +1707,7 @@
                                                Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="3,0,0,0"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                <Button x:Name="btnJoystickCenterSide" Content="⟲ 全部回中" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnJoystickCenterSide" Content="{DynamicResource ⟲ 全部回中}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="28" Click="btnJoystickCenter_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <TextBlock Text="摇杆反馈" FontSize="11" FontWeight="SemiBold"
@@ -1891,14 +1891,14 @@
                                                 Style="{DynamicResource SecondaryButtonStyle}" Click="textEditColorSwatch_Click"/>
                                     </Grid>
                                     <!-- 锁定按钮（编辑已有文字时也可见） -->
-                                    <Button x:Name="btnTextLock" Content="🔓 锁定" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnTextLock" Content="{DynamicResource 🔓 锁定}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" MinWidth="0" Padding="6,0" Click="btnTextLock_Click"
                                             ToolTip="锁定/解锁元素" Margin="0,0,0,8"/>
                                     <!-- 确定/取消（仅新建文字时显示） -->
                                     <Grid x:Name="textEditConfirmRow"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="确定" Style="{DynamicResource PrimaryButtonStyle}"
+                                        <Button Grid.Column="0" Content="{DynamicResource 确定}" Style="{DynamicResource PrimaryButtonStyle}"
                                                 Height="28" Margin="0,0,4,0" Click="btnTextEditConfirm_Click"/>
-                                        <Button Grid.Column="1" Content="取消" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Grid.Column="1" Content="{DynamicResource 取消}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="28" Click="btnTextEditCancel_Click"/>
                                     </Grid>
                                 </StackPanel>
@@ -1918,7 +1918,7 @@
                                     <!-- 类型专属扩展容器（圆角矩形半径等未来控件使用） -->
                                     <StackPanel x:Name="shapeExtrasContainer"/>
                                     <!-- 填充复选框 -->
-                                    <CheckBox x:Name="cbShapeFill" Content="实心填充" Margin="0,0,0,6"
+                                    <CheckBox x:Name="cbShapeFill" Content="{DynamicResource 实心填充}" Margin="0,0,0,6"
                                               FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                               Click="ShapeField_Changed"/>
                                     <!-- 线宽（填充时隐藏） -->
@@ -1944,16 +1944,16 @@
                                     </Grid>
                                     <!-- Z-order -->
                                     <Grid Margin="0,6,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="↑ 置顶" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Grid.Column="0" Content="{DynamicResource ↑ 置顶}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" FontSize="11" Click="btnShapeBringToFront_Click" Margin="0,0,2,0"/>
-                                        <Button Grid.Column="1" Content="↓ 置底" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Grid.Column="1" Content="{DynamicResource ↓ 置底}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" FontSize="11" Click="btnShapeSendToBack_Click" Margin="2,0,0,0"/>
                                     </Grid>
                                     <!-- 操作按钮 -->
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="🗑 删除图形" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button Grid.Column="0" Content="{DynamicResource 🗑 删除图形}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="28" Click="btnShapeDelete_Click" Foreground="#E53935" Margin="0,0,4,0"/>
-                                        <Button x:Name="btnShapeLock" Grid.Column="1" Content="🔓 锁定" Style="{DynamicResource SecondaryButtonStyle}"
+                                        <Button x:Name="btnShapeLock" Grid.Column="1" Content="{DynamicResource 🔓 锁定}" Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="28" MinWidth="0" Padding="6,0" Click="btnShapeLock_Click" ToolTip="锁定/解锁元素"/>
                                     </Grid>
                                 </StackPanel>
@@ -1983,15 +1983,15 @@
                                       Padding="0,0,4,0">
                             <StackPanel VerticalAlignment="Top" Margin="0,0,2,0">
                                 <TextBlock Text="设置" Style="{DynamicResource CardHeaderStyle}" Margin="0,0,0,12"/>
-                                <Button x:Name="btnSettingsSerial" Content="📡 串口配置" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsSerial" Content="{DynamicResource 📡 串口配置}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsSerial_Click"/>
-                                <Button x:Name="btnSettingsShortcuts" Content="⌨ 快捷键提示" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsShortcuts" Content="{DynamicResource ⌨ 快捷键提示}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsShortcuts_Click"/>
-                                <Button x:Name="btnSettingsExamples" Content="📖 使用示例" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsExamples" Content="{DynamicResource 📖 使用示例}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsExamples_Click"/>
-                                <Button x:Name="btnSettingsAssets" Content="🎨 素材自定义" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsAssets" Content="{DynamicResource 🎨 素材自定义}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAssets_Click"/>
-                                <Button x:Name="btnSettingsAbout" Content="ℹ 关于" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button x:Name="btnSettingsAbout" Content="{DynamicResource ℹ 关于}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="36" Margin="0,0,0,4" Click="BtnSettingsAbout_Click"/>
                                 <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                 <!-- 双语切换 -->
@@ -2010,7 +2010,7 @@
                                 </Button>
                                 <!-- 主题切换 -->
                                 <Button x:Name="btnThemeSwitch" Height="36" FontSize="13"
-                                        Content="🌙 暗色模式" Style="{DynamicResource SecondaryButtonStyle}"
+                                        Content="{DynamicResource 🌙 暗色模式}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Click="btnThemeSwitch_Click"/>
                             </StackPanel>
                         </ScrollViewer>
@@ -2031,13 +2031,13 @@
                             Padding="8,4">
                         <DockPanel>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                <Button x:Name="btnFilterMenu" Content="📡 筛选 ▾"
+                                <Button x:Name="btnFilterMenu" Content="{DynamicResource 📡 筛选 ▾}"
                                         Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                         Padding="8,0" Click="BtnFilterMenu_Click"
                                         ToolTip="筛选接收区显示内容"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <Button x:Name="btnPauseDisplay" Content="⏸ 暂停"
+                                <Button x:Name="btnPauseDisplay" Content="{DynamicResource ⏸ 暂停}"
                                         Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                         Click="btnPauseDisplay_Click" ToolTip="冻结接收区（Ctrl+P）"/>
                                 <Button Content="{DynamicResource 导出日志}" Style="{DynamicResource SecondaryButtonStyle}"
@@ -2141,20 +2141,20 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
                         <StackPanel Orientation="Horizontal">
                             <!-- #10 FFT 视角切换 -->
-                            <Button x:Name="btnPerspectiveToggle" Content="⏱ 时域  →  频域 📶"
+                            <Button x:Name="btnPerspectiveToggle" Content="{DynamicResource ⏱ 时域  →  频域 📶}"
                                     Style="{DynamicResource PerspectiveToggleStyle}" Height="28" Padding="12,0"
                                     Click="btnPerspectiveToggle_Click" ToolTip="切换时域/频域视角"/>
                             <Border Width="1" Height="20" Background="{DynamicResource SeparatorBrush}" Margin="8,0,6,0"
                                     VerticalAlignment="Center"/>
-                            <Button x:Name="btnPlotPause" Content="⏸ 暂停" Width="84"
+                            <Button x:Name="btnPlotPause" Content="{DynamicResource ⏸ 暂停}" Width="84"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" Click="btnPlotPause_Click"/>
                             <Button x:Name="btnPlotClear" Content="{DynamicResource 🗑 清除}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotClear_Click"/>
                             <Button x:Name="btnPlotCsv" Content="📥 CSV"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotCsv_Click"/>
-                            <Button x:Name="btnPlotFit" Content="🔍 适应"
+                            <Button x:Name="btnPlotFit" Content="{DynamicResource 🔍 适应}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0" Click="btnPlotFit_Click"/>
-                            <Button x:Name="btnPlotDetail" Content="📊 详细"
+                            <Button x:Name="btnPlotDetail" Content="{DynamicResource 📊 详细}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Margin="6,0,0,0"
                                     Click="btnPlotDetail_Click" ToolTip="暂停后查看指定曲线的统计数据"/>
                         </StackPanel>
@@ -2198,7 +2198,7 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Height="28" Visibility="Collapsed">
                         <Button x:Name="btnTuningToggle"
-                                Content="▲ 调参工作台" Width="140" Height="24"
+                                Content="{DynamicResource ▲ 调参工作台}" Width="140" Height="24"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 FontSize="12"
                                 HorizontalAlignment="Center"
@@ -2251,7 +2251,7 @@
                             <Button x:Name="btnKeysAdd" Content="{DynamicResource + 添加}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnKeysAdd_Click" ToolTip="添加一个按键"/>
-                            <Button x:Name="btnKeysLayout" Content="⌨ 键盘布局"
+                            <Button x:Name="btnKeysLayout" Content="{DynamicResource ⌨ 键盘布局}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnKeysLayout_Click" ToolTip="从键盘布局预设批量创建按键"/>
                             <Button x:Name="btnKeysClearAll" Content="{DynamicResource 🗑 清空全部}"
@@ -2406,12 +2406,12 @@
                                     Click="btnToolEraser_Click"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 发送 -->
-                            <Button x:Name="btnSendCanvas" Content="发送" Height="26" MinWidth="0" Padding="8,0"
+                            <Button x:Name="btnSendCanvas" Content="{DynamicResource 发送}" Height="26" MinWidth="0" Padding="8,0"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Click="btnSendCanvas_Click" ToolTip="重发全部图形到串口"/>
                             <Border Width="1" Background="{DynamicResource CardBorderBrush}" Margin="5,3"/>
                             <!-- 清屏 -->
-                            <Button x:Name="btnOLEDClear" Content="🗑 清屏"
+                            <Button x:Name="btnOLEDClear" Content="{DynamicResource 🗑 清屏}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="26" MinWidth="0" Padding="8,0"
                                     Click="btnOLEDClear_Click" ToolTip="清除 OLED 屏幕（display-clear）"/>
                         </StackPanel>
@@ -2453,7 +2453,7 @@
                             Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4">
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnJoystickCenter" Content="⟲ 回中"
+                            <Button x:Name="btnJoystickCenter" Content="{DynamicResource ⟲ 回中}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0" Padding="8,0"
                                     Click="btnJoystickCenter_Click" ToolTip="将所有摇杆归零"/>
                             <TextBlock Text="底板" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
@@ -2520,17 +2520,17 @@
                                 <ComboBox Grid.Row="3" Grid.Column="1" x:Name="cbFlowControl"
                                           ToolTip="数据流控制。None=无，RTS=硬件流控，XOnXOff=软件流控"/>
                             </Grid>
-                            <CheckBox x:Name="chkDtr" Content="DTR（数据终端就绪）" Margin="0,8,0,0"
+                            <CheckBox x:Name="chkDtr" Content="{DynamicResource DTR（数据终端就绪）}" Margin="0,8,0,0"
                                       Checked="chkDtr_Changed" Unchecked="chkDtr_Changed"
                                       ToolTip="数据终端就绪信号。某些设备需拉高此信号才开始工作"/>
-                            <CheckBox x:Name="chkRts" Content="RTS（请求发送）"
+                            <CheckBox x:Name="chkRts" Content="{DynamicResource RTS（请求发送）}"
                                       Checked="chkRts_Changed" Unchecked="chkRts_Changed"
                                       ToolTip="请求发送信号。用于硬件流控或唤醒目标设备"/>
                             <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                            <CheckBox x:Name="chkAutoReconnect" Content="自动重连"
+                            <CheckBox x:Name="chkAutoReconnect" Content="{DynamicResource 自动重连}"
                                       Checked="chkAutoReconnect_Changed" Unchecked="chkAutoReconnect_Changed"
                                       ToolTip="串口意外断开后自动尝试重新连接"/>
-                            <CheckBox x:Name="chkPersistTraffic" Content="串口打开时不重置流量计数"
+                            <CheckBox x:Name="chkPersistTraffic" Content="{DynamicResource 串口打开时不重置流量计数}"
                                       Checked="chkPersistTraffic_Changed" Unchecked="chkPersistTraffic_Changed"
                                       ToolTip="保持上次连接的收发字节计数，不清零"/>
                         </StackPanel>
@@ -2714,7 +2714,7 @@
                                 <Button Content="{DynamicResource 📋 复制}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
                                         Margin="8,0,0,0" Click="BtnCopyIssues_Click"/>
-                                <Button Content="↗ 打开" Style="{DynamicResource SecondaryButtonStyle}"
+                                <Button Content="{DynamicResource ↗ 打开}" Style="{DynamicResource SecondaryButtonStyle}"
                                         Height="24" MinWidth="0" Padding="8,0" FontSize="11"
                                         Margin="6,0,0,0" Click="BtnOpenIssues_Click"/>
                             </StackPanel>
