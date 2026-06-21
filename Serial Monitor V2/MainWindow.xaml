@@ -1997,6 +1997,7 @@
                                 <!-- 双语切换 -->
                                 <Button x:Name="btnLangToggleSettings" Height="36"
                                         Style="{DynamicResource SecondaryButtonStyle}"
+                                        Margin="0,0,0,4"
                                         Click="BtnLangToggleSettings_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock x:Name="tbLangZhSettings" Text="中" VerticalAlignment="Center"
