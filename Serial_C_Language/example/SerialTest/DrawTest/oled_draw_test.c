@@ -17,9 +17,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* OLED 显存：Handle_Image 逐像素解包时需要直接写 OLED_DisplayBuf */
-extern uint8_t OLED_DisplayBuf[8][128];
-
 /* ===== 内部状态 ===== */
 static uint32_t cmd_count;
 static uint8_t  oled_inited;
@@ -78,29 +75,6 @@ static int ParseInt(const char *s, int def) {
     return atoi(s);
 }
 
-/* ===== Hex 解码 (供 image 用) ===== */
-
-static int HexDecode(const char *hex, uint8_t *bytes, int max)
-{
-    int count = 0;
-    while (*hex && count < max) {
-        uint8_t hi;
-        if (*hex >= '0' && *hex <= '9')       hi = (*hex - '0') << 4;
-        else if (*hex >= 'A' && *hex <= 'F')  hi = (*hex - 'A' + 10) << 4;
-        else if (*hex >= 'a' && *hex <= 'f')  hi = (*hex - 'a' + 10) << 4;
-        else { hex++; continue; }
-        hex++;
-        if (!*hex) break;
-        if (*hex >= '0' && *hex <= '9')       hi |= (*hex - '0');
-        else if (*hex >= 'A' && *hex <= 'F')  hi |= (*hex - 'A' + 10);
-        else if (*hex >= 'a' && *hex <= 'f')  hi |= (*hex - 'a' + 10);
-        else break;
-        hex++;
-        bytes[count++] = hi;
-    }
-    return count;
-}
-
 /* ====== 各绘图 handler ======
  *
  * cmd 格式（已跳过 "draw," 前缀）：
@@ -114,7 +88,6 @@ static int HexDecode(const char *hex, uint8_t *bytes, int max)
  *   arc:           arc,cx,cy,r,start,end,#color[,w][,fill]  field 1..5; fill@7 or 8
  *   text:          text,x,y,content,fontSize,#color          field 1..4
  *   clear:         clear                                     (no params)
- *   image:         image,x,y,w,h,format,hex...               field 1..5
  *
  *   ⚠️ fill 字段位置因 lw 是否省略而变化，handler 内对两处都试读（如 field 5|6）
  */
@@ -372,88 +345,6 @@ static void Handle_Del(const char *cmd) {
     f5_redraw_all();
 }
 
-static void Handle_Image(const char *cmd)
-{
-    /* 字段: image(0),x(1),y(2),w(3),h(4),format(5),threshold(6),hex(7+) */
-    char b[16];
-    GetField(cmd, b, 1, sizeof(b)); int x = ParseInt(b, 0);
-    GetField(cmd, b, 2, sizeof(b)); int y = ParseInt(b, 0);
-    GetField(cmd, b, 3, sizeof(b)); int w = ParseInt(b, 0);
-    GetField(cmd, b, 4, sizeof(b)); int h = ParseInt(b, 0);
-    if (w <= 0 || h <= 0 || w > 128 || h > 64) return;
-
-    /* 读 format + threshold */
-    char format[8];
-    GetField(cmd, format, 5, sizeof(format));
-    GetField(cmd, b, 6, sizeof(b)); int thr = ParseInt(b, 128);
-
-    /* 跳到 hex 数据（跳过前 7 个逗号） */
-    const char *hex = cmd;
-    int commas = 0;
-    while (*hex && commas < 7) {
-        if (*hex == ',') commas++;
-        hex++;
-    }
-
-    if (strcmp(format, "mono") == 0) {
-        /* ── mono: 行优先水平打包 → 逐像素解包转置 ── */
-        static uint8_t img[1024];
-        int n = HexDecode(hex, img, sizeof(img));
-        if (n <= 0) return;
-        uint8_t rowBytes = (uint8_t)((w + 7) / 8);
-        for (int16_t py = 0; py < h; py++) {
-            for (int16_t px = 0; px < w; px++) {
-                int16_t sx = x + px, sy = y + py;
-                if (sx < 0 || sx > 127 || sy < 0 || sy > 63) continue;
-                int byteIdx = py * rowBytes + px / 8;
-                int bitIdx  = 7 - (px % 8);
-                if (img[byteIdx] & (1 << bitIdx))
-                    OLED_DisplayBuf[sy / 8][sx] |=  (1 << (sy % 8));
-                else
-                    OLED_DisplayBuf[sy / 8][sx] &= ~(1 << (sy % 8));
-            }
-        }
-    } else {
-        /* ── rgb565: 每 4 hex → 2 bytes R5G6B5 → 灰度阈值 → 逐像素写 OLED_DisplayBuf ── */
-        #define HEX4_TO_RGB565(p) \
-            ((((p)[0] >= '0' && (p)[0] <= '9' ? (p)[0] - '0' : \
-              ((p)[0] >= 'A' && (p)[0] <= 'F' ? (p)[0] - 'A' + 10 : \
-              ((p)[0] >= 'a' && (p)[0] <= 'f' ? (p)[0] - 'a' + 10 : 0))) << 12) | \
-             (((p)[1] >= '0' && (p)[1] <= '9' ? (p)[1] - '0' : \
-              ((p)[1] >= 'A' && (p)[1] <= 'F' ? (p)[1] - 'A' + 10 : \
-              ((p)[1] >= 'a' && (p)[1] <= 'f' ? (p)[1] - 'a' + 10 : 0))) << 8) | \
-             (((p)[2] >= '0' && (p)[2] <= '9' ? (p)[2] - '0' : \
-              ((p)[2] >= 'A' && (p)[2] <= 'F' ? (p)[2] - 'A' + 10 : \
-              ((p)[2] >= 'a' && (p)[2] <= 'f' ? (p)[2] - 'a' + 10 : 0))) << 4) | \
-              ((p)[3] >= '0' && (p)[3] <= '9' ? (p)[3] - '0' : \
-              ((p)[3] >= 'A' && (p)[3] <= 'F' ? (p)[3] - 'A' + 10 : \
-              ((p)[3] >= 'a' && (p)[3] <= 'f' ? (p)[3] - 'a' + 10 : 0))))
-        for (int16_t py = 0; py < h; py++) {
-            for (int16_t px = 0; px < w; px++) {
-                int16_t sx = x + px, sy = y + py;
-                /* 读 4 hex chars */
-                if (hex[0] == '\0' || hex[1] == '\0' || hex[2] == '\0' || hex[3] == '\0') goto done;
-                uint16_t rgb = (uint16_t)HEX4_TO_RGB565(hex);
-                hex += 4;
-                uint8_t r = (rgb >> 11) & 0x1F;
-                uint8_t g = (rgb >> 5) & 0x3F;
-                uint8_t b2 = rgb & 0x1F;
-                /* 灰度: R*0.299 + G*0.587 + B*0.114 → 定点 (r*77+g*150+b*29)/256 */
-                uint16_t gray = (r * 77 + g * 150 + b2 * 29) >> 8;
-                if (sx >= 0 && sx <= 127 && sy >= 0 && sy <= 63) {
-                    if (gray > (uint16_t)thr)
-                        OLED_DisplayBuf[sy / 8][sx] |=  (1 << (sy % 8));
-                    else
-                        OLED_DisplayBuf[sy / 8][sx] &= ~(1 << (sy % 8));
-                }
-            }
-        }
-        done:;
-        #undef HEX4_TO_RGB565
-    }
-    OLED_UpdateArea(x, y, (uint8_t)w, (uint8_t)h);
-}
-
 /* ===== 颜色辅助 ===== */
 
 static int IsEraserColor(const char *cmd)
@@ -508,7 +399,6 @@ void DrawTest_ProcessCommand(const char *cmd)
     else if (strcmp(type, "arc")      == 0) { if (!erasing) Handle_Arc(cmd); }
     else if (strcmp(type, "text")     == 0) { if (!erasing) Handle_Text(cmd); }
     else if (strcmp(type, "clear")    == 0) Handle_Clear(cmd);
-    else if (strcmp(type, "image")    == 0) Handle_Image(cmd);
 }
 
 /* ===== 主循环 ===== */

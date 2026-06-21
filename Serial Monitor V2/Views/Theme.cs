@@ -137,6 +137,18 @@ namespace 串口助手
         private void BtnLangToggleSettings_Click(object sender, RoutedEventArgs e)
             => Locale.SwitchTo(Locale.Current == "zh" ? "en" : "zh");
 
+        private void BtnHelp_Click(object sender, RoutedEventArgs e)
+        {
+            var manualPath = System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "用户手册", "index.html");
+            if (System.IO.File.Exists(manualPath))
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = manualPath,
+                    UseShellExecute = true
+                });
+        }
+
         /// <summary>标题栏 DWM 暗色模式（Win10 1809+）</summary>
         internal void ApplyTitleBarTheme(bool dark)
         {

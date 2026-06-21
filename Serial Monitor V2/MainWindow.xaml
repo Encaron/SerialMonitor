@@ -742,6 +742,21 @@
                             <Image x:Name="imgThemeToggle" Width="18" Height="18" Margin="5,0,0,0" />
                         </StackPanel>
                     </Button>
+                    <!-- 帮助按钮 -->
+                    <Button x:Name="btnHelp" Height="32" Width="32"
+                            Style="{DynamicResource SecondaryButtonStyle}" MinWidth="0"
+                            Background="{DynamicResource StatusBarBgBrush}"
+                            BorderBrush="{DynamicResource InputBorderBrush}"
+                            Padding="0" Margin="0,0,12,0" Cursor="Hand"
+                            Click="BtnHelp_Click" ToolTip="{DynamicResource 用户手册}">
+                        <Border Width="20" Height="20" CornerRadius="10"
+                                BorderBrush="{DynamicResource InputBorderBrush}" BorderThickness="1.2"
+                                Background="Transparent">
+                            <TextBlock Text="?" FontSize="13" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Button>
                     <TextBlock x:Name="tbStatusVersion" FontSize="10" Foreground="{DynamicResource TextFaintBrush}"
                                VerticalAlignment="Center" />
                 </StackPanel>

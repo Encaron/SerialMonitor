@@ -47,4 +47,14 @@
     <Resource Include="Icons\setting\theme\theme-sun.png" />
     <Resource Include="Icons\setting\theme\theme-moon.png" />
   </ItemGroup>
+
+  <!-- 发布时将用户手册文件夹拷贝到输出目录 -->
+  <Target Name="CopyUserManual" AfterTargets="Publish">
+    <ItemGroup>
+      <ManualFiles Include="用户手册\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ManualFiles)"
+          DestinationFiles="@(ManualFiles->'$(PublishDir)用户手册\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

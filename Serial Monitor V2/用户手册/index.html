@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serial Monitor V2 — 串口调试工具</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div id="scroll-progress"></div>
+
+<!-- ═══════════ TOP NAV ═══════════ -->
+<header id="topnav">
+    <a href="index.html" class="brand">Serial <span>Monitor</span> V2</a>
+    <nav>
+        <a href="manual.html">使用说明</a>
+        <a href="manual.html#protocol">协议速查</a>
+        <a href="manual.html#mcu">MCU 对接</a>
+        <a href="manual.html#faq">常见问题</a>
+        <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
+    </nav>
+</header>
+
+<!-- ═══════════ HERO — split layout ═══════════ -->
+<section id="hero">
+    <div class="hero-orb orb-1"></div>
+    <div class="hero-orb orb-2"></div>
+    <div class="hero-orb orb-3"></div>
+    <div class="hero-particles"></div>
+    <div class="hero-split">
+        <div class="hero-left">
+            <img src="images/logo.png" alt="Serial Monitor V2" class="logo-icon" style="object-fit:contain">
+            <h1>Serial Monitor V2</h1>
+            <p class="subtitle">
+                基于 WPF + OxyPlot + AvalonEdit 的串口调试工具<br>
+                STM32 端配套 C 库，扔进工程即用
+            </p>
+            <div class="hero-buttons">
+                <a href="https://github.com/Encaron/SerialMonitor/releases" class="btn-hero primary" target="_blank">
+                    ⬇ 下载软件
+                </a>
+                <a href="manual.html" class="btn-hero secondary">
+                    📖 使用说明
+                </a>
+            </div>
+            <p class="hero-meta">
+                v2.6 · Windows 10+ x64 · .NET 8 · MIT 开源
+            </p>
+        </div>
+        <div class="hero-right">
+            <img src="images/overview.png" alt="Serial Monitor V2 主界面" class="hero-screenshot">
+        </div>
+    </div>
+    <div class="scroll-hint">▼ 向下滚动了解详情</div>
+</section>
+
+<!-- ═══════════ FEATURES ═══════════ -->
+<div class="content-section" id="home-features">
+    <h2>为什么选择 Serial Monitor V2？</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📟</div>
+            <h4>9 个功能面板</h4>
+            <p>收发区、波形图、FFT 频谱、传感面板、按键、滑杆、摇杆、OLED 绘图——一个软件全搞定。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📡</div>
+            <h4>零配置，即插即显</h4>
+            <p>STM32 发一行 <code>[sensor,temp,芯片,42.5]</code>，PC 端自动建卡。协议自动路由，通道名即图例。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h4>双向控制闭环</h4>
+            <p>PC 端拖滑杆、点开关、画图形 → 协议实时发回 MCU → 操作硬件。不是单向监视器。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📦</div>
+            <h4>STM32 端开箱即用</h4>
+            <p>仅 2 个文件（<code>Serial.c</code> + <code>Serial.h</code>），零依赖零 malloc，扔进 CubeMX 工程即可。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h4>中英双语 + 亮暗双模</h4>
+            <p>~550 条翻译一键瞬切。21 色 DynamicResource 原地变色不闪烁。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <h4>健壮容错</h4>
+            <p>三个致命路径全 try-catch 保护。崩溃日志自动写入。USB 热插拔自动检测 + 自动重连。</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ PANELS STRIP ═══════════ -->
+<div class="content-section">
+    <h2>10 个面板，一个软件</h2>
+    <p style="text-align:center;max-width:640px;margin:0 auto 32px">协议格式统一为 <code>[type,参数...]</code>。PC 端根据 type 自动路由到对应面板，无需任何配置。</p>
+    <div class="panel-grid">
+        <div class="panel-card"><div class="card-icon">📥📤</div><h4>收发区</h4><p>AvalonEdit 虚拟化渲染<br>三色日志 + HEX/文本双模</p></div>
+        <div class="panel-card"><div class="card-icon">📈</div><h4>波形图</h4><p>OxyPlot 实时曲线<br>时域/频域一键切换</p><code>[plot,ch1,25.3]</code></div>
+        <div class="panel-card"><div class="card-icon">📶</div><h4>FFT 频谱</h4><p>PC 端自动 FFT<br>STM32 端零改动</p><code>[fft,name,256,bin0,...]</code></div>
+        <div class="panel-card"><div class="card-icon">📡</div><h4>传感面板</h4><p>8 类卡片零配置建卡<br>双向控制 + 心跳检测</p><code>[sensor,temp,芯片,42.5]</code></div>
+        <div class="panel-card"><div class="card-icon">🔘</div><h4>按键</h4><p>6 种键盘布局<br>40 色自定义</p><code>[key,KEY1,on]</code></div>
+        <div class="panel-card"><div class="card-icon">🎚️</div><h4>滑杆</h4><p>拖拽节流发送<br>自定义颜色轨道</p><code>[slider,kp,0.85]</code></div>
+        <div class="panel-card"><div class="card-icon">🕹️</div><h4>摇杆</h4><p>双轴控制<br>3 种风格 + 自定义素材</p><code>[joystick,1,50,-30,0,0]</code></div>
+        <div class="panel-card"><div class="card-icon">🎨</div><h4>OLED 绘图</h4><p>11 种绘图指令<br>F5 增量同步</p><code>[draw,circle,64,32,20,#FFF]</code></div>
+    </div>
+</div>
+
+<!-- ═══════════ SHOWCASE ═══════════ -->
+<div class="content-section">
+    <h2>看看实际效果</h2>
+    <div class="showcase-grid">
+        <figure><img src="images/sensor-fire.png" alt="传感面板" loading="lazy"><figcaption>传感面板 — 8 类卡片火力全开</figcaption></figure>
+        <figure><img src="images/plot-waveform.png" alt="波形图" loading="lazy"><figcaption>波形图 — 多通道实时曲线</figcaption></figure>
+        <figure><img src="images/plot-fft.png" alt="FFT 频谱" loading="lazy"><figcaption>FFT 频谱 — 时域/频域一键切换</figcaption></figure>
+        <figure><img src="images/oled-canvas.png" alt="PC 画板" loading="lazy"><figcaption>PC 画板 — 拖拽绘制 + 实时同步 MCU</figcaption></figure>
+    </div>
+</div>
+
+<!-- ═══════════ CTA ═══════════ -->
+<div class="content-section" style="text-align:center">
+    <div class="cta-box">
+        <h2 style="border:none;margin-bottom:12px">准备好开始了吗？</h2>
+        <p style="max-width:500px;margin:0 auto 24px">下载安装包，接上 STM32，发一行 <code>[plot,ch1,25.3]</code>，即刻看到波形。</p>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+            <a href="https://github.com/Encaron/SerialMonitor/releases" class="btn-hero primary" target="_blank">⬇ 下载软件</a>
+            <a href="manual.html" class="btn-hero secondary">📖 阅读使用说明</a>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer id="footer">
+    <div class="footer-grid">
+        <div class="footer-col">
+            <h5>项目</h5>
+            <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
+            <a href="https://github.com/Encaron/SerialMonitor/releases" target="_blank">下载 Release</a>
+            <a href="https://github.com/Encaron/SerialMonitor/issues" target="_blank">问题反馈</a>
+        </div>
+        <div class="footer-col">
+            <h5>文档</h5>
+            <a href="manual.html">使用说明</a>
+            <a href="manual.html#protocol">协议速查</a>
+            <a href="manual.html#mcu">MCU 对接</a>
+            <a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/README.md" target="_blank">C 库文档</a>
+        </div>
+        <div class="footer-col">
+            <h5>配套资源</h5>
+            <a href="https://github.com/Encaron/SerialMonitor/tree/master/Serial_C_Language" target="_blank">STM32 C 库</a>
+            <a href="https://github.com/Encaron/SerialMonitor/tree/master/Serial_C_Language/example" target="_blank">演示工程</a>
+            <a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial%20Monitor%20V2/Docs/MCU/OLED绘图协议.md" target="_blank">OLED 绘图协议</a>
+        </div>
+    </div>
+
+    <div class="tech-stack">
+        <span>WPF .NET 8</span>
+        <span>OxyPlot</span>
+        <span>AvalonEdit</span>
+        <span>STM32 HAL</span>
+        <span>CMSIS-DSP</span>
+    </div>
+
+    <div class="copyright">
+        <p>© 2026 冯毅力 (Encaron) &nbsp;·&nbsp; 基于 WPF + OxyPlot + AvalonEdit 构建 &nbsp;·&nbsp; STM32 配套 C 库开箱即用</p>
+        <p style="margin-top:4px">
+            <a href="https://github.com/Encaron/SerialMonitor/blob/master/LICENSE" target="_blank" style="color:var(--text-muted)">MIT License</a>
+        </p>
+    </div>
+</footer>
+
+<button id="back-to-top" title="回到顶部">↑</button>
+<script src="manual.js"></script>
+</body>
+</html>
