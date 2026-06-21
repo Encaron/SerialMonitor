@@ -741,8 +741,7 @@ namespace 串口助手
         private void btnSliderProtocolCopy_Click(object sender, RoutedEventArgs e)
         {
             if (tbSliderProtocolPreview == null || string.IsNullOrEmpty(tbSliderProtocolPreview.Text)) return;
-            SafeSetClipboard(tbSliderProtocolPreview.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbSliderProtocolPreview.Text, sender as Button);
         }
 
         // ═══════════════════════════════════════

@@ -2306,8 +2306,7 @@ namespace 串口助手
                 {
                     if (s is Button b && b.Tag is string code)
                     {
-                        SafeSetClipboard(code);
-                        ShowCopyToastAndShake(b);
+                        CopyWithFeedback(code, b);
                     }
                 };
                 Grid.SetColumn(btnCopyCode, 3);
@@ -2507,7 +2506,7 @@ namespace 串口助手
                         };
                         btnCopyEx.Click += (s2, e2) =>
                         {
-                            if (s2 is Button b2 && b2.Tag is string e) { SafeSetClipboard(e); ShowCopyToastAndShake(b2); }
+                            if (s2 is Button b2 && b2.Tag is string e) { CopyWithFeedback(e, b2); }
                         };
                         exRow.Children.Add(btnCopyEx);
                         card.Children.Add(exRow);
@@ -2627,8 +2626,7 @@ namespace 串口助手
                         {
                             if (s2 is Button b2 && b2.Tag is string exp)
                             {
-                                SafeSetClipboard(exp);
-                                ShowCopyToastAndShake(b2);
+                                CopyWithFeedback(exp, b2);
                             }
                         };
                         exampleRow.Children.Add(btnCopy);
@@ -2710,20 +2708,17 @@ namespace 串口助手
 
         private void BtnCopyGitHub_Click(object sender, RoutedEventArgs e)
         {
-            SafeSetClipboard(tbAboutGitHub.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbAboutGitHub.Text, sender as Button);
         }
 
         private void BtnCopyDataPath_Click(object sender, RoutedEventArgs e)
         {
-            SafeSetClipboard(tbAboutDataPath.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbAboutDataPath.Text, sender as Button);
         }
 
         private void BtnCopyIssues_Click(object sender, RoutedEventArgs e)
         {
-            SafeSetClipboard(tbAboutIssues.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbAboutIssues.Text, sender as Button);
         }
 
         private void BtnOpenIssues_Click(object sender, RoutedEventArgs e)
@@ -2804,6 +2799,17 @@ namespace 串口助手
             };
             timer.Tick += (s2, e2) => { toast.IsOpen = false; timer.Stop(); };
             timer.Start();
+        }
+
+        /// <summary>
+        /// 复制到剪贴板 + 按钮反馈（抖动 + 已复制提示）。
+        /// 统一包装 SafeSetClipboard + ShowCopyToastAndShake，消除"只复制不弹"的遗漏。
+        /// </summary>
+        private void CopyWithFeedback(string text, Button btn)
+        {
+            SafeSetClipboard(text);
+            if (btn != null)
+                ShowCopyToastAndShake(btn);
         }
 
         private void SwitchSettingsPage(string page)

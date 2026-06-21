@@ -33,17 +33,18 @@ namespace 串口助手
 
         private void btnSendHistory_Click(object sender, RoutedEventArgs e)
         {
-            var menu = new ContextMenu();
+            var menu = new ContextMenu { PlacementTarget = sender as UIElement, Placement = PlacementMode.Bottom };
+            var itemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
             if (sendHistory.Count == 0)
             {
-                menu.Items.Add(new MenuItem { Header = "（暂无历史记录）", IsEnabled = false });
+                menu.Items.Add(new MenuItem { Header = "（暂无历史记录）", IsEnabled = false, Style = itemStyle });
             }
             else
             {
                 foreach (var item in sendHistory)
                 {
                     string display = item.Length > 60 ? item.Substring(0, 60) + "…" : item;
-                    var menuItem = new MenuItem { Header = display.Replace("_", "__"), Tag = item };
+                    var menuItem = new MenuItem { Header = display.Replace("_", "__"), Tag = item, Style = itemStyle };
                     menuItem.Click += (s, args) =>
                     {
                         tbSend.Text = (s as MenuItem)?.Tag?.ToString() ?? "";
@@ -138,9 +139,10 @@ namespace 串口助手
                 // 右键 → 编辑 / 删除
                 btn.MouseRightButtonDown += (s, e) =>
                 {
-                    var menu = new ContextMenu();
+                    var menu = new ContextMenu { PlacementTarget = s as UIElement, Placement = PlacementMode.Bottom };
+                    var menuItemStyle = (Style)FindResource("ContextMenuMenuItemStyle");
 
-                    var editItem = new MenuItem { Header = "编辑标签" };
+                    var editItem = new MenuItem { Header = "编辑标签", Style = menuItemStyle };
                     string oldLabel = kv.Key;
                     editItem.Click += (s2, e2) =>
                     {
@@ -156,7 +158,7 @@ namespace 串口助手
                     };
                     menu.Items.Add(editItem);
 
-                    var deleteItem = new MenuItem { Header = "删除" };
+                    var deleteItem = new MenuItem { Header = "删除", Style = menuItemStyle };
                     deleteItem.Click += (s2, e2) =>
                     {
                         quickSends.Remove(oldLabel);

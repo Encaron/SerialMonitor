@@ -1933,8 +1933,7 @@ namespace 串口助手
         private void btnCopyTextContent_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(tbTextEditContent.Text)) return;
-            SafeSetClipboard(tbTextEditContent.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbTextEditContent.Text, sender as Button);
         }
 
         /// <summary>更新共享协议预览（图形+文字通用）</summary>
@@ -3576,8 +3575,7 @@ namespace 串口助手
         private void btnCopyProtocol_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(tbProtocolPreview.Text) || tbProtocolPreview.Text == "—") return;
-            SafeSetClipboard(tbProtocolPreview.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbProtocolPreview.Text, sender as Button);
         }
 
         private int GetShapeEditorLineWidth()

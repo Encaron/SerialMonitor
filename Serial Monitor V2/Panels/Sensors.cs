@@ -2663,7 +2663,7 @@ namespace 串口助手
                     Height = 24, Width = 32, MinWidth = 0, Padding = new Thickness(0),
                     FontSize = 11,
                 };
-                btn.Click += (_, _) => { SafeSetClipboard(capturedLine); ShowCopyToastAndShake(btn); };
+                btn.Click += (_, _) => { CopyWithFeedback(capturedLine, btn); };
                 Grid.SetColumn(btn, 1);
                 grid.Children.Add(btn);
                 row.Child = grid;

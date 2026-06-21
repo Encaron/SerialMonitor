@@ -212,15 +212,13 @@ namespace 串口助手
             sb.AppendLine("Timestamp,Y");
             foreach (var pt in data)
                 sb.AppendLine($"{pt.X:F6},{pt.Y:F6}");
-            SafeSetClipboard(sb.ToString());
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(sb.ToString(), sender as Button);
         }
 
         private void btnPlotDetailCopyStats_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_plotDetailCurveName)) return;
-            SafeSetClipboard(BuildStatsText());
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(BuildStatsText(), sender as Button);
         }
 
         private void btnPlotDetailCopyAll_Click(object sender, RoutedEventArgs e)
@@ -236,8 +234,7 @@ namespace 串口助手
             sb.AppendLine("Timestamp,Y");
             foreach (var pt in data)
                 sb.AppendLine($"{pt.X:F6},{pt.Y:F6}");
-            SafeSetClipboard(sb.ToString());
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(sb.ToString(), sender as Button);
         }
 
         private string BuildStatsText()

@@ -720,16 +720,14 @@ namespace 串口助手
         {
             if (tbKeyProtoDown == null || string.IsNullOrEmpty(tbKeyProtoDown.Text)
                 || tbKeyProtoDown.Text == "—") return;
-            SafeSetClipboard(tbKeyProtoDown.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbKeyProtoDown.Text, sender as Button);
         }
 
         private void btnKeyCopyUp_Click(object sender, RoutedEventArgs e)
         {
             if (tbKeyProtoUp == null || string.IsNullOrEmpty(tbKeyProtoUp.Text)
                 || tbKeyProtoUp.Text == "—") return;
-            SafeSetClipboard(tbKeyProtoUp.Text);
-            if (sender is Button btn) ShowCopyToastAndShake(btn);
+            CopyWithFeedback(tbKeyProtoUp.Text, sender as Button);
         }
 
         private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
