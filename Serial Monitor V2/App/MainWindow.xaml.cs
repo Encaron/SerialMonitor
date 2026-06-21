@@ -177,6 +177,10 @@ namespace 串口助手
         {
             InitializeComponent();
 
+            // 弹窗 toggle：AttachPopupToggle 统一处理 PreviewMouseLeftButtonDown 拦截（StaysOpen 冲突）
+            AttachPopupToggle(btnFilterMenu, () => _filterPopup);
+            AttachPopupToggle(btnAddPanel, () => _addPanelPopup);
+
             // 默认选中接收区图标（InitializeComponent 之后，避免 XAML 阶段触发事件）
             tabReceive.IsChecked = true;
 
@@ -1246,7 +1250,7 @@ namespace 串口助手
             var btn = sender as Button;
             if (btn == null) return;
 
-            var popup = CreatePopup(btn, staysOpen: true);
+            var popup = CreatePopup(btn);
 
             var border = new Border
             {
@@ -1316,26 +1320,8 @@ namespace 串口助手
             // 初始填充子类型
             RebuildProtocolSubItems(stack);
 
-            // 窗口拖走时 Popup 跟随（StaysOpen=true 不会自动跟踪 PlacementTarget）
-            EventHandler locationHandler = null;
-            locationHandler = (s2, args2) =>
-            {
-                if (!popup.IsOpen) return;
-                var offset = popup.HorizontalOffset;
-                popup.HorizontalOffset = offset + 0.001;
-                popup.HorizontalOffset = offset;
-            };
-            LocationChanged += locationHandler;
-
-            // 切换到其他应用 → 自动关闭 Popup
-            EventHandler deactivatedHandler = null;
-            deactivatedHandler = (s2, args2) =>
-            {
-                if (popup.IsOpen) popup.IsOpen = false;
-            };
-            Deactivated += deactivatedHandler;
-
-            // 点击 Popup 外部 → 关闭（硬约束 #12 模式）
+            // 点击 Popup 外部 → 关闭
+            // 窗口移动+失焦 → CreatePopup 已内置 LocationChanged+StaysOpen=false
             MouseButtonEventHandler closeHandler = null;
             closeHandler = (s2, args2) =>
             {
@@ -1357,8 +1343,6 @@ namespace 串口助手
 
             popup.Closed += (s2, args2) =>
             {
-                LocationChanged -= locationHandler;
-                Deactivated -= deactivatedHandler;
                 PreviewMouseLeftButtonDown -= closeHandler;
                 _filterPopup = null;
                 UpdateFilterButtonAppearance();
@@ -2796,16 +2780,33 @@ namespace 串口助手
 
         /// <summary>
         /// 统一创建 Popup：自动设 PlacementTarget + AllowsTransparency，
-        /// 消除"忘设 → 暗色模式找不到主题色"的遗漏。
+        /// 消除"忘设 → 暗色模式找不到主题色"的遗漏。窗口移动时自动关闭。
         /// </summary>
-        private static Popup CreatePopup(UIElement placementTarget, PlacementMode placement = PlacementMode.Bottom, bool staysOpen = false)
+        private Popup CreatePopup(UIElement placementTarget, PlacementMode placement = PlacementMode.Bottom)
         {
-            return new Popup
+            var popup = new Popup
             {
                 PlacementTarget = placementTarget,
                 Placement = placement,
-                StaysOpen = staysOpen,
+                StaysOpen = false,
                 AllowsTransparency = true,
+            };
+            // 窗口移动时自动关闭（StaysOpen=false 不管这个）
+            EventHandler onMoved = null;
+            onMoved = (_, _) => { popup.IsOpen = false; LocationChanged -= onMoved; };
+            LocationChanged += onMoved;
+            popup.Closed += (_, _) => LocationChanged -= onMoved;
+            return popup;
+        }
+
+        /// <summary>按钮 toggle 弹窗：拦截 PreviewMouseLeftButtonDown，若弹窗已开则关闭并阻止 Click。Click 逻辑由 XAML 或调用方自行绑定。</summary>
+        private static void AttachPopupToggle(Button btn, Func<Popup> getPopup)
+        {
+            btn.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                var p = getPopup();
+                if (p != null && p.IsOpen)
+                { p.IsOpen = false; e.Handled = true; }
             };
         }
 
@@ -2989,10 +2990,11 @@ namespace 串口助手
                 Child = panel,
             };
 
-            _addPanelPopup = CreatePopup(btnAddPanel, System.Windows.Controls.Primitives.PlacementMode.Left, staysOpen: true);
+            _addPanelPopup = CreatePopup(btnAddPanel, System.Windows.Controls.Primitives.PlacementMode.Left);
             _addPanelPopup.Child = border;
             _addPanelPopup.PopupAnimation = System.Windows.Controls.Primitives.PopupAnimation.Fade;
             _addPanelPopup.HorizontalOffset = -4;
+
             _addPanelPopup.Closed += (s2, e2) =>
             {
                 btnAddPanel.Foreground = (Brush)FindResource("TextMutedBrush");

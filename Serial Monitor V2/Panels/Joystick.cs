@@ -287,6 +287,9 @@ namespace 串口助手
                 joystickPanel.Children.Add(canvas);
             }
             // 初始化侧栏为空（等待首次发送后更新）
+
+            // 摇杆几何元素少（1-3 Canvas），全量重建开销极低
+            RegisterThemePanel("Joystick", () => { if (_joyVM != null && _joyElems.Count > 0) RefreshJoystickUI(); });
         }
 
         // ═══════════════════════════════════════════════
@@ -914,15 +917,6 @@ namespace 串口助手
         // ═══════════════════════════════════════
         //  协议处理 & 持久化
         // ═══════════════════════════════════════
-        //  主题切换
-        // ═══════════════════════════════════════
-
-        internal void UpdateJoystickTheme()
-        {
-            if (_joyVM == null || _joyElems.Count == 0) return;
-            // 摇杆几何元素（Ellipse/Line）因风格各异，直接重建确保正确（1-3 个，开销极低）
-            RefreshJoystickUI();
-        }
 
         private void HandleJoystickMessage(int id, double x, double y)
         {

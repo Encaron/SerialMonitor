@@ -23,6 +23,7 @@ namespace 串口助手
         private readonly Dictionary<SensorCardViewModel, TextBlock> _cardAuxMap = new();
         private readonly Dictionary<SensorCardViewModel, Border> _cardProgressFillMap = new();
         private readonly Dictionary<SensorCardViewModel, TextBlock> _cardProgressPctMap = new();
+        private readonly Dictionary<SensorCardViewModel, Border> _cardProgressTrackMap = new(); // 轨道背景（硬编码 hex 不跟主题）
         private readonly Dictionary<SensorCardViewModel, Border> _cardToggleTrackMap = new();
         private readonly Dictionary<SensorCardViewModel, Ellipse> _cardToggleThumbMap = new();
         private readonly Dictionary<SensorCardViewModel, TextBlock> _cardStatusLabelMap = new();
@@ -40,6 +41,7 @@ namespace 串口助手
         private bool _sliderProgrammaticUpdate;
         private SensorCardViewModel _detailCard; // null = 编辑侧栏显示行管理器，非 null = 显示该卡详情面板
         private SensorCardViewModel _normalDetailCard; // 正常模式下点击卡片→显示该卡详情视图
+        private Popup _addCardPopup; // "+ 卡片" 弹窗引用（toggle 关闭用）
         // 详情视图缓存（timer 触发时只改文字/颜色，不销毁重建）
         private TextBlock _ndValueBlock;
         private Border _ndTypeTag;
@@ -202,9 +204,9 @@ namespace 串口助手
             var auxText = new TextBlock
             {
                 Text = vm.AuxText ?? "", FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Visibility = string.IsNullOrEmpty(vm.AuxText) ? Visibility.Collapsed : Visibility.Visible,
             };
+            auxText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             _cardAuxMap[vm] = auxText;
 
             // 进度条（湿度/气压）——紧凑
@@ -212,9 +214,10 @@ namespace 串口助手
             if (vm.Type == "humidity" || vm.Type == "pressure")
             {
                 double pct = CalcProgressPct(vm);
-                var (pgBar, pgFill, pgPct) = CreateProgressBar(pct, accentBrush);
+                var (pgBar, pgFill, pgPct, pgTrack) = CreateProgressBar(pct, accentBrush);
                 _cardProgressFillMap[vm] = pgFill;
                 _cardProgressPctMap[vm] = pgPct;
+                _cardProgressTrackMap[vm] = pgTrack;
                 progressBar = pgBar;
             }
 
@@ -237,9 +240,9 @@ namespace 串口助手
                 statusLabel = new TextBlock
                 {
                     Text = vm.Status == "on" ? "状态：已开启" : "状态：已关闭",
-                    FontSize = 11, Foreground = (Brush)FindResource("TextSecondaryBrush"),
-                    Margin = new Thickness(0, 4, 0, 0),
+                    FontSize = 11, Margin = new Thickness(0, 4, 0, 0),
                 };
+                statusLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
                 _cardStatusLabelMap[vm] = statusLabel;
             }
 
@@ -310,13 +313,13 @@ namespace 串口助手
             var card = new Border
             {
                 Width = cardWidth, Height = 160,
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(0.5),
                 CornerRadius = new CornerRadius(8),
                 Child = grid,
                 Margin = new Thickness(0, 0, 8, 8),
             };
+            card.SetResourceReference(Border.BackgroundProperty, "CardBgBrush");
+            card.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
             _cardBorderMap[vm] = card;
 
             // 点击卡片 → 正常模式下侧栏显示该卡详情（编辑模式不响应）
@@ -337,7 +340,7 @@ namespace 串口助手
         // ═══ 进度条——条在左，数字在右 ═══
 
         // 返回：(整行容器 Grid, 填充条 Border, 百分比 TextBlock)
-        private (FrameworkElement row, Border fill, TextBlock pct) CreateProgressBar(double percent, Brush fillBrush)
+        private (FrameworkElement row, Border fill, TextBlock pct, Border track) CreateProgressBar(double percent, Brush fillBrush)
         {
             // 彩色填充条
             var fillBorder = new Border
@@ -374,7 +377,7 @@ namespace 串口助手
             row.Children.Add(track);
             row.Children.Add(pctText);
 
-            return (row, fillBorder, pctText);
+            return (row, fillBorder, pctText, track);
         }
 
         // ═══ 胶囊滑块——Canvas 绝对定位 ═══
@@ -453,12 +456,13 @@ namespace 串口助手
                 Content = "−", Width = 24, Height = 24,
                 FontSize = 16, FontWeight = FontWeights.Bold,
                 Background = Brushes.Transparent,
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Foreground = accentBrush,
                 Padding = new Thickness(0),
                 Cursor = Cursors.Hand,
             };
+            minusBtn.SetResourceReference(Button.BorderBrushProperty, "InputBorderBrush");
+            ApplyIconButtonTemplate(minusBtn);
             minusBtn.Click += (s, e) =>
             {
                 if (_sensorVM != null && _sensorVM.IsEditMode) return;
@@ -488,12 +492,13 @@ namespace 串口助手
                 Content = "+", Width = 24, Height = 24,
                 FontSize = 16, FontWeight = FontWeights.Bold,
                 Background = Brushes.Transparent,
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Foreground = accentBrush,
                 Padding = new Thickness(0),
                 Cursor = Cursors.Hand,
             };
+            plusBtn.SetResourceReference(Button.BorderBrushProperty, "InputBorderBrush");
+            ApplyIconButtonTemplate(plusBtn);
             plusBtn.Click += (s, e) =>
             {
                 if (_sensorVM != null && _sensorVM.IsEditMode) return;
@@ -568,17 +573,17 @@ namespace 串口助手
             {
                 Text = $"{vm.SliderMin:F0}",
                 FontSize = 10,
-                Foreground = (Brush)FindResource("TextMutedBrush"),
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
+            minLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
             _cardSliderMinLabelMap[vm] = minLabel;
             var maxLabel = new TextBlock
             {
                 Text = $"{vm.SliderMax:F0}",
                 FontSize = 10,
-                Foreground = (Brush)FindResource("TextMutedBrush"),
                 HorizontalAlignment = HorizontalAlignment.Right,
             };
+            maxLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
             _cardSliderMaxLabelMap[vm] = maxLabel;
             labelRow.Children.Add(minLabel);
             labelRow.Children.Add(maxLabel);
@@ -775,6 +780,7 @@ namespace 串口助手
             _cardAuxMap.Clear();
             _cardProgressFillMap.Clear();
             _cardProgressPctMap.Clear();
+            _cardProgressTrackMap.Clear();
             _cardToggleTrackMap.Clear();
             _cardToggleThumbMap.Clear();
             _cardStatusLabelMap.Clear();
@@ -791,12 +797,12 @@ namespace 串口助手
                 var groupBorder = new Border
                 {
                     Background = groupBg,
-                    BorderBrush = (Brush)FindResource("CardBorderBrush"),
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(6),
                     Padding = new Thickness(8, 6, 8, 8),
                     Margin = new Thickness(0, 0, 0, 12),
                 };
+                groupBorder.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
 
                 var groupPanel = new StackPanel();
 
@@ -815,10 +821,10 @@ namespace 串口助手
                         {
                             Text = string.IsNullOrEmpty(group.Name) ? "(未命名)" : group.Name,
                             FontSize = 11,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
                             VerticalAlignment = VerticalAlignment.Center,
                             Cursor = System.Windows.Input.Cursors.Hand,
                         };
+                        nameTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                         Grid.SetColumn(nameTb, 0);
 
                         var editBtn = new Button
@@ -826,11 +832,12 @@ namespace 串口助手
                             Content = "✏",
                             Background = Brushes.Transparent,
                             BorderThickness = new Thickness(0),
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
                             FontSize = 10,
                             Padding = new Thickness(4, 0, 0, 0),
                             Cursor = System.Windows.Input.Cursors.Hand,
                         };
+                        editBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
+                        ApplyIconButtonTemplate(editBtn);
                         Grid.SetColumn(editBtn, 1);
 
                         var captureGroup = group;
@@ -847,13 +854,13 @@ namespace 串口助手
                             {
                                 Text = captureGroup.Name ?? "",
                                 FontSize = 11,
-                                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                                Background = (Brush)FindResource("CardBgBrush"),
-                                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                                 BorderThickness = new Thickness(1),
                                 Padding = new Thickness(4, 1, 4, 1),
                                 MinWidth = 80,
                             };
+                            textBox2.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+                            textBox2.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+                            textBox2.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
                             textBox2.SelectAll();
                             parent2.Children.RemoveAt(idx2);
                             parent2.Children.Insert(idx2, textBox2);
@@ -900,12 +907,13 @@ namespace 串口助手
                     }
                     else if (!string.IsNullOrEmpty(group.Name))
                     {
-                        groupPanel.Children.Add(new TextBlock
+                        var gnTb = new TextBlock
                         {
                             Text = group.Name, FontSize = 11,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
                             Margin = new Thickness(4, 0, 0, 4),
-                        });
+                        };
+                        gnTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+                        groupPanel.Children.Add(gnTb);
                     }
                 }
 
@@ -998,12 +1006,86 @@ namespace 串口助手
                 && _sensorVM.IsActive && !_sensorVM.IsEditMode)
                 _sensorRefreshTimer.Start();
 
-            // 正常模式侧栏 dirty flag（新卡建卡或全量重建）
+            // 正常模式侧栏 dirty flag
             _sidePanelDirty = true;
 
             // 详情面板指向的卡被删了→清空引用
             if (_detailCard != null && _sensorVM.FindByName(_detailCard.Name) == null)
                 _detailCard = null;
+
+            // 条件色注册：卡片纯色已全部走 SetResourceReference，侧栏待后续迁移
+            RegisterThemePanel("Sensors", () => {
+                if (_sensorVM == null) return;
+                var isDark = isDarkTheme;
+                // 组背景：硬编码 hex 不跟 ThemeMap
+                var groupBg = isDark ? ParseColor("#1C1C1E") : ParseColor("#E6E6EB");
+                foreach (var child in sensorRowsPanel.Children)
+                {
+                    if (child is Border groupBorder)
+                        groupBorder.Background = groupBg;
+                }
+                // 进度条轨道背景（硬编码 hex）
+                var trackBg = ParseColor(isDark ? "#3A3A3D" : "#E8E8E8");
+                foreach (var kv in _cardProgressTrackMap)
+                    kv.Value.Background = trackBg;
+                // 开关 off 态（硬编码 hex）
+                var toggleOffBg  = ParseColor(isDark ? "#555555" : "#BBBBBB");
+                var toggleOffFill = ParseColor(isDark ? "#AAAAAA" : "#E0E0E0");
+                foreach (var kv in _cardToggleTrackMap)
+                {
+                    var vm = kv.Key;
+                    if (vm.Status != "on") kv.Value.Background = toggleOffBg;
+                }
+                foreach (var kv in _cardToggleThumbMap)
+                {
+                    var vm = kv.Key;
+                    if (vm.Status != "on") kv.Value.Fill = toggleOffFill;
+                }
+                // 卡片标题/主值/竖条 accent 色（GetAccentHex 有暗亮两套）
+                foreach (var kv in _cardTitleMap)
+                {
+                    var vm = kv.Key;
+                    kv.Value.Foreground = ParseColor(vm.GetAccentHex(isDark));
+                }
+                foreach (var kv in _cardValueMap)
+                {
+                    var vm = kv.Key;
+                    kv.Value.Foreground = ParseColor(vm.GetAccentHex(isDark));
+                }
+                foreach (var kv in _cardStripMap)
+                {
+                    var vm = kv.Key;
+                    kv.Value.Background = ParseColor(vm.GetAccentHex(isDark));
+                }
+                foreach (var kv in _cardSliderMap)
+                {
+                    var vm = kv.Key;
+                    kv.Value.Foreground = ParseColor(vm.GetAccentHex(isDark));
+                }
+                // 选中卡片蓝边（编辑态=蓝色 accent，正常态=半透明蓝/PrimaryBrush）
+                if (_cardBorderMap.Count > 0)
+                {
+                    foreach (var kv in _cardBorderMap)
+                    {
+                        var cardVM = kv.Key;
+                        var border = kv.Value;
+                        if (_selectedCard == cardVM)
+                        {
+                            if (_sensorVM.IsEditMode)
+                            {
+                                var accent = isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                                border.BorderBrush = new SolidColorBrush(accent);
+                            }
+                            else
+                            {
+                                border.BorderBrush = isDark ? ParseColor("#42A5F5", 0.45) : (Brush)FindResource("PrimaryBrush");
+                            }
+                            border.BorderThickness = new Thickness(2);
+                        }
+                    }
+                }
+                // 侧栏纯色已走 SetResourceReference，不再需要重建
+            });
         }
 
         // ═══ 持久化 ═══
@@ -1095,7 +1177,7 @@ namespace 串口助手
             // 取消旧选中高亮
             if (_selectedCard != null && _cardBorderMap.TryGetValue(_selectedCard, out var oldBorder))
             {
-                oldBorder.BorderBrush = (Brush)FindResource("CardBorderBrush");
+                oldBorder.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
                 oldBorder.BorderThickness = new Thickness(0.5);
             }
 
@@ -1130,7 +1212,7 @@ namespace 串口助手
         {
             if (_selectedCard != null && _cardBorderMap.TryGetValue(_selectedCard, out var oldBorder))
             {
-                oldBorder.BorderBrush = (Brush)FindResource("CardBorderBrush");
+                oldBorder.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
                 oldBorder.BorderThickness = new Thickness(0.5);
             }
             _selectedCard = null;
@@ -1189,10 +1271,10 @@ namespace 串口助手
             {
                 Text = card.Name,
                 FontSize = 12,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
+            nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             Grid.SetColumn(nameBlock, 1);
 
             // 当前值（右对齐）
@@ -1206,11 +1288,11 @@ namespace 串口助手
             {
                 Text = displayValue,
                 FontSize = 12,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(12, 0, 0, 0),
             };
+            valueBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             Grid.SetColumn(valueBlock, 2);
 
             row.Children.Add(dot);
@@ -1278,7 +1360,6 @@ namespace 串口助手
                 Content = "×",
                 Width = 20, Height = 20,
                 FontSize = 14, FontWeight = FontWeights.Bold,
-                Foreground = (Brush)FindResource("TextMutedBrush"),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 Padding = new Thickness(0),
@@ -1287,11 +1368,13 @@ namespace 串口助手
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(0, 2, 2, 0),
             };
+            deleteBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
+            ApplyIconButtonTemplate(deleteBtn);
             // 悬停变红
             deleteBtn.MouseEnter += (s, e) =>
                 deleteBtn.Foreground = ParseColor(isDarkTheme ? "#EF5350" : "#F44336");
             deleteBtn.MouseLeave += (s, e) =>
-                deleteBtn.Foreground = (Brush)FindResource("TextMutedBrush");
+                deleteBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
             var captureVm = vm;
             deleteBtn.Click += (s, e) =>
             {
@@ -1304,7 +1387,6 @@ namespace 串口助手
             };
 
             // 卡片本体可点击选中
-            var cardBg = (Brush)FindResource("CardBgBrush");
             card.MouseLeftButtonDown += (s, e) =>
             {
                 SelectCard(captureVm);
@@ -1353,11 +1435,11 @@ namespace 串口助手
             var line = new Border
             {
                 Width = 3, Height = 160,
-                Background = (Brush)FindResource("TextMutedBrush"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
                 Opacity = 0.60,
             };
+            line.SetResourceReference(Border.BackgroundProperty, "TextMutedBrush");
             grid.Children.Add(line);
 
             // 悬停展开的虚线框 + [+]——ScaleTransform 缩放，不挤卡片
@@ -1373,23 +1455,24 @@ namespace 串口助手
             var dashRect = new Rectangle
             {
                 Width = 16, Height = 160,
-                Stroke = (Brush)FindResource("PrimaryBrush"),
                 StrokeThickness = 1,
                 StrokeDashArray = new DoubleCollection { 3, 2 },
                 RadiusX = 4, RadiusY = 4,
-                Fill = (Brush)FindResource("SecondaryHoverBgBrush"),
             };
+            dashRect.SetResourceReference(Rectangle.StrokeProperty, "PrimaryBrush");
+            dashRect.SetResourceReference(Rectangle.FillProperty, "SecondaryHoverBgBrush");
             expandGrid.Children.Add(dashRect);
 
             // + 号
-            expandGrid.Children.Add(new TextBlock
+            var plusTb = new TextBlock
             {
                 Text = "+",
                 FontSize = 16, FontWeight = FontWeights.Bold,
-                Foreground = (Brush)FindResource("PrimaryBrush"),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-            });
+            };
+            plusTb.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
+            expandGrid.Children.Add(plusTb);
 
             grid.Children.Add(expandGrid);
 
@@ -1413,7 +1496,8 @@ namespace 串口助手
         private void ShowAddCardPopup(UIElement placementTarget, SensorGroup group, int insertIndex,
             PlacementMode placement = PlacementMode.Right)
         {
-            var popup = CreatePopup(placementTarget, placement, staysOpen: true);
+            var popup = CreatePopup(placementTarget, placement);
+            _addCardPopup = popup;
 
             var typeOptions = new[]
             {
@@ -1430,11 +1514,11 @@ namespace 串口助手
             var typeCombo = new ComboBox
             {
                 FontSize = 12, Height = 28,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 Margin = new Thickness(0, 0, 0, 8),
             };
+            typeCombo.SetResourceReference(ComboBox.ForegroundProperty, "TextPrimaryBrush");
+            typeCombo.SetResourceReference(ComboBox.BackgroundProperty, "CardBgBrush");
+            typeCombo.SetResourceReference(ComboBox.BorderBrushProperty, "InputBorderBrush");
             foreach (var (label, _) in typeOptions)
                 typeCombo.Items.Add(label);
             typeCombo.SelectedIndex = 0;
@@ -1442,13 +1526,13 @@ namespace 串口助手
             var nameBox = new TextBox
             {
                 FontSize = 12, Height = 28,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(6, 2, 6, 2),
                 Margin = new Thickness(0, 0, 0, 8),
             };
+            nameBox.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+            nameBox.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+            nameBox.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
 
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
             var addBtn = new Button
@@ -1468,31 +1552,33 @@ namespace 串口助手
             btnRow.Children.Add(cancelBtn);
 
             var stack = new StackPanel { Margin = new Thickness(12) };
-            stack.Children.Add(new TextBlock
+            var templateLabel = new TextBlock
             {
                 Text = "模板", FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
-            });
+            };
+            templateLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            stack.Children.Add(templateLabel);
             stack.Children.Add(typeCombo);
-            stack.Children.Add(new TextBlock
+            var nameLabel = new TextBlock
             {
                 Text = "名字", FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
-            });
+            };
+            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            stack.Children.Add(nameLabel);
             stack.Children.Add(nameBox);
             stack.Children.Add(btnRow);
 
             var popupBorder = new Border
             {
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
                 Child = stack,
                 MinWidth = 220,
             };
+            popupBorder.SetResourceReference(Border.BackgroundProperty, "CardBgBrush");
+            popupBorder.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
             popup.Child = popupBorder;
 
             var captureGroup = group;
@@ -1602,12 +1688,13 @@ namespace 串口助手
 
                         if (gi < _sensorVM.Groups.Count - 1)
                         {
-                            container.Children.Add(new Border
+                            var sep = new Border
                             {
                                 Height = 1,
-                                Background = (Brush)FindResource("SeparatorBrush"),
                                 Margin = new Thickness(0, 6, 0, 6),
-                            });
+                            };
+                            sep.SetResourceReference(Border.BackgroundProperty, "SeparatorBrush");
+                            container.Children.Add(sep);
                         }
                     }
 
@@ -1659,14 +1746,15 @@ namespace 串口助手
                             // 组名标题
                             if (!string.IsNullOrEmpty(group.Name))
                             {
-                                container.Children.Add(new TextBlock
+                                var gnTb = new TextBlock
                                 {
                                     Text = group.Name,
                                     FontSize = 11,
-                                    Foreground = (Brush)FindResource("TextMutedBrush"),
                                     Margin = new Thickness(0, anyVisible ? 8 : 0, 0, 3),
                                     TextTrimming = TextTrimming.CharacterEllipsis,
-                                });
+                                };
+                                gnTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+                                container.Children.Add(gnTb);
                             }
 
                             foreach (var item in group.Items)
@@ -1682,14 +1770,15 @@ namespace 串口助手
 
                         if (!anyVisible)
                         {
-                            container.Children.Add(new TextBlock
+                            var emptyHint = new TextBlock
                             {
                                 Text = "暂无卡片",
                                 FontSize = 12,
-                                Foreground = (Brush)FindResource("TextMutedBrush"),
                                 Margin = new Thickness(0, 20, 0, 0),
                                 HorizontalAlignment = HorizontalAlignment.Center,
-                            });
+                            };
+                            emptyHint.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+                            container.Children.Add(emptyHint);
                         }
                     }
                 }
@@ -1714,20 +1803,21 @@ namespace 串口助手
                 Content = "▸",
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 FontSize = 11, Padding = new Thickness(2, 0, 4, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
             };
+            collapseBtn.SetResourceReference(Button.ForegroundProperty, "TextPrimaryBrush");
+            ApplyIconButtonTemplate(collapseBtn);
             Grid.SetColumn(collapseBtn, 0);
 
             var nameBlock = new TextBlock
             {
                 Text = string.IsNullOrEmpty(group.Name) ? "(未命名)" : group.Name,
                 FontSize = 14, FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
+            nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             Grid.SetColumn(nameBlock, 1);
 
             // [✏] 改组名
@@ -1743,12 +1833,13 @@ namespace 串口助手
                 Content = "×",
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Foreground = (Brush)FindResource("TextMutedBrush"),
                 FontSize = 14, FontWeight = FontWeights.Bold,
                 Padding = new Thickness(3, 0, 3, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 Tag = false, // false = 待确认
             };
+            delGroupBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
+            ApplyIconButtonTemplate(delGroupBtn);
             var captureGroup = group;
             System.Windows.Threading.DispatcherTimer resetTimer = null;
             delGroupBtn.Click += (s, e) =>
@@ -1768,7 +1859,7 @@ namespace 串口助手
                         (_, _2) =>
                         {
                             delGroupBtn.Content = "×";
-                            delGroupBtn.Foreground = (Brush)FindResource("TextMutedBrush");
+                            delGroupBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
                             delGroupBtn.FontSize = 14;
                             delGroupBtn.FontWeight = FontWeights.Bold;
                             delGroupBtn.Tag = false;
@@ -1803,14 +1894,14 @@ namespace 串口助手
             groupSection.Children.Add(itemsPanel);
             var groupFrame = new Border
             {
-                Background = (Brush)FindResource("SecondaryHoverBgBrush"),
-                BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(6, 4, 6, 6),
                 Margin = new Thickness(0, 0, 0, 6),
                 Child = groupSection,
             };
+            groupFrame.SetResourceReference(Border.BackgroundProperty, "SecondaryHoverBgBrush");
+            groupFrame.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
             container.Children.Add(groupFrame);
 
             var itemsList = group.Items.ToList();
@@ -1828,9 +1919,9 @@ namespace 串口助手
                     var lbLabel = new TextBlock
                     {
                         Text = "── 换行 ──", FontSize = 10,
-                        Foreground = (Brush)FindResource("TextSecondaryBrush"),
                         VerticalAlignment = VerticalAlignment.Center,
                     };
+                    lbLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
                     Grid.SetColumn(lbLabel, 0);
 
                     var delLb = CreateSmallIconBtn("×", () =>
@@ -1860,22 +1951,22 @@ namespace 串口助手
                         {
                             Text = "————",
                             FontSize = 8,
-                            Foreground = (Brush)FindResource("TextMutedBrush"),
                             Margin = new Thickness(0, -3, 0, -3),
                             Cursor = System.Windows.Input.Cursors.Hand,
                         };
+                        lbBetween.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                         var capGroup = group;
                         var capIdx = insertAt;
                         lbBetween.MouseEnter += (s2, e2) =>
                         {
                             lbBetween.Text = "＋ 换行";
-                            lbBetween.Foreground = (Brush)FindResource("PrimaryBrush");
+                            lbBetween.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
                             lbBetween.Margin = new Thickness(0, 0, 0, 0);
                         };
                         lbBetween.MouseLeave += (s2, e2) =>
                         {
                             lbBetween.Text = "————";
-                            lbBetween.Foreground = (Brush)FindResource("TextMutedBrush");
+                            lbBetween.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                             lbBetween.Margin = new Thickness(0, -3, 0, -3);
                         };
                         lbBetween.MouseLeftButtonDown += (s2, e2) =>
@@ -1902,6 +1993,7 @@ namespace 串口助手
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
             var capGroup3 = group;
+            AttachPopupToggle(addCardBtn, () => _addCardPopup);
             addCardBtn.Click += (s, e) =>
             {
                 ShowAddCardPopup(addCardBtn, capGroup3, capGroup3.Items.Count, PlacementMode.Left);
@@ -1945,11 +2037,11 @@ namespace 串口助手
             var nameBlock = new TextBlock
             {
                 Text = card.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 Cursor = System.Windows.Input.Cursors.IBeam,
             };
+            nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             var captureCard = card;
             nameBlock.MouseLeftButtonDown += (s, e) =>
             {
@@ -1964,13 +2056,13 @@ namespace 串口助手
                 {
                     Text = captureCard.Name,
                     FontSize = 11, FontWeight = nameBlock.FontWeight,
-                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                    Background = (Brush)FindResource("CardBgBrush"),
-                    BorderBrush = (Brush)FindResource("PrimaryBrush"),
                     BorderThickness = new Thickness(1),
                     Padding = new Thickness(2, 1, 2, 1),
                     VerticalAlignment = VerticalAlignment.Center,
                 };
+                textBox2.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+                textBox2.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+                textBox2.SetResourceReference(TextBox.BorderBrushProperty, "PrimaryBrush");
                 textBox2.SelectAll();
                 Grid.SetColumn(textBox2, Grid.GetColumn(nameBlock));
                 parent2.Children.RemoveAt(idx2);
@@ -2094,22 +2186,22 @@ namespace 串口助手
             var nameLabel = new TextBlock
             {
                 Text = "名称：", FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(nameLabel);
 
             var nameBox = new TextBox
             {
                 Text = card.Name,
                 FontSize = 12, Height = 28,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(6, 2, 6, 2),
                 Margin = new Thickness(0, 0, 0, 8),
             };
+            nameBox.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+            nameBox.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+            nameBox.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
             nameBox.TextChanged += (s, e) =>
             {
                 if (!string.IsNullOrWhiteSpace(nameBox.Text))
@@ -2166,9 +2258,9 @@ namespace 串口助手
                     Content = "显示迷你波形",
                     IsChecked = card.ShowWaveform,
                     FontSize = 11,
-                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     Margin = new Thickness(0, 4, 0, 0),
                 };
+                waveCheck.SetResourceReference(CheckBox.ForegroundProperty, "TextPrimaryBrush");
                 waveCheck.Checked += (s, e) =>
                 {
                     card.ShowWaveform = true;
@@ -2193,22 +2285,22 @@ namespace 串口助手
             var lb = new TextBlock
             {
                 Text = label, FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            lb.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(lb);
 
             var box = new TextBox
             {
                 Text = currentValue.ToString("G"),
                 FontSize = 12, Height = 28,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(6, 2, 6, 2),
                 Margin = new Thickness(0, 0, 0, 8),
             };
+            box.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+            box.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+            box.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
             box.LostFocus += (s, e) =>
             {
                 if (!container.Children.Contains(box)) return;
@@ -2239,22 +2331,22 @@ namespace 串口助手
             var lb = new TextBlock
             {
                 Text = label, FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            lb.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(lb);
 
             var box = new TextBox
             {
                 Text = currentValue,
                 FontSize = 12, Height = 28,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(6, 2, 6, 2),
                 Margin = new Thickness(0, 0, 0, 8),
             };
+            box.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+            box.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+            box.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
             box.LostFocus += (s, e) => onChanged(box.Text);
             box.KeyDown += (s, e) =>
             {
@@ -2269,9 +2361,9 @@ namespace 串口助手
             var lb = new TextBlock
             {
                 Text = "颜色：", FontSize = 11,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            lb.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(lb);
 
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
@@ -2282,11 +2374,11 @@ namespace 串口助手
                 Width = 28, Height = 28,
                 CornerRadius = new CornerRadius(4),
                 Background = ParseColor(currentHex),
-                BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Margin = new Thickness(0, 0, 8, 0),
                 VerticalAlignment = VerticalAlignment.Center,
             };
+            swatch.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
 
             var pickBtn = new Button
             {
@@ -2311,6 +2403,7 @@ namespace 串口助手
             container.Children.Add(row);
         }
 
+        // 约束 #27：普通 Button 默认模板在悬停时渲染系统高亮 chrome（暗色下浅蓝色底色框）
         private Button CreateSmallIconBtn(string text, Action onClick)
         {
             var btn = new Button
@@ -2318,11 +2411,12 @@ namespace 串口助手
                 Content = text,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 FontSize = 11,
                 Padding = new Thickness(2, 0, 2, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
             };
+            btn.SetResourceReference(Button.ForegroundProperty, "TextSecondaryBrush");
+            ApplyIconButtonTemplate(btn);
             btn.Click += (s, e) => onClick();
             return btn;
         }
@@ -2377,13 +2471,13 @@ namespace 串口助手
             {
                 Text = group.Name ?? "",
                 FontSize = 12, FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("InputBorderBrush"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(4, 1, 4, 1),
                 VerticalAlignment = VerticalAlignment.Center,
             };
+            textBox.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+            textBox.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+            textBox.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
             textBox.SelectAll();
             Grid.SetColumn(textBox, nameCol);
             Grid.SetRow(textBox, nameRow);
@@ -2448,12 +2542,12 @@ namespace 串口助手
                 Text = vm.Name,
                 FontSize = 15, FontWeight = FontWeights.Bold,
                 Foreground = ParseColor(vm.GetAccentHex(isDarkTheme)),
-                Background = (Brush)FindResource("CardBgBrush"),
-                BorderBrush = (Brush)FindResource("PrimaryBrush"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(2, 1, 2, 1),
                 Margin = titleBlock.Margin,
             };
+            textBox.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+            textBox.SetResourceReference(TextBox.BorderBrushProperty, "PrimaryBrush");
             textBox.SelectAll();
 
             parent.Children.RemoveAt(idx);
@@ -2555,24 +2649,25 @@ namespace 串口助手
             _ndTypeTag = typeTag;
             _ndTypeTagText = (TextBlock)typeTag.Child;
             headerRow.Children.Add(typeTag);
-            headerRow.Children.Add(new TextBlock
+            var cardNameTb = new TextBlock
             {
                 Text = " " + card.Name,
                 FontSize = 14, FontWeight = System.Windows.FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(8, 0, 0, 0),
-            });
+            };
+            cardNameTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            headerRow.Children.Add(cardNameTb);
             container.Children.Add(headerRow);
 
             // 数值信息
             var infoBorder = new Border
             {
-                Background = (Brush)FindResource("SecondaryHoverBgBrush"),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(10, 8, 10, 8),
                 Margin = new Thickness(0, 0, 0, 12),
             };
+            infoBorder.SetResourceReference(Border.BackgroundProperty, "SecondaryHoverBgBrush");
             var infoStack = new StackPanel();
 
             // 当前值
@@ -2585,17 +2680,19 @@ namespace 串口助手
             // 当前值（缓存引用供 timer 增量更新）
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-                row.Children.Add(new TextBlock
+                var curValLabel = new TextBlock
                 {
                     Text = "当前值：", FontSize = 11,
-                    Foreground = (Brush)FindResource("TextMutedBrush"), Width = 62,
-                });
+                    Width = 62,
+                };
+                curValLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+                row.Children.Add(curValLabel);
                 _ndValueBlock = new TextBlock
                 {
                     Text = displayValue, FontSize = 12,
-                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     TextWrapping = TextWrapping.Wrap,
                 };
+                _ndValueBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
                 row.Children.Add(_ndValueBlock);
                 infoStack.Children.Add(row);
             }
@@ -2614,29 +2711,31 @@ namespace 串口助手
             container.Children.Add(infoBorder);
 
             // 分隔线
-            container.Children.Add(new Border
+            var sepBorder = new Border
             {
-                Height = 1, Background = (Brush)FindResource("SeparatorBrush"),
-                Margin = new Thickness(0, 0, 0, 8),
-            });
+                Height = 1, Margin = new Thickness(0, 0, 0, 8),
+            };
+            sepBorder.SetResourceReference(Border.BackgroundProperty, "SeparatorBrush");
+            container.Children.Add(sepBorder);
 
             // 协议预览
             var (sensorLine, ctrlLine) = BuildSensorProtocolLines(card);
             var protoTitle = new TextBlock
             {
                 Text = "协议预览", FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"), Margin = new Thickness(0, 0, 0, 4),
+                Margin = new Thickness(0, 0, 0, 4),
             };
+            protoTitle.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(protoTitle);
 
             TextBox AddProtoRow(string line, string margin)
             {
                 var row = new Border
                 {
-                    Background = (Brush)FindResource("SecondaryHoverBgBrush"),
                     CornerRadius = new CornerRadius(4), Padding = new Thickness(8, 6, 8, 6),
                     Margin = new Thickness(0, 0, 0, string.IsNullOrEmpty(margin) ? 0 : 4),
                 };
+                row.SetResourceReference(Border.BackgroundProperty, "SecondaryHoverBgBrush");
                 var grid = new Grid();
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -2644,10 +2743,10 @@ namespace 串口助手
                 {
                     Text = line, FontSize = 11,
                     FontFamily = new System.Windows.Media.FontFamily("Sarasa Mono SC, Consolas, Courier New"),
-                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     Background = Brushes.Transparent, BorderThickness = new Thickness(0),
                     IsReadOnly = true, TextWrapping = TextWrapping.Wrap, Padding = new Thickness(0),
                 };
+                tb.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
                 Grid.SetColumn(tb, 0);
                 grid.Children.Add(tb);
                 var capturedLine = line;
@@ -2733,17 +2832,20 @@ namespace 串口助手
         private void AddDetailRow(StackPanel parent, string label, string value)
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-            row.Children.Add(new TextBlock
+            var labelTb = new TextBlock
             {
                 Text = label + "：", FontSize = 11,
-                Foreground = (Brush)FindResource("TextMutedBrush"), Width = 62,
-            });
-            row.Children.Add(new TextBlock
+                Width = 62,
+            };
+            labelTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+            row.Children.Add(labelTb);
+            var valueTb = new TextBlock
             {
                 Text = value, FontSize = 12,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
                 TextWrapping = TextWrapping.Wrap,
-            });
+            };
+            valueTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            row.Children.Add(valueTb);
             parent.Children.Add(row);
         }
     }

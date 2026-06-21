@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -19,6 +20,26 @@ namespace 串口助手
         //  暗色主题
         // ==================================================================
 
+        /// <summary>面板级主题回调注册表（条件色：编辑态蓝条、拖拽中差色等）。纯色用 SetResourceReference 自动跟，不经过这里。</summary>
+        private readonly Dictionary<string, Action> _themePanelCallbacks = new();
+
+        /// <summary>注册面板主题回调。同名覆盖写，防重复。</summary>
+        internal void RegisterThemePanel(string name, Action callback)
+        {
+            _themePanelCallbacks[name] = callback;
+        }
+
+        /// <summary>透明按钮去 chrome：约束 #27——普通 Button 默认模板悬停时渲染系统高亮色（暗色浅蓝底框）。所有 Background=Transparent 的按钮必须调此方法。</summary>
+        internal static void ApplyIconButtonTemplate(Button btn)
+        {
+            var tpl = new ControlTemplate(typeof(Button));
+            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            tpl.VisualTree = cp;
+            btn.Template = tpl;
+        }
+
         private void ApplyTheme(bool dark)
         {
             isDarkTheme = dark;
@@ -31,10 +52,8 @@ namespace 串口助手
                 if (brush == null) continue;
 
                 Color target = dark ? kv.Value.Dark : kv.Value.Light;
-                if (brush.IsFrozen)
-                    Resources[kv.Key] = new SolidColorBrush(target);
-                else
-                    brush.Color = target;
+                // 一律新建替换：SetResourceReference 绑定的控件订阅资源 key，替换对象 → 触发通知 → 自动更新
+                Resources[kv.Key] = new SolidColorBrush(target);
             }
 
             // 覆盖系统颜色，修复 ComboBox/TextBox 等原生控件在暗色下的白色背景
@@ -89,21 +108,10 @@ namespace 串口助手
             // 追踪框（TrackerControl internal 类）背景/文字适配主题
             FixPlotTrackerColors(dark);
 
-            // Phase 4: 遍历换色不重建（代码创建的控件不自动跟随 DynamicResource）
-            if (_keyVM != null && _keyVM.Keys.Count > 0)
-                UpdateKeysTheme();
-            if (_sliderVM != null && _sliderVM.Sliders.Count > 0)
-                UpdateSlidersTheme();
-            if (_joyVM != null)
-                UpdateJoystickTheme();
-            if (_displayVM != null)
-                UpdateOLEDTheme();
-            if (_sensorVM != null && _sensorVM.Groups.SelectMany(g => g.Cards).Any())
-            {
-                RefreshAllRows();
-                if (_sensorVM.IsEditMode || _normalDetailCard != null)
-                    RefreshSensorSidePanel();
-            }
+            // Phase 4: 触发已注册的面板回调（条件色：编辑态蓝条、拖拽中差色等）
+            // 纯色通过 SetResourceReference 自动跟，不经过这里
+            foreach (var cb in _themePanelCallbacks.Values)
+                cb();
 
             // 快捷键页键帽颜色随主题
             PopulateShortcutPage();

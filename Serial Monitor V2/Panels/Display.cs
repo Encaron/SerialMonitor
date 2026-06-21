@@ -154,18 +154,20 @@ namespace 串口助手
             oledEmptyHint.Visibility = hasItems ? Visibility.Collapsed : Visibility.Visible;
 
             // ── 坐标轴刻度 ──
-            var axisBrush = (Brush)FindResource("TextMutedBrush");
             var axisFont = new FontFamily("Sarasa Mono SC, Consolas, Courier New");
 
             oledXAxis.Children.Clear();
             oledXAxis.ColumnDefinitions.Clear();
             oledXAxis.ColumnDefinitions.Add(new ColumnDefinition());
             {
-                var x0 = new TextBlock { Text = "0", FontSize = 9, Foreground = axisBrush, FontFamily = axisFont, HorizontalAlignment = HorizontalAlignment.Left };
+                var x0 = new TextBlock { Text = "0", FontSize = 9, FontFamily = axisFont, HorizontalAlignment = HorizontalAlignment.Left };
+                x0.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 oledXAxis.Children.Add(x0);
-                var xMid = new TextBlock { Text = (w / 2).ToString(), FontSize = 9, Foreground = axisBrush, FontFamily = axisFont, HorizontalAlignment = HorizontalAlignment.Center };
+                var xMid = new TextBlock { Text = (w / 2).ToString(), FontSize = 9, FontFamily = axisFont, HorizontalAlignment = HorizontalAlignment.Center };
+                xMid.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 oledXAxis.Children.Add(xMid);
-                var xW = new TextBlock { Text = w.ToString(), FontSize = 9, Foreground = axisBrush, FontFamily = axisFont, HorizontalAlignment = HorizontalAlignment.Right };
+                var xW = new TextBlock { Text = w.ToString(), FontSize = 9, FontFamily = axisFont, HorizontalAlignment = HorizontalAlignment.Right };
+                xW.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 oledXAxis.Children.Add(xW);
             }
 
@@ -173,11 +175,14 @@ namespace 串口助手
             oledYAxis.RowDefinitions.Clear();
             oledYAxis.RowDefinitions.Add(new RowDefinition());
             {
-                var y0 = new TextBlock { Text = "0", FontSize = 9, Foreground = axisBrush, FontFamily = axisFont, VerticalAlignment = VerticalAlignment.Top };
+                var y0 = new TextBlock { Text = "0", FontSize = 9, FontFamily = axisFont, VerticalAlignment = VerticalAlignment.Top };
+                y0.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 oledYAxis.Children.Add(y0);
-                var yMid = new TextBlock { Text = (h / 2).ToString(), FontSize = 9, Foreground = axisBrush, FontFamily = axisFont, VerticalAlignment = VerticalAlignment.Center };
+                var yMid = new TextBlock { Text = (h / 2).ToString(), FontSize = 9, FontFamily = axisFont, VerticalAlignment = VerticalAlignment.Center };
+                yMid.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 oledYAxis.Children.Add(yMid);
-                var yH = new TextBlock { Text = h.ToString(), FontSize = 9, Foreground = axisBrush, FontFamily = axisFont, VerticalAlignment = VerticalAlignment.Bottom };
+                var yH = new TextBlock { Text = h.ToString(), FontSize = 9, FontFamily = axisFont, VerticalAlignment = VerticalAlignment.Bottom };
+                yH.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 oledYAxis.Children.Add(yH);
             }
 
@@ -223,6 +228,9 @@ namespace 串口助手
 
             // ── 恢复背景色 ──
             SetCanvasBackground(_displayVM.CanvasBackground);
+
+            // 条件色注册：Display 的纯色（轴/橡皮擦光标）已用 SetResourceReference 自动跟
+            RegisterThemePanel("Display", () => { });
         }
 
         private static Brush ParseColorBrush(string hex)
@@ -285,23 +293,6 @@ namespace 串口助手
         // ═══════════════════════════════════════
         //  协议处理 & 持久化
         // ═══════════════════════════════════════
-
-        // ═══════════════════════════════════════
-        //  主题切换
-        // ═══════════════════════════════════════
-
-        internal void UpdateOLEDTheme()
-        {
-            if (_displayVM == null) return;
-            var mutedBrush = (Brush)FindResource("TextMutedBrush");
-
-            // 更新 X 轴刻度文字
-            foreach (TextBlock tb in oledXAxis.Children)
-                tb.Foreground = mutedBrush;
-            // 更新 Y 轴刻度文字
-            foreach (TextBlock tb in oledYAxis.Children)
-                tb.Foreground = mutedBrush;
-        }
 
         private void HandleDisplayMessage(int x, int y, string text, int fontSize, string color = null)
         {
@@ -841,11 +832,11 @@ namespace 串口助手
             _eraserCursor = new Ellipse
             {
                 Width = r * 2, Height = r * 2,
-                Stroke = (Brush)FindResource("PrimaryBrush"),
                 StrokeThickness = 1.5,
                 Fill = new SolidColorBrush(Color.FromArgb(64, 255, 255, 255)),
                 IsHitTestVisible = false,
             };
+            _eraserCursor.SetResourceReference(Ellipse.StrokeProperty, "PrimaryBrush");
             oledCanvas.Children.Add(_eraserCursor);
             Canvas.SetZIndex(_eraserCursor, 999);
         }
@@ -967,7 +958,7 @@ namespace 串口助手
             }
             else
             {
-                btnLockCanvas.Foreground = (Brush)FindResource("PrimaryBrush");
+                btnLockCanvas.SetResourceReference(Button.ForegroundProperty, "PrimaryBrush");
                 oledCanvas.Cursor = Cursors.Cross;
             }
         }
@@ -3210,8 +3201,10 @@ namespace 串口助手
         private (TextBox a, TextBox b) AddFieldRow(string label, string subA, string subB, string valA, string valB)
         {
             var row = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
-            row.Children.Add(new TextBlock { Text = label, FontSize = 11, FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"), Margin = new Thickness(0, 0, 0, 4) });
+            var labelTb = new TextBlock { Text = label, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 4) };
+            labelTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+            row.Children.Add(labelTb);
 
             var grid = new Grid();
             bool single = string.IsNullOrEmpty(subB);
@@ -3221,13 +3214,15 @@ namespace 串口助手
             TextBox mkCol(string sub, string val, int col, Thickness margin)
             {
                 var sp = new StackPanel { Margin = margin };
-                sp.Children.Add(new TextBlock { Text = sub, FontSize = 10,
-                    Foreground = (Brush)FindResource("TextMutedBrush"), Margin = new Thickness(0, 0, 0, 2) });
+                var subTb = new TextBlock { Text = sub, FontSize = 10,
+                    Margin = new Thickness(0, 0, 0, 2) };
+                subTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+                sp.Children.Add(subTb);
                 var tb = new TextBox { Text = val, Height = 28, FontFamily = new FontFamily("Microsoft YaHei"),
-                    FontSize = 12, Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                    Background = (Brush)FindResource("CardBgBrush"),
-                    BorderBrush = (Brush)FindResource("InputBorderBrush"),
-                    BorderThickness = new Thickness(1), Padding = new Thickness(6, 2, 6, 2) };
+                    FontSize = 12, BorderThickness = new Thickness(1), Padding = new Thickness(6, 2, 6, 2) };
+                tb.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
+                tb.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
+                tb.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
                 tb.TextChanged += ShapeField_Changed;
                 sp.Children.Add(tb);
                 Grid.SetColumn(sp, col);
@@ -3374,9 +3369,9 @@ namespace 串口助手
                 {
                     Text = "角度：右=0°，顺时针为正（下=90°）",
                     FontSize = 10,
-                    Foreground = (Brush)FindResource("TextMutedBrush"),
                     Margin = new Thickness(0, 2, 0, 4)
                 };
+                note.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 shapeExtrasContainer.Children.Add(note);
             }
 

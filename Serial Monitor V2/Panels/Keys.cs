@@ -448,7 +448,8 @@ namespace 串口助手
                 var gModes = groupKeys.GroupBy(k => k.PressSendMode).OrderByDescending(g2 => g2.Count()).Select(g2 => g2.Key).ToList();
                 string gMode = LogicValueMaps.DisplaySendMode(gModes.FirstOrDefault() ?? "packet");
                 var modeTag = new TextBlock { Text = " [↓" + gMode + " ↑" + gMode + "]", FontSize = 9,
-                    Foreground = (Brush)FindResource("PrimaryBrush"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
+                modeTag.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
 
                 titleBar.Children.Add(nameLabel); titleBar.Children.Add(modeTag);
                 Grid.SetRow(titleBar, 0); container.Children.Add(titleBar);
@@ -475,10 +476,12 @@ namespace 串口助手
 
                 // 模块边框（编辑模式加左侧强调色条）
                 var border = new Border {
-                    BorderBrush = (Brush)FindResource("CardBorderBrush"), BorderThickness = new Thickness(1),
+                    BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(4), Padding = new Thickness(8, 4, 8, 8),
-                    Background = (Brush)FindResource("SecondaryHoverBgBrush"), Child = keysContent,
+                    Child = keysContent,
                 };
+                border.SetResourceReference(Border.BackgroundProperty, "SecondaryHoverBgBrush");
+                border.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
                 if (isEdit)
                 {
                     // 左侧强调色条 + 加厚左边框
@@ -489,6 +492,32 @@ namespace 串口助手
                 Grid.SetRow(border, 1); container.Children.Add(border);
                 keysPanel.Children.Add(container);
             }
+
+            // 条件色注册：编辑态蓝条/标题色等 SetResourceReference 覆盖不了的场景
+            RegisterThemePanel("Keys", () => {
+                if (_keyVM == null) return;
+                var primaryBrush = (Brush)FindResource("PrimaryBrush");
+                var mutedBrush = (Brush)FindResource("TextMutedBrush");
+                bool isEdit = _keyVM.IsEditMode;
+                var isDark = isDarkTheme;
+                foreach (var child in keysPanel.Children)
+                {
+                    if (child is not Grid container2) continue;
+                    // 标题栏 nameLabel（Children[0]）：编辑态 PrimaryBrush，正常态 TextMutedBrush
+                    // modeTag（Children[1]）纯色走 SetResourceReference，不在此覆盖
+                    if (container2.Children.Count > 0 && container2.Children[0] is StackPanel titleBar2
+                        && titleBar2.Children.Count > 0 && titleBar2.Children[0] is TextBlock nameLabel2)
+                    {
+                        nameLabel2.Foreground = isEdit ? primaryBrush : mutedBrush;
+                    }
+                    // 编辑态左侧强调蓝条
+                    if (isEdit && container2.Children.Count > 1 && container2.Children[1] is Border groupBorder2)
+                    {
+                        groupBorder2.BorderBrush = new SolidColorBrush(isDark
+                            ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4));
+                    }
+                }
+            });
         }
 
         private Button CreateKeyButton(KeyViewModel keyVM, bool isEditMode)
@@ -501,25 +530,26 @@ namespace 串口助手
             };
             var isDark = isDarkTheme;
             string hex = KeyPanelViewModel.GetColorHex(keyVM.Color, isDark);
-            Brush bgBrush, fgBrush;
+            Color? customColor = null;
             if (hex != null) {
                 var color = (Color)ColorConverter.ConvertFromString(hex);
-                bgBrush = new SolidColorBrush(color);
+                customColor = color;
+                btn.Background = new SolidColorBrush(color);
                 // 亮度计算：浅底用深色字，深底用白色字
                 double lum = 0.299 * color.R + 0.587 * color.G + 0.114 * color.B;
-                fgBrush = lum > 140 ? new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A)) : Brushes.White;
-            } else { bgBrush = (Brush)FindResource("CardBgBrush"); fgBrush = (Brush)FindResource("TextPrimaryBrush"); }
-            btn.Background = bgBrush;
-            btn.Foreground = fgBrush;
-            btn.BorderBrush = (Brush)FindResource("CardBorderBrush");
+                btn.Foreground = lum > 140 ? new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A)) : Brushes.White;
+            } else {
+                btn.SetResourceReference(Button.BackgroundProperty, "CardBgBrush");
+                btn.SetResourceReference(Button.ForegroundProperty, "TextPrimaryBrush");
+            }
+            btn.SetResourceReference(Button.BorderBrushProperty, "CardBorderBrush");
             btn.BorderThickness = new Thickness(1);
             btn.Cursor = Cursors.Hand;
 
             // 自锁按下状态 或 STM32 down 反馈
             bool isActiveDown = (keyVM.IsSelfLock && keyVM.IsPressed) || (!keyVM.IsSelfLock && keyVM.IsDown);
             if (isActiveDown && !keyVM.IsShiftToggle) {
-                Color accent = hex != null ? ((SolidColorBrush)bgBrush).Color
-                    : isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                Color accent = customColor ?? (isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4));
                 btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
                 if (hex == null)
                     btn.Background = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x3A, 0x5C) : Color.FromRgb(0xDE, 0xEC, 0xFC));
@@ -531,18 +561,16 @@ namespace 串口助手
             // Shift 切换键
             if (keyVM.IsShiftToggle) {
                 btn.FontWeight = FontWeights.Bold;
-                btn.Background = (Brush)FindResource("SecondaryHoverBgBrush");
+                btn.SetResourceReference(Button.BackgroundProperty, "SecondaryHoverBgBrush");
                 if (_keyVM.ShiftActive) {
-                    Color accent = hex != null ? ((SolidColorBrush)bgBrush).Color
-                        : isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                    Color accent = customColor ?? (isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4));
                     btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
                 }
             }
 
             if (isEditMode) {
                 if (_selectedKeys.Contains(keyVM)) {
-                    Color accent = hex != null ? ((SolidColorBrush)bgBrush).Color
-                        : isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                    Color accent = customColor ?? (isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4));
                     btn.BorderBrush = new SolidColorBrush(accent); btn.BorderThickness = new Thickness(2);
                     // 自定义颜色键保留原背景（边框已足够标记选中态）
                     if (hex == null)
@@ -921,66 +949,6 @@ namespace 串口助手
             if (_keysConfirmButton != null) _keysConfirmButton.Content = _keysConfirmOriginalText;
             _keysConfirmTimer?.Stop(); _keysConfirmTimer = null;
             _keysConfirmButton = null; _keysConfirmOriginalText = null;
-        }
-
-        // ═══════════════════════════════════════
-        //  主题切换
-        // ═══════════════════════════════════════
-
-        internal void UpdateKeysTheme()
-        {
-            if (_keyVM == null) return;
-            var cardBg = (Brush)FindResource("CardBgBrush");
-            var cardBorder = (Brush)FindResource("CardBorderBrush");
-            var textBrush = (Brush)FindResource("TextPrimaryBrush");
-            var primaryBrush = (Brush)FindResource("PrimaryBrush");
-            var mutedBrush = (Brush)FindResource("TextMutedBrush");
-            var secondaryBg = (Brush)FindResource("SecondaryHoverBgBrush");
-            var isDark = isDarkTheme;
-
-            // 1) 模块组容器（keysPanel 的直接子元素是 Grid 容器）
-            bool isEdit = _keyVM.IsEditMode;
-            foreach (var child in keysPanel.Children)
-            {
-                if (child is not Grid container) continue;
-                // 标题栏：nameLabel + modeTag（StackPanel → TextBlock × 2）
-                if (container.Children.Count > 0 && container.Children[0] is StackPanel titleBar)
-                {
-                    foreach (var tb in titleBar.Children)
-                    {
-                        if (tb is TextBlock nameLabel)
-                            nameLabel.Foreground = isEdit ? primaryBrush : mutedBrush;
-                        else if (tb is TextBlock modeTag)
-                            modeTag.Foreground = primaryBrush;
-                    }
-                }
-                // 模块边框：Grid.Row=1 的 Border
-                if (container.Children.Count > 1 && container.Children[1] is Border groupBorder)
-                {
-                    groupBorder.Background = secondaryBg;
-                    if (!isEdit)
-                        groupBorder.BorderBrush = cardBorder;
-                }
-            }
-
-            // 2) 单个按键按钮
-            foreach (var kv in _keyButtonMap)
-            {
-                var btn = kv.Key;
-                var keyVM = kv.Value;
-                string hex = KeyPanelViewModel.GetColorHex(keyVM.Color, isDark);
-
-                if (hex != null)
-                {
-                    btn.BorderBrush = cardBorder;
-                }
-                else
-                {
-                    btn.Background = cardBg;
-                    btn.Foreground = textBrush;
-                    btn.BorderBrush = cardBorder;
-                }
-            }
         }
 
         // ═══════════════════════════════════════

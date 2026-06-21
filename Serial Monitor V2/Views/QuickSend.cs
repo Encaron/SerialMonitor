@@ -185,9 +185,7 @@ namespace 串口助手
                 Padding = new Thickness(0),
                 Margin = new Thickness(0, 0, 0, 4),
                 Background = Brushes.Transparent,
-                BorderBrush = FindResource("CardBorderBrush") as Brush,
                 BorderThickness = new Thickness(1),
-                Foreground = FindResource("TextMutedBrush") as Brush,
                 Cursor = Cursors.Hand,
                 ToolTip = "将当前输入区内容添加为快捷发送按钮",
                 SnapsToDevicePixels = true,
@@ -212,6 +210,8 @@ namespace 串口助手
             addHoverTrigger.Setters.Add(new Setter(Button.ForegroundProperty, FindResource("PrimaryBrush") as Brush));
             addTemplate.Triggers.Add(addHoverTrigger);
             addBtn.Template = addTemplate;
+            addBtn.SetResourceReference(Button.BorderBrushProperty, "CardBorderBrush");
+            addBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
 
             addBtn.Click += (s, e) =>
             {

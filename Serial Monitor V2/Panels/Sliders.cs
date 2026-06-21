@@ -526,14 +526,14 @@ namespace 串口助手
             foreach (var svm in _sliderVM.Sliders)
             {
                 var card = new Border {
-                    Background = (Brush)FindResource("CardBgBrush"),
-                    BorderBrush = (Brush)FindResource("CardBorderBrush"),
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(6),
                     Padding = isEdit ? new Thickness(12, 6, 12, 6) : new Thickness(12, 8, 12, 12),
                     Margin = new Thickness(0, 0, 0, isEdit ? 4 : 8),
                     Tag = svm,
                 };
+                card.SetResourceReference(Border.BackgroundProperty, "CardBgBrush");
+                card.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
 
                 // 颜色条
                 if (svm.Color != "default" && !string.IsNullOrEmpty(svm.Color))
@@ -641,10 +641,10 @@ namespace 串口助手
 
                     var valTb = new TextBlock {
                         Text = svm.DisplayValue, FontSize = 12, FontWeight = FontWeights.SemiBold,
-                        Foreground = (Brush)FindResource("PrimaryBrush"),
                         VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0),
                         MinWidth = 44, TextAlignment = TextAlignment.Right,
                     };
+                    valTb.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
                     Grid.SetRow(valTb, 1); Grid.SetColumn(valTb, 1);
                     grid.Children.Add(valTb);
 
@@ -673,6 +673,44 @@ namespace 串口助手
 
                 slidersPanel.Children.Add(card);
             }
+
+            // 条件色注册：编辑态蓝条/名称色等 SetResourceReference 覆盖不了的场景
+            RegisterThemePanel("Sliders", () => {
+                if (_sliderVM == null || slidersPanel.Children.Count == 0) return;
+                var textBrush = (Brush)FindResource("TextPrimaryBrush");
+                var primaryBrush = (Brush)FindResource("PrimaryBrush");
+                bool isEdit = _sliderVM.IsEditMode;
+                var isDark = isDarkTheme;
+                foreach (var child in slidersPanel.Children)
+                {
+                    if (child is not Border card) continue;
+                    if (card.Tag is not SliderViewModel svm) continue;
+                    bool hasCustomColor = svm.Color != "default" && !string.IsNullOrEmpty(svm.Color);
+                    bool isEditSelected = isEdit && _selectedSliders.Contains(svm);
+                    if (isEditSelected && !hasCustomColor)
+                    {
+                        var accent = isDark ? Color.FromRgb(0x0E, 0x63, 0x9C) : Color.FromRgb(0x00, 0x78, 0xD4);
+                        card.BorderBrush = new SolidColorBrush(accent);
+                    }
+                    else if (isEditSelected && hasCustomColor)
+                    {
+                        card.Background = new SolidColorBrush(isDark
+                            ? Color.FromRgb(0x2A, 0x2E, 0x3A) : Color.FromRgb(0xE6, 0xF0, 0xFA));
+                    }
+                    if (card.Child is Grid grid)
+                        UpdateSlidersGridTheme(grid, isEdit, textBrush, primaryBrush);
+                }
+                // 进度条 trackFill（仅默认颜色滑块——跟随 PrimaryColor）
+                foreach (var kv in _sliderPartsCache)
+                {
+                    var sl = kv.Key;
+                    var parts = kv.Value;
+                    if (parts.trackFill == null) continue;
+                    var svm2 = sl.Tag as SliderViewModel;
+                    if (svm2 != null && (svm2.Color == "default" || string.IsNullOrEmpty(svm2.Color)))
+                        parts.trackFill.Background = primaryBrush;
+                }
+            });
         }
 
         private void SendSliderValue(SliderViewModel svm)
@@ -840,53 +878,19 @@ namespace 串口助手
         }
 
         // ═══════════════════════════════════════
-        //  主题切换
+        //  主题辅助（供 RegisterThemePanel 回调使用）
         // ═══════════════════════════════════════
-
-        internal void UpdateSlidersTheme()
-        {
-            if (_sliderVM == null || slidersPanel.Children.Count == 0) return;
-            var cardBg = (Brush)FindResource("CardBgBrush");
-            var cardBorder = (Brush)FindResource("CardBorderBrush");
-            var textBrush = (Brush)FindResource("TextPrimaryBrush");
-            var primaryBrush = (Brush)FindResource("PrimaryBrush");
-            bool isEdit = _sliderVM.IsEditMode;
-
-            foreach (var child in slidersPanel.Children)
-            {
-                if (child is not Border card) continue;
-                if (card.Tag is not SliderViewModel svm) continue;
-
-                bool hasCustomColor = svm.Color != "default" && !string.IsNullOrEmpty(svm.Color);
-                card.Background = cardBg;
-                if (!hasCustomColor)
-                    card.BorderBrush = cardBorder;
-
-                if (card.Child is Grid grid)
-                    UpdateSlidersGridTheme(grid, isEdit, textBrush, primaryBrush);
-            }
-
-            // 更新进度条 trackFill（仅默认颜色滑块——跟随 PrimaryColor）
-            foreach (var kv in _sliderPartsCache)
-            {
-                var sl = kv.Key;
-                var parts = kv.Value;
-                if (parts.trackFill == null) continue;
-                var svm = sl.Tag as SliderViewModel;
-                if (svm != null && (svm.Color == "default" || string.IsNullOrEmpty(svm.Color)))
-                    parts.trackFill.Background = primaryBrush;
-            }
-        }
 
         private static void UpdateSlidersGridTheme(Grid grid, bool isEdit, Brush textBrush, Brush primaryBrush)
         {
-            bool firstTextBlock = true; // Row 0 的 nameLabel
+            // 仅更新 Row 0 的 nameLabel（条件色：编辑态 PrimaryBrush，正常态 TextPrimaryBrush）
+            // valTb 等其他 TextBlock 的纯色已通过 SetResourceReference 自动跟主题，不在此覆盖
             foreach (var child in grid.Children)
             {
-                if (child is TextBlock tb)
+                if (child is TextBlock tb && Grid.GetRow(tb) == 0)
                 {
-                    tb.Foreground = firstTextBlock && isEdit ? primaryBrush : textBrush;
-                    firstTextBlock = false;
+                    tb.Foreground = isEdit ? primaryBrush : textBrush;
+                    return;
                 }
                 if (child is Panel subPanel)
                     UpdateSlidersGridTheme_Recursive(subPanel, textBrush);
