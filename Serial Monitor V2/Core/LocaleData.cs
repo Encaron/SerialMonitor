@@ -47,7 +47,23 @@ namespace 串口助手
             ["确认"] = "OK",
             ["（该按键没有配置发送内容）"] = "(No send content configured)",
 
-            // P4.2+ 逐面板补英文映射在此
+            // P4.1: Keys (continued — shared with other panels)
+            // "取消"/"确认"/"编辑"/"完成" shared by multiple panels
+
+            // P4.2: Sliders
+            ["📋 复制"] = "📋 Copy",
+            ["🎨 自定义颜色…"] = "🎨 Custom Color…",
+            ["+ 添加"] = "+ Add",
+            ["🗑 清空全部"] = "🗑 Clear All",
+            ["⚠ 确认清空"] = "⚠ Confirm Clear",
+
+            // Shared: Keys + Sliders + Sensors 共用
+            ["编辑"] = "Edit",
+            ["完成"] = "Done",
+            ["🗑 删除此模块"] = "🗑 Delete Module",
+            ["🗑 删除此按键"] = "🗑 Delete Key",
+
+            // P4.3+ 逐面板补英文映射在此
         };
     }
 }

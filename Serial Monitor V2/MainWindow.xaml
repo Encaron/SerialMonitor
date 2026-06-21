@@ -1407,7 +1407,7 @@
                                     <Button Content="🔄 生成松开发送值" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnModuleGenRelease_Click" Margin="0,0,0,6"
                                             ToolTip="为模块内所有按键的松开发送填入 [key,Name,up] 文本值"/>
-                                    <Button x:Name="btnModuleDelete" Content="🗑 删除此模块" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnModuleDelete" Content="{DynamicResource 🗑 删除此模块}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnModuleDelete_Click" Foreground="#E74856"/>
                                 </StackPanel>
                                 <!-- 编辑模式无选中：提示 -->
@@ -1531,7 +1531,7 @@
                                     <Button x:Name="btnKeysCustomColor" Content="🎨 自定义颜色…" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnKeysCustomColor_Click" Margin="0,4,0,0"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
-                                    <Button Content="🗑 删除此按键" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button Content="{DynamicResource 🗑 删除此按键}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="28" Click="btnKeyDelete_Click" Foreground="#E74856"/>
                                 </StackPanel>
                             </StackPanel>
@@ -1588,7 +1588,7 @@
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="协议预览" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" x:Name="btnSliderProtocolCopy" Content="📋 复制"
+                                        <Button Grid.Column="1" x:Name="btnSliderProtocolCopy" Content="{DynamicResource 📋 复制}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"
                                                 Height="24" MinWidth="0" Padding="6,0" FontSize="11"
                                                 Click="btnSliderProtocolCopy_Click" ToolTip="复制协议到剪贴板"/>
@@ -1668,7 +1668,7 @@
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <TextBlock Text="颜色" Style="{DynamicResource FormLabelStyle}" Margin="0,0,0,6"/>
                                     <WrapPanel x:Name="slidersColorPanel" Orientation="Horizontal"/>
-                                    <Button x:Name="btnSlidersCustomColor" Content="🎨 自定义颜色…" Style="{DynamicResource SecondaryButtonStyle}"
+                                    <Button x:Name="btnSlidersCustomColor" Content="{DynamicResource 🎨 自定义颜色…}" Style="{DynamicResource SecondaryButtonStyle}"
                                             Height="26" Click="btnSlidersCustomColor_Click" Margin="0,4,0,0"/>
                                     <Border Height="1" Background="{DynamicResource SeparatorBrush}" Margin="0,8"/>
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -2231,7 +2231,7 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4"
                             Visibility="Visible">
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnKeysEdit" Content="编辑"
+                            <Button x:Name="btnKeysEdit" Content="{DynamicResource 编辑}"
                                     Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
                                     Click="btnKeysEdit_Click" ToolTip="进入编辑模式"/>
                             <TextBlock Text="  Shift 切换大小写" FontSize="11"
@@ -2245,16 +2245,16 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4"
                             Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnKeysDone" Content="完成"
+                            <Button x:Name="btnKeysDone" Content="{DynamicResource 完成}"
                                     Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
                                     Click="btnKeysDone_Click" ToolTip="退出编辑模式"/>
-                            <Button x:Name="btnKeysAdd" Content="+ 添加"
+                            <Button x:Name="btnKeysAdd" Content="{DynamicResource + 添加}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnKeysAdd_Click" ToolTip="添加一个按键"/>
                             <Button x:Name="btnKeysLayout" Content="⌨ 键盘布局"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnKeysLayout_Click" ToolTip="从键盘布局预设批量创建按键"/>
-                            <Button x:Name="btnKeysClearAll" Content="🗑 清空全部"
+                            <Button x:Name="btnKeysClearAll" Content="{DynamicResource 🗑 清空全部}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnKeysClearAll_Click" ToolTip="删除所有按键"
                                     Foreground="#E74856"/>
@@ -2297,7 +2297,7 @@
                             Background="{DynamicResource SecondaryHoverBgBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4"
                             Visibility="Visible">
-                        <Button x:Name="btnSlidersEdit" Content="编辑"
+                        <Button x:Name="btnSlidersEdit" Content="{DynamicResource 编辑}"
                                 Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
                                 HorizontalAlignment="Left"
                                 Click="btnSlidersEdit_Click"/>
@@ -2308,13 +2308,13 @@
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="8,4"
                             Visibility="Collapsed">
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnSlidersDone" Content="完成"
+                            <Button x:Name="btnSlidersDone" Content="{DynamicResource 完成}"
                                     Style="{DynamicResource PrimaryButtonStyle}" Height="28" MinWidth="0" Padding="6,0"
                                     Click="btnSlidersDone_Click"/>
-                            <Button x:Name="btnSlidersAdd" Content="+ 添加"
+                            <Button x:Name="btnSlidersAdd" Content="{DynamicResource + 添加}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnSlidersAdd_Click"/>
-                            <Button x:Name="btnSlidersClearAll" Content="🗑 清空全部"
+                            <Button x:Name="btnSlidersClearAll" Content="{DynamicResource 🗑 清空全部}"
                                     Style="{DynamicResource SecondaryButtonStyle}" Height="28" MinWidth="0"
                                     Margin="6,0,0,0" Click="btnSlidersClearAll_Click"
                                     Foreground="#E74856"/>
