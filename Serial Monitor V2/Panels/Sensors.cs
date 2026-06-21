@@ -1110,7 +1110,7 @@ namespace 串口助手
 
             if (_sensorVM.IsEditMode)
             {
-                btnSensorEdit.Content = "完成";
+                btnSensorEdit.LocText("完成");
                 // 若当前在其他标签页（如设置），先切回传感面板——让 RefreshContentVisibility
                 // 统一管理侧栏显隐，避免设置侧栏和卡片管理侧栏叠在一起
                 if (_currentTab != "Sensors")
@@ -1120,7 +1120,7 @@ namespace 串口助手
             }
             else
             {
-                btnSensorEdit.Content = "编辑";
+                btnSensorEdit.LocText("编辑");
                 rightSensors.Visibility = Visibility.Visible;
                 if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive)
                     _sensorRefreshTimer.Start();
@@ -1537,34 +1537,36 @@ namespace 串口助手
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
             var addBtn = new Button
             {
-                Content = "添加",
                 Style = (Style)FindResource("PrimaryButtonStyle"),
                 Height = 28, MinWidth = 0, Padding = new Thickness(14, 0, 14, 0),
                 Margin = new Thickness(0, 0, 6, 0),
             };
+            addBtn.LocText("添加");
             var cancelBtn = new Button
             {
-                Content = "取消",
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
             };
+            cancelBtn.LocText("取消");
             btnRow.Children.Add(addBtn);
             btnRow.Children.Add(cancelBtn);
 
             var stack = new StackPanel { Margin = new Thickness(12) };
             var templateLabel = new TextBlock
             {
-                Text = "模板", FontSize = 11,
+                FontSize = 11,
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            templateLabel.LocText("模板");
             templateLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             stack.Children.Add(templateLabel);
             stack.Children.Add(typeCombo);
             var nameLabel = new TextBlock
             {
-                Text = "名字", FontSize = 11,
+                FontSize = 11,
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            nameLabel.LocText("名字");
             nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             stack.Children.Add(nameLabel);
             stack.Children.Add(nameBox);
@@ -1664,7 +1666,7 @@ namespace 串口助手
                 if (isEdit)
                 {
                     // ═══ 编辑模式：行管理器 / 卡片详情 ═══
-                    tbSidePanelTitle.Text = "卡片管理";
+                    tbSidePanelTitle.LocText("卡片管理");
 
                     container.Children.Add(new TextBlock
                     {
@@ -1700,12 +1702,12 @@ namespace 串口助手
 
                     var addGroupBtn = new Button
                     {
-                        Content = "+ 添加组",
                         Style = (Style)FindResource("SecondaryButtonStyle"),
                         Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
                         Margin = new Thickness(0, 10, 0, 4),
                         HorizontalAlignment = HorizontalAlignment.Center,
                     };
+                    addGroupBtn.LocText("+ 添加组");
                     addGroupBtn.Click += (s, e) =>
                     {
                         _sensorVM.AddGroup();
@@ -1716,12 +1718,12 @@ namespace 串口助手
 
                     var doneBtn = new Button
                     {
-                        Content = "完成编辑",
                         Style = (Style)FindResource("PrimaryButtonStyle"),
                         Height = 28, MinWidth = 0, Padding = new Thickness(14, 0, 14, 0),
                         Margin = new Thickness(0, 4, 0, 0),
                         HorizontalAlignment = HorizontalAlignment.Center,
                     };
+                    doneBtn.LocText("完成编辑");
                     doneBtn.Click += (s, e) => BtnSensorEdit_Click(s, e);
                     container.Children.Add(doneBtn);
                     } // _detailCard == null → 行管理器
@@ -1732,13 +1734,13 @@ namespace 串口助手
                     if (_normalDetailCard != null)
                     {
                         // 卡片详情视图
-                        tbSidePanelTitle.Text = "卡片详情";
+                        tbSidePanelTitle.LocText("卡片详情");
                         BuildCardNormalDetailView(container, _normalDetailCard);
                     }
                     else
                     {
                         // 卡片概览 + 快速跳转
-                        tbSidePanelTitle.Text = "传感面板";
+                        tbSidePanelTitle.LocText("传感面板");
 
                         bool anyVisible = false;
                         foreach (var group in _sensorVM.Groups)
@@ -1772,11 +1774,11 @@ namespace 串口助手
                         {
                             var emptyHint = new TextBlock
                             {
-                                Text = "暂无卡片",
                                 FontSize = 12,
                                 Margin = new Thickness(0, 20, 0, 0),
                                 HorizontalAlignment = HorizontalAlignment.Center,
                             };
+                            emptyHint.LocText("暂无卡片");
                             emptyHint.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                             container.Children.Add(emptyHint);
                         }
@@ -1848,7 +1850,7 @@ namespace 串口助手
                 if (!confirmed)
                 {
                     // 第一次点击 → 确认态
-                    delGroupBtn.Content = "确认删除?";
+                    delGroupBtn.LocText("确认删除?");
                     delGroupBtn.Foreground = ParseColor("#EF5350");
                     delGroupBtn.FontSize = 11;
                     delGroupBtn.FontWeight = FontWeights.SemiBold;
@@ -1918,9 +1920,10 @@ namespace 串口助手
 
                     var lbLabel = new TextBlock
                     {
-                        Text = "── 换行 ──", FontSize = 10,
+                        FontSize = 10,
                         VerticalAlignment = VerticalAlignment.Center,
                     };
+                    lbLabel.LocText("── 换行 ──");
                     lbLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
                     Grid.SetColumn(lbLabel, 0);
 
@@ -1959,7 +1962,7 @@ namespace 串口助手
                         var capIdx = insertAt;
                         lbBetween.MouseEnter += (s2, e2) =>
                         {
-                            lbBetween.Text = "＋ 换行";
+                            lbBetween.LocText("＋ 换行");
                             lbBetween.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
                             lbBetween.Margin = new Thickness(0, 0, 0, 0);
                         };
@@ -1985,13 +1988,13 @@ namespace 串口助手
             // [+ 卡片]
             var addCardBtn = new Button
             {
-                Content = "+ 卡片",
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 22, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
                 FontSize = 10,
                 Margin = new Thickness(0, 2, 0, 2),
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
+            addCardBtn.LocText("+ 卡片");
             var capGroup3 = group;
             AttachPopupToggle(addCardBtn, () => _addCardPopup);
             addCardBtn.Click += (s, e) =>
@@ -2185,9 +2188,10 @@ namespace 串口助手
             // 名称（所有卡通用）
             var nameLabel = new TextBlock
             {
-                Text = "名称：", FontSize = 11,
+                FontSize = 11,
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            nameLabel.LocText("名称：");
             nameLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(nameLabel);
 
@@ -2255,11 +2259,11 @@ namespace 串口助手
                 // 波形勾选
                 var waveCheck = new CheckBox
                 {
-                    Content = "显示迷你波形",
                     IsChecked = card.ShowWaveform,
                     FontSize = 11,
                     Margin = new Thickness(0, 4, 0, 0),
                 };
+                waveCheck.LocText("显示迷你波形");
                 waveCheck.SetResourceReference(CheckBox.ForegroundProperty, "TextPrimaryBrush");
                 waveCheck.Checked += (s, e) =>
                 {
@@ -2360,9 +2364,10 @@ namespace 串口助手
         {
             var lb = new TextBlock
             {
-                Text = "颜色：", FontSize = 11,
+                FontSize = 11,
                 Margin = new Thickness(0, 0, 0, 2),
             };
+            lb.LocText("颜色：");
             lb.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(lb);
 
@@ -2382,11 +2387,11 @@ namespace 串口助手
 
             var pickBtn = new Button
             {
-                Content = "选择颜色...",
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
                 FontSize = 11,
             };
+            pickBtn.LocText("选择颜色...");
             pickBtn.Click += (s, e) =>
             {
                 ShowColorPickerPopup(pickBtn, hex =>
@@ -2682,9 +2687,10 @@ namespace 串口助手
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
                 var curValLabel = new TextBlock
                 {
-                    Text = "当前值：", FontSize = 11,
+                    FontSize = 11,
                     Width = 62,
                 };
+                curValLabel.LocText("当前值：");
                 curValLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
                 row.Children.Add(curValLabel);
                 _ndValueBlock = new TextBlock
@@ -2722,9 +2728,10 @@ namespace 串口助手
             var (sensorLine, ctrlLine) = BuildSensorProtocolLines(card);
             var protoTitle = new TextBlock
             {
-                Text = "协议预览", FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 4),
             };
+            protoTitle.LocText("协议预览");
             protoTitle.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             container.Children.Add(protoTitle);
 

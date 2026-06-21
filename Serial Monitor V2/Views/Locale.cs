@@ -25,6 +25,9 @@ namespace 串口助手
         public static void LocText(this Label lb, string zh)
             => lb.SetResourceReference(Label.ContentProperty, zh);
 
+        public static void LocText(this CheckBox cb, string zh)
+            => cb.SetResourceReference(CheckBox.ContentProperty, zh);
+
         /// <summary>通用：任意 FrameworkElement 的任意属性</summary>
         public static void LocText(this FrameworkElement fe, DependencyProperty prop, string zh)
             => fe.SetResourceReference(prop, zh);

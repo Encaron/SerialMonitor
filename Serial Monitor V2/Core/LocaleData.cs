@@ -130,7 +130,33 @@ namespace 串口助手
             ["自动重连"] = "Auto Reconnect",
             ["串口打开时不重置流量计数"] = "Preserve traffic on open",
 
-            // P5+ 补漏
+            // P4.4: Display
+            ["OLED 设置"] = "OLED Settings",
+            ["文字编辑"] = "Text Edit",
+            ["图形属性"] = "Shape Properties",
+
+            // P4.5: Sensors
+            ["卡片管理"] = "Card Manager",
+            ["卡片详情"] = "Card Detail",
+            ["传感面板"] = "Sensors",
+            ["确认删除?"] = "Confirm Delete?",
+            ["＋ 换行"] = "+ New Line",
+            ["添加"] = "Add",
+            ["模板"] = "Template",
+            ["名字"] = "Name",
+            ["+ 添加组"] = "+ Add Group",
+            ["完成编辑"] = "Done Editing",
+            ["暂无卡片"] = "No Cards",
+            ["+ 卡片"] = "+ Card",
+            ["名称："] = "Name:",
+            ["显示迷你波形"] = "Show Mini Plot",
+            ["颜色："] = "Color:",
+            ["选择颜色..."] = "Pick Color...",
+            ["当前值："] = "Value:",
+            ["协议预览"] = "Protocol Preview",
+            ["── 换行 ──"] = "── Break ──",
+
+            // P5: Settings + misc补漏
         };
     }
 }

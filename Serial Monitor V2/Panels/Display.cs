@@ -728,7 +728,7 @@ namespace 串口助手
             {
                 rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
                 rightOLEDSettings.Visibility = Visibility.Visible;
-                tbSidePanelTitle.Text = "OLED 设置";
+                tbSidePanelTitle.LocText("OLED 设置");
             }
 
             // 移除所有图形
@@ -1043,10 +1043,12 @@ namespace 串口助手
 
             // 确认 / 取消
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var cancelBtn = new Button { Content = "取消", Style = (Style)FindResource("SecondaryButtonStyle"),
+            var cancelBtn = new Button { Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0) };
-            var confirmBtn = new Button { Content = "确认", Style = (Style)FindResource("PrimaryButtonStyle"),
+            cancelBtn.LocText("取消");
+            var confirmBtn = new Button { Style = (Style)FindResource("PrimaryButtonStyle"),
                 Height = 26, MinWidth = 52, FontSize = 12, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(8, 0, 0, 0) };
+            confirmBtn.LocText("确认");
             btnRow.Children.Add(cancelBtn);
             btnRow.Children.Add(confirmBtn);
             stack.Children.Add(btnRow);
@@ -1680,7 +1682,7 @@ namespace 串口助手
             rightOLEDSettings.Visibility = Visibility.Visible;
             rightOLEDTextEditor.Visibility = Visibility.Collapsed;
             rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
-            tbSidePanelTitle.Text = "OLED 设置";
+            tbSidePanelTitle.LocText("OLED 设置");
         }
 
         private void EnterTextEditMode(Point canvasPos)
@@ -1717,7 +1719,7 @@ namespace 串口助手
             rightOLEDSettings.Visibility = Visibility.Collapsed;
             rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
             rightOLEDTextEditor.Visibility = Visibility.Visible;
-            tbSidePanelTitle.Text = "文字编辑";
+            tbSidePanelTitle.LocText("文字编辑");
 
             // 画布上创建预览框 + 切箭头光标
             oledCanvas.Cursor = Cursors.Arrow;
@@ -1807,7 +1809,7 @@ namespace 串口助手
             rightOLEDSettings.Visibility = Visibility.Visible;
             rightOLEDTextEditor.Visibility = Visibility.Collapsed;
             sharedProtocolPreview.Visibility = Visibility.Collapsed;
-            tbSidePanelTitle.Text = "OLED 设置";
+            tbSidePanelTitle.LocText("OLED 设置");
         }
 
         private void CreateTextPreview()
@@ -3111,7 +3113,7 @@ namespace 串口助手
                 rightOLEDSettings.Visibility = Visibility.Collapsed;
                 rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
                 rightOLEDTextEditor.Visibility = Visibility.Visible;
-                tbSidePanelTitle.Text = "文字编辑";
+                tbSidePanelTitle.LocText("文字编辑");
 
                 // 锁定状态同步
                 bool txtLocked = IsElementLocked();
@@ -3145,7 +3147,7 @@ namespace 串口助手
             rightOLEDTextEditor.Visibility = Visibility.Collapsed;
             rightOLEDShapeEditor.Visibility = Visibility.Visible;
             sharedProtocolPreview.Visibility = Visibility.Visible;
-            tbSidePanelTitle.Text = "图形属性";
+            tbSidePanelTitle.LocText("图形属性");
         }
 
         private void ExitShapeEditMode(bool save)
@@ -3194,7 +3196,7 @@ namespace 串口助手
             rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
             rightOLEDSettings.Visibility = Visibility.Visible;
             sharedProtocolPreview.Visibility = Visibility.Collapsed;
-            tbSidePanelTitle.Text = "OLED 设置";
+            tbSidePanelTitle.LocText("OLED 设置");
         }
 
         /// <summary>动态添加一行字段。subB 为空时只创建单列。</summary>
@@ -3678,7 +3680,7 @@ namespace 串口助手
 
             rightOLEDShapeEditor.Visibility = Visibility.Collapsed;
             rightOLEDSettings.Visibility = Visibility.Visible;
-            tbSidePanelTitle.Text = "OLED 设置";
+            tbSidePanelTitle.LocText("OLED 设置");
         }
 
         // ═══ Z-order：置顶 / 置底 ═══
