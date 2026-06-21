@@ -247,7 +247,21 @@ namespace 串口助手
                 exitEdit: () => { if (_isEditingText) ExitTextEditMode(save: _editingTextOriginalKey != null); if (_selectedShape != null) DeselectShape(); ResetOLEDSidePanel(); });
             RegisterTab("Joystick", tabJoystick, panelJoystick, rightJoystick, init: InitJoystickPanel);
             RegisterTab("Sensors",  tabSensors,  panelSensors,  rightSensors,  init: InitSensorPanel,
-                exitEdit: () => { if (_sensorVM != null && _sensorVM.IsEditMode) { _sensorVM.IsEditMode = false; _selectedCard = null; _detailCard = null; _normalDetailCard = null; btnSensorEdit.Content = "编辑"; rightSensors.Visibility = Visibility.Collapsed; if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive) _sensorRefreshTimer.Start(); RefreshAllRows(); RefreshSensorSidePanel(); } });
+                exitEdit: () => {
+                    if (_sensorVM == null) return;
+                    if (_sensorVM.IsEditMode) {
+                        _sensorVM.IsEditMode = false; _selectedCard = null; _detailCard = null;
+                        btnSensorEdit.Content = "编辑";
+                        if (_sensorRefreshTimer != null && !_sensorRefreshTimer.IsEnabled && _sensorVM.IsActive) _sensorRefreshTimer.Start();
+                        RefreshAllRows();
+                    }
+                    // 正常模式卡片详情也退出，回到概览
+                    if (_normalDetailCard != null) {
+                        _normalDetailCard = null;
+                    }
+                    rightSensors.Visibility = Visibility.Collapsed;
+                    RefreshSensorSidePanel();
+                });
             RegisterTab("Settings", tabSettings, panelSettings, rightSettings);
 
             // 创建串口会话
