@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
-<title>OLED 绘图 &amp; PC 画板 — Serial Monitor V2</title>
+<title data-i18n="oled-title">OLED 绘图 &amp; PC 画板 — Serial Monitor V2</title>
 <link rel="stylesheet" href="manual.css?v=4">
 </head>
 <body>
@@ -13,53 +13,53 @@
 <header id="topnav">
     <a href="index.html" class="brand">← Serial <span>Monitor</span> V2</a>
     <nav>
-        <a href="manual.html" style="color:var(--accent);font-weight:600">← 返回使用说明</a>
+        <a href="manual.html" style="color:var(--accent);font-weight:600" data-i18n="oled-topnav-back">← 返回使用说明</a>
         <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
-        <a href="#" id="btn-lang-zh" style="font-weight:bold">中</a>
-        <a href="#" id="btn-lang-en">EN</a>
+        <a href="#" id="btn-lang-zh" style="font-weight:bold" data-i18n="lang-zh">中</a>
+        <a href="#" id="btn-lang-en" data-i18n="lang-en">EN</a>
     </nav>
 </header>
 
 <div class="doc-body">
 <aside class="doc-sidebar">
-    <div class="sb-brand">OLED<span class="ver">绘图</span></div>
+    <div class="sb-brand">OLED<span class="ver" data-i18n="oled-sidebar-brand-ver">绘图</span></div>
 
     <div class="sect-group">
-        <div class="sect-title">概述</div>
-        <a href="#overview">系统架构</a>
-        <a href="#quick">快速上手</a>
+        <div class="sect-title" data-i18n="oled-sidebar-sect-overview">概述</div>
+        <a href="#overview" data-i18n="oled-nav-overview">系统架构</a>
+        <a href="#quick" data-i18n="oled-nav-quick">快速上手</a>
     </div>
 
     <div class="sect-group">
-        <div class="sect-title">协议参考</div>
-        <a href="#protocol" class="sub">全部指令</a>
-        <a href="#protocol-extra" class="sub">可选参数</a>
-        <a href="#protocol-display" class="sub">display 协议</a>
+        <div class="sect-title" data-i18n="oled-sidebar-sect-protocol">协议参考</div>
+        <a href="#protocol" class="sub" data-i18n="oled-nav-protocol">全部指令</a>
+        <a href="#protocol-extra" class="sub" data-i18n="oled-nav-protocol-extra">可选参数</a>
+        <a href="#protocol-display" class="sub" data-i18n="oled-nav-protocol-display">display 协议</a>
     </div>
 
     <div class="sect-group">
-        <div class="sect-title">MCU 解析</div>
-        <a href="#mcu-field" class="sub">GetField 拆字段</a>
-        <a href="#mcu-route" class="sub">type 路由</a>
-        <a href="#mcu-shapes" class="sub">图形处理</a>
+        <div class="sect-title" data-i18n="oled-sidebar-sect-mcu">MCU 解析</div>
+        <a href="#mcu-field" class="sub" data-i18n="oled-nav-mcu-field">GetField 拆字段</a>
+        <a href="#mcu-route" class="sub" data-i18n="oled-nav-mcu-route">type 路由</a>
+        <a href="#mcu-shapes" class="sub" data-i18n="oled-nav-mcu-shapes">图形处理</a>
     </div>
 
     <div class="sect-group">
-        <div class="sect-title">F5 增量同步</div>
-        <a href="#f5-overview">原理</a>
-        <a href="#f5-code">完整代码</a>
+        <div class="sect-title" data-i18n="oled-sidebar-sect-f5">F5 增量同步</div>
+        <a href="#f5-overview" data-i18n="oled-nav-f5-overview">原理</a>
+        <a href="#f5-code" data-i18n="oled-nav-f5-code">完整代码</a>
     </div>
 
     <div class="sect-group">
-        <div class="sect-title">高级</div>
-        <a href="#dual-screen">LCD 端显示</a>
-        <a href="#rotation">旋转支持</a>
-        <a href="#eraser">橡皮擦颜色</a>
+        <div class="sect-title" data-i18n="oled-sidebar-sect-advanced">高级</div>
+        <a href="#dual-screen" data-i18n="oled-nav-dual-screen">LCD 端显示</a>
+        <a href="#rotation" data-i18n="oled-nav-rotation">旋转支持</a>
+        <a href="#eraser" data-i18n="oled-nav-eraser">橡皮擦颜色</a>
     </div>
 
     <div class="sb-footer">
-        <a href="manual.html">← 使用说明</a>
-        <a href="index.html">返回首页</a>
+        <a href="manual.html" data-i18n="oled-sidebar-footer-manual">← 使用说明</a>
+        <a href="index.html" data-i18n="oled-sidebar-footer-index">返回首页</a>
     </div>
 </aside>
 
@@ -67,33 +67,33 @@
 
 <!-- ═══════════ OVERVIEW ═══════════ -->
 <section class="content-section" id="overview">
-    <h2>系统架构</h2>
-    <p>PC 端画板用鼠标绘制图形 → 实时转为 <code>[draw,...]</code> 协议通过串口发送 → STM32 端解析 → 渲染到物理 OLED/LCD 屏幕。</p>
+    <h2 data-i18n="oled-overview-heading">系统架构</h2>
+    <p data-i18n="oled-overview-desc">PC 端画板用鼠标绘制图形 → 实时转为 <code>[draw,...]</code> 协议通过串口发送 → STM32 端解析 → 渲染到物理 OLED/LCD 屏幕。</p>
 
     <table>
-        <tr><th>方向</th><th>协议</th><th>用途</th></tr>
-        <tr><td>📥 PC→MCU</td><td><code>[draw,指令,参数...]</code></td><td>PC 画板绘制的图形 → MCU 解析 → 驱动 OLED/LCD</td></tr>
-        <tr><td>📤 MCU→PC</td><td><code>[draw,指令,参数...]</code></td><td>MCU 端生成图形 → PC 端 OLED 虚拟屏显示</td></tr>
-        <tr><td>📥 PC→MCU</td><td><code>[display,x,y,text,size]</code></td><td>旧协议，纯文本渲染（建议迁移到 draw,text）</td></tr>
+        <tr><th data-i18n="oled-overview-tbl-dir">方向</th><th data-i18n="oled-overview-tbl-protocol">协议</th><th data-i18n="oled-overview-tbl-purpose">用途</th></tr>
+        <tr><td>📥 PC→MCU</td><td><code>[draw,指令,参数...]</code></td><td data-i18n="oled-overview-row1-desc">PC 画板绘制的图形 → MCU 解析 → 驱动 OLED/LCD</td></tr>
+        <tr><td>📤 MCU→PC</td><td><code>[draw,指令,参数...]</code></td><td data-i18n="oled-overview-row2-desc">MCU 端生成图形 → PC 端 OLED 虚拟屏显示</td></tr>
+        <tr><td>📥 PC→MCU</td><td><code>[display,x,y,text,size]</code></td><td data-i18n="oled-overview-row3-desc">旧协议，纯文本渲染（建议迁移到 draw,text）</td></tr>
     </table>
 
-    <p>源码位置：</p>
+    <p data-i18n="oled-overview-source-label">源码位置：</p>
     <ul>
-        <li><strong>MCU 解析器</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/DrawTest/oled_draw_test.c" target="_blank">oled_draw_test.c</a></li>
-        <li><strong>MCU 生成器</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/Display/draw_out.c" target="_blank">draw_out.c</a></li>
-        <li><strong>虚拟屏 UI</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/Display/test_display.c" target="_blank">test_display.c</a></li>
-        <li><strong>OLED 驱动</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/HardWare/OLED/OLED.c" target="_blank">OLED.c</a></li>
-        <li><strong>LCD 驱动</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/HardWare/LCD169/lcd.c" target="_blank">lcd.c</a></li>
+        <li><strong data-i18n="oled-overview-source-parser">MCU 解析器</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/DrawTest/oled_draw_test.c" target="_blank">oled_draw_test.c</a></li>
+        <li><strong data-i18n="oled-overview-source-generator">MCU 生成器</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/Display/draw_out.c" target="_blank">draw_out.c</a></li>
+        <li><strong data-i18n="oled-overview-source-vscreen">虚拟屏 UI</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/Display/test_display.c" target="_blank">test_display.c</a></li>
+        <li><strong data-i18n="oled-overview-source-oled-drv">OLED 驱动</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/HardWare/OLED/OLED.c" target="_blank">OLED.c</a></li>
+        <li><strong data-i18n="oled-overview-source-lcd-drv">LCD 驱动</strong>：<a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/HardWare/LCD169/lcd.c" target="_blank">lcd.c</a></li>
     </ul>
 </section>
 
 <!-- ═══════════ QUICK START ═══════════ -->
 <section class="content-section" id="quick">
-    <h2>快速上手</h2>
-    <p>最简单的验证：PC 画板画个圆，MCU OLED 上显示出来。</p>
-    <img src="images/oled-canvas.png" alt="PC 画板" loading="lazy">
+    <h2 data-i18n="oled-quick-heading">快速上手</h2>
+    <p data-i18n="oled-quick-desc">最简单的验证：PC 画板画个圆，MCU OLED 上显示出来。</p>
+    <img src="images/oled-canvas.png" alt="PC 画板" data-i18n="oled-quick-img-alt" loading="lazy">
 
-    <h4>MCU 端（三行初始化）</h4>
+    <h4 data-i18n="oled-quick-mcu-init-title">MCU 端（三行初始化）</h4>
     <pre><code data-lang="C">#include "Serial.h"
 #include "OLED.h"
 
@@ -112,33 +112,33 @@ void main(void) {
     }
 }</code></pre>
 
-    <div class="callout">
+    <div class="callout" data-i18n="oled-quick-callout">
         <strong>PC 端操作：</strong>切换到 OLED 绘图标签页 → 选圆形工具 → 在画布上拖一个圆 → MCU OLED 上实时显示。
     </div>
 </section>
 
 <!-- ═══════════ PROTOCOL ═══════════ -->
 <section class="content-section" id="protocol">
-    <h2>全部绘图指令</h2>
-    <p>协议外壳：<code>[draw,指令,参数...]</code>。所有坐标以像素为单位。</p>
+    <h2 data-i18n="oled-protocol-heading">全部绘图指令</h2>
+    <p data-i18n="oled-protocol-desc">协议外壳：<code>[draw,指令,参数...]</code>。所有坐标以像素为单位。</p>
 
     <table>
-        <tr><th>指令</th><th>格式</th><th>说明</th></tr>
-        <tr><td>点</td><td><code>[draw,point,x,y,#color]</code></td><td>单像素点</td></tr>
-        <tr><td>线</td><td><code>[draw,line,x1,y1,x2,y2,#color,w]</code></td><td>线段，w=线宽（px）</td></tr>
-        <tr><td>矩形</td><td><code>[draw,rect,x,y,w,h,#color,w,fill]</code></td><td>x,y=左上角；fill="fill" 则填充</td></tr>
-        <tr><td>圆角矩形</td><td><code>[draw,rrect,x,y,w,h,#color,w,r,fill]</code></td><td>r=圆角半径</td></tr>
-        <tr><td>圆</td><td><code>[draw,circle,cx,cy,r,#color,w,fill]</code></td><td>cx,cy=圆心</td></tr>
-        <tr><td>椭圆</td><td><code>[draw,ellipse,cx,cy,rx,ry,#color,w,fill]</code></td><td>rx,ry=半轴</td></tr>
-        <tr><td>三角形</td><td><code>[draw,triangle,x1,y1,x2,y2,x3,y3,#color,w,fill]</code></td><td>三个顶点</td></tr>
-        <tr><td>弧线</td><td><code>[draw,arc,cx,cy,r,start,end,#color,w,fill]</code></td><td>start,end=角度（度）</td></tr>
-        <tr><td>文字</td><td><code>[draw,text,x,y,content,size,#color]</code></td><td>size 映射 OLED 字号</td></tr>
-        <tr><td>清屏</td><td><code>[draw,clear,#color]</code></td><td>可选背景色</td></tr>
-        <tr><td>填充矩形</td><td><code>[draw,fill,x,y,w,h,#color]</code></td><td>纯色填充（LCD 专用）</td></tr>
+        <tr><th data-i18n="oled-protocol-tbl-cmd">指令</th><th data-i18n="oled-protocol-tbl-format">格式</th><th data-i18n="oled-protocol-tbl-note">说明</th></tr>
+        <tr><td data-i18n="oled-protocol-name-point">点</td><td><code>[draw,point,x,y,#color]</code></td><td data-i18n="oled-protocol-desc-point">单像素点</td></tr>
+        <tr><td data-i18n="oled-protocol-name-line">线</td><td><code>[draw,line,x1,y1,x2,y2,#color,w]</code></td><td data-i18n="oled-protocol-desc-line">线段，w=线宽（px）</td></tr>
+        <tr><td data-i18n="oled-protocol-name-rect">矩形</td><td><code>[draw,rect,x,y,w,h,#color,w,fill]</code></td><td data-i18n="oled-protocol-desc-rect">x,y=左上角；fill="fill" 则填充</td></tr>
+        <tr><td data-i18n="oled-protocol-name-rrect">圆角矩形</td><td><code>[draw,rrect,x,y,w,h,#color,w,r,fill]</code></td><td data-i18n="oled-protocol-desc-rrect">r=圆角半径</td></tr>
+        <tr><td data-i18n="oled-protocol-name-circle">圆</td><td><code>[draw,circle,cx,cy,r,#color,w,fill]</code></td><td data-i18n="oled-protocol-desc-circle">cx,cy=圆心</td></tr>
+        <tr><td data-i18n="oled-protocol-name-ellipse">椭圆</td><td><code>[draw,ellipse,cx,cy,rx,ry,#color,w,fill]</code></td><td data-i18n="oled-protocol-desc-ellipse">rx,ry=半轴</td></tr>
+        <tr><td data-i18n="oled-protocol-name-triangle">三角形</td><td><code>[draw,triangle,x1,y1,x2,y2,x3,y3,#color,w,fill]</code></td><td data-i18n="oled-protocol-desc-triangle">三个顶点</td></tr>
+        <tr><td data-i18n="oled-protocol-name-arc">弧线</td><td><code>[draw,arc,cx,cy,r,start,end,#color,w,fill]</code></td><td data-i18n="oled-protocol-desc-arc">start,end=角度（度）</td></tr>
+        <tr><td data-i18n="oled-protocol-name-text">文字</td><td><code>[draw,text,x,y,content,size,#color]</code></td><td data-i18n="oled-protocol-desc-text">size 映射 OLED 字号</td></tr>
+        <tr><td data-i18n="oled-protocol-name-clear">清屏</td><td><code>[draw,clear,#color]</code></td><td data-i18n="oled-protocol-desc-clear">可选背景色</td></tr>
+        <tr><td data-i18n="oled-protocol-name-fill">填充矩形</td><td><code>[draw,fill,x,y,w,h,#color]</code></td><td data-i18n="oled-protocol-desc-fill">纯色填充（LCD 专用）</td></tr>
     </table>
 
-    <h4 id="protocol-extra">可选参数规则</h4>
-    <p><code>w</code>（线宽）和 <code>fill</code> 均为可选。解析器在两个可能的字段位置检查 <code>"fill"</code> 字符串：</p>
+    <h4 id="protocol-extra" data-i18n="oled-protocol-extra-heading">可选参数规则</h4>
+    <p data-i18n="oled-protocol-extra-desc"><code>w</code>（线宽）和 <code>fill</code> 均为可选。解析器在两个可能的字段位置检查 <code>"fill"</code> 字符串：</p>
     <pre><code data-lang="C">// circle 示例：field[4] = r, field[5] = color
 // w 在 field[6]（如果存在），fill 在 field[6] 或 field[7]
 char fill_flag[8];
@@ -149,23 +149,23 @@ if (!filled) {
     filled = (strcmp(fill_flag, "fill") == 0);
 }</code></pre>
 
-    <h4 id="protocol-display">display 协议（旧版文本渲染）</h4>
+    <h4 id="protocol-display" data-i18n="oled-protocol-display-heading">display 协议（旧版文本渲染）</h4>
     <table>
-        <tr><th>格式</th><th>说明</th></tr>
-        <tr><td><code>[display,x,y,"text",size]</code></td><td>在 PC 端虚拟 OLED 上显示文字</td></tr>
-        <tr><td><code>[display,x,y,"text",size,#RRGGBB]</code></td><td>带颜色</td></tr>
-        <tr><td><code>[display-clear]</code></td><td>清空虚拟屏</td></tr>
+        <tr><th data-i18n="oled-protocol-display-tbl-format">格式</th><th data-i18n="oled-protocol-display-tbl-note">说明</th></tr>
+        <tr><td><code>[display,x,y,"text",size]</code></td><td data-i18n="oled-protocol-display-row1">在 PC 端虚拟 OLED 上显示文字</td></tr>
+        <tr><td><code>[display,x,y,"text",size,#RRGGBB]</code></td><td data-i18n="oled-protocol-display-row2">带颜色</td></tr>
+        <tr><td><code>[display-clear]</code></td><td data-i18n="oled-protocol-display-row3">清空虚拟屏</td></tr>
     </table>
 
     <div class="callout">
-        <strong>📌 建议：</strong>新项目用 <code>[draw,text,...]</code> 替代 <code>[display,...]</code>——display 协议保留仅为兼容旧固件。
+        <strong data-i18n="oled-protocol-callout-label">📌 建议：</strong><span data-i18n="oled-protocol-callout-body">新项目用 <code>[draw,text,...]</code> 替代 <code>[display,...]</code>——display 协议保留仅为兼容旧固件。</span>
     </div>
 </section>
 
 <!-- ═══════════ MCU PARSING ═══════════ -->
 <section class="content-section" id="mcu-field">
-    <h2>MCU 端解析 — GetField</h2>
-    <p>所有 draw 协议解析的第一步：从逗号串中拆出字段。下面是可以直接复制的完整实现。</p>
+    <h2 data-i18n="oled-mcu-field-heading">MCU 端解析 — GetField</h2>
+    <p data-i18n="oled-mcu-field-desc">所有 draw 协议解析的第一步：从逗号串中拆出字段。下面是可以直接复制的完整实现。</p>
 
     <pre><code data-lang="C">/**
  * @brief  从逗号分隔的字符串中提取第 field 个字段（从 0 开始）
@@ -197,7 +197,7 @@ int GetField(const char *src, char *dst, int field, int max_len) {
 #define FIELD_STR(i)  (GetField(cmd, i, buf, sizeof(buf)) == 0 ? buf : "")
 #define FIELD_INT(i, def) (GetField(cmd, i, buf, sizeof(buf)) == 0 ? atoi(buf) : (def))</code></pre>
 
-    <h4>解析示例</h4>
+    <h4 data-i18n="oled-mcu-field-example-heading">解析示例</h4>
     <pre><code data-lang="C">// 输入：cmd = "circle,64,32,20,#FF0000,2,fill"
 //                   0      1  2  3   4      5  6
 
@@ -209,8 +209,8 @@ GetField(cmd, 6, buf, sizeof(buf));  // buf = "fill"</code></pre>
 </section>
 
 <section class="content-section" id="mcu-route">
-    <h2>MCU 端解析 — type 路由</h2>
-    <p>收到一条方括号消息后，先取第 0 个字段判断是哪种图形，再交给对应 handler。</p>
+    <h2 data-i18n="oled-mcu-route-heading">MCU 端解析 — type 路由</h2>
+    <p data-i18n="oled-mcu-route-desc">收到一条方括号消息后，先取第 0 个字段判断是哪种图形，再交给对应 handler。</p>
 
     <pre><code data-lang="C">void DrawTest_ProcessCommand(const char *raw) {
     char type[16];
@@ -233,10 +233,10 @@ GetField(cmd, 6, buf, sizeof(buf));  // buf = "fill"</code></pre>
 </section>
 
 <section class="content-section" id="mcu-shapes">
-    <h2>MCU 端解析 — 图形处理（完整代码）</h2>
-    <p>以下以 <strong>LCD（彩色）</strong>为基准——带颜色解析、坐标钳位、旋转检测。OLED 单色版更简单，差异处已标注。</p>
+    <h2 data-i18n="oled-mcu-shapes-heading">MCU 端解析 — 图形处理（完整代码）</h2>
+    <p data-i18n="oled-mcu-shapes-desc">以下以 <strong>LCD（彩色）</strong>为基准——带颜色解析、坐标钳位、旋转检测。OLED 单色版更简单，差异处已标注。</p>
 
-    <h4>颜色解析（LCD 专用）</h4>
+    <h4 data-i18n="oled-mcu-shapes-color-heading">颜色解析（LCD 专用）</h4>
     <pre><code data-lang="C">/* "#RRGGBB" → RGB565（16 位色） */
 static uint8_t HexNibble(char c) {
     if (c &gt;= '0' &amp;&amp; c &lt;= '9') return c - '0';
@@ -253,7 +253,7 @@ static uint16_t ParseColor(const char *s) {
 }
 /* OLED 注意：无颜色，用 IsEraserColor 检测暗色 = 橡皮擦 */</code></pre>
 
-    <h4>坐标钳位 + fill 检测</h4>
+    <h4 data-i18n="oled-mcu-shapes-clamp-heading">坐标钳位 + fill 检测</h4>
     <pre><code data-lang="C">#define LCD_W 240
 #define LCD_H 280
 
@@ -265,7 +265,7 @@ static int IsFillFlag(const char *s) {
 }
 /* OLED 注意：分辨率 128×64，无需钳位 */</code></pre>
 
-    <h4>点 / 线</h4>
+    <h4 data-i18n="oled-mcu-shapes-pointline-heading">点 / 线</h4>
     <pre><code data-lang="C">static void Handle_Point(const char *cmd) {
     int x = ClampX(FIELD_INT(1, 0)), y = ClampY(FIELD_INT(2, 0));
     char c[10]; GetField(cmd, c, 3, sizeof(c));
@@ -281,7 +281,7 @@ static void Handle_Line(const char *cmd) {
     LCD_DrawLine(x1, y1, x2, y2, color);              // OLED: OLED_DrawLine(x1,y1,x2,y2)
 }</code></pre>
 
-    <h4>矩形（含旋转检测）</h4>
+    <h4 data-i18n="oled-mcu-shapes-rect-heading">矩形（含旋转检测）</h4>
     <pre><code data-lang="C">static void Handle_Rect(const char *cmd) {
     int x = FIELD_INT(1,0), y = FIELD_INT(2,0), w = FIELD_INT(3,0), h = FIELD_INT(4,0);
     if (w &lt; 1) w = 1; if (h &lt; 1) h = 1;
@@ -309,7 +309,7 @@ static void Handle_Line(const char *cmd) {
 }
 /* OLED: 同上但无颜色，OLED_DrawRectangle(x,y,w,h,filled)，OLED_DrawRotatedRect 无 color/lw */</code></pre>
 
-    <h4>圆 / 三角形</h4>
+    <h4 data-i18n="oled-mcu-shapes-circle-tri-heading">圆 / 三角形</h4>
     <pre><code data-lang="C">static void Handle_Circle(const char *cmd) {
     int cx = FIELD_INT(1,0), cy = FIELD_INT(2,0), r = FIELD_INT(3,0);
     if (r &lt; 1) r = 1;
@@ -345,7 +345,7 @@ static void Handle_Triangle(const char *cmd) {
 }
 /* OLED: 同上，去颜色：OLED_DrawTriangle(x0,y0,x1,y1,x2,y2,filled) */</code></pre>
 
-    <h4>文字 / 清屏</h4>
+    <h4 data-i18n="oled-mcu-shapes-text-clear-heading">文字 / 清屏</h4>
     <pre><code data-lang="C">static void Handle_Text(const char *cmd) {
     int x = ClampX(FIELD_INT(1,0)), y = ClampY(FIELD_INT(2,0));
     int fontSize = FIELD_INT(4, 16);
@@ -371,28 +371,28 @@ static void Handle_Clear(const char *cmd) {
 }</code></pre>
 
     <div class="callout">
-        <strong>📌 复杂图形（椭圆 / 圆角矩形 / 弧线）：</strong>LCD 驱动不提供这些函数，handler 里从零实现了 Bresenham 圆角矩形（~60 行）、中点椭圆算法（~30 行）、atan2f 弧线角度过滤（~40 行）。完整源码见 <a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/DrawTest/lcd_draw_test.c" target="_blank">lcd_draw_test.c</a>。OLED 驱动自带全部复杂图形函数，handler 就是简单转发。
+        <strong data-i18n="oled-mcu-shapes-callout-label">📌 复杂图形（椭圆 / 圆角矩形 / 弧线）：</strong><span data-i18n="oled-mcu-shapes-callout-body">LCD 驱动不提供这些函数，handler 里从零实现了 Bresenham 圆角矩形（~60 行）、中点椭圆算法（~30 行）、atan2f 弧线角度过滤（~40 行）。完整源码见 <a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/example/SerialTest/DrawTest/lcd_draw_test.c" target="_blank">lcd_draw_test.c</a>。OLED 驱动自带全部复杂图形函数，handler 就是简单转发。</span>
     </div>
 </section>
 
 <!-- ═══════════ F5 INCREMENTAL SYNC ═══════════ -->
 <section class="content-section" id="f5-overview">
-    <h2>F5 增量同步 — 原理</h2>
-    <p>PC 画板上拖动一个图形时，如果每次都发全量重绘（几十条 draw 命令），串口带宽吃不消。F5 机制：<strong>PC 只发变化的那个图形，MCU 端本地维护一份图形数组，收到新数据后本地全量重绘。</strong></p>
+    <h2 data-i18n="oled-f5-overview-heading">F5 增量同步 — 原理</h2>
+    <p data-i18n="oled-f5-overview-desc">PC 画板上拖动一个图形时，如果每次都发全量重绘（几十条 draw 命令），串口带宽吃不消。F5 机制：<strong>PC 只发变化的那个图形，MCU 端本地维护一份图形数组，收到新数据后本地全量重绘。</strong></p>
 
     <table>
-        <tr><th>步骤</th><th>PC 发送</th><th>MCU 动作</th></tr>
-        <tr><td>新增图形</td><td><code>[draw,set,a1,circle,64,32,20,#0F0]</code></td><td>存入 f5_cmds[0]，重绘全部</td></tr>
-        <tr><td>修改图形</td><td><code>[draw,set,a1,circle,64,32,25,#0F0]</code></td><td>同 ID 覆盖（半径 20→25），重绘全部</td></tr>
-        <tr><td>删除图形</td><td><code>[draw,del,a1]</code></td><td>移除 f5_cmds[0]，前移数组，重绘全部</td></tr>
-        <tr><td>拖动过程</td><td>只发 <code>[draw,set,a1,...]</code></td><td>每次只更新 1 条 → 1 次全量重绘</td></tr>
+        <tr><th data-i18n="oled-f5-tbl-step">步骤</th><th data-i18n="oled-f5-tbl-pc-send">PC 发送</th><th data-i18n="oled-f5-tbl-mcu-action">MCU 动作</th></tr>
+        <tr><td data-i18n="oled-f5-step-add">新增图形</td><td><code>[draw,set,a1,circle,64,32,20,#0F0]</code></td><td data-i18n="oled-f5-desc-add">存入 f5_cmds[0]，重绘全部</td></tr>
+        <tr><td data-i18n="oled-f5-step-update">修改图形</td><td><code>[draw,set,a1,circle,64,32,25,#0F0]</code></td><td data-i18n="oled-f5-desc-update">同 ID 覆盖（半径 20→25），重绘全部</td></tr>
+        <tr><td data-i18n="oled-f5-step-delete">删除图形</td><td><code>[draw,del,a1]</code></td><td data-i18n="oled-f5-desc-delete">移除 f5_cmds[0]，前移数组，重绘全部</td></tr>
+        <tr><td data-i18n="oled-f5-step-drag">拖动过程</td><td>只发 <code>[draw,set,a1,...]</code></td><td data-i18n="oled-f5-desc-drag">每次只更新 1 条 → 1 次全量重绘</td></tr>
     </table>
 
-    <p>关键：每帧串口只需传 <strong>1 条</strong> set/del 消息，不需要把整个画布的所有图形重发一遍。</p>
+    <p data-i18n="oled-f5-overview-key">关键：每帧串口只需传 <strong>1 条</strong> set/del 消息，不需要把整个画布的所有图形重发一遍。</p>
 </section>
 
 <section class="content-section" id="f5-code">
-    <h2>F5 增量同步 — 完整代码</h2>
+    <h2 data-i18n="oled-f5-code-heading">F5 增量同步 — 完整代码</h2>
 
     <pre><code data-lang="C">#define F5_MAX_SHAPES 32
 
@@ -460,9 +460,9 @@ static void Handle_Del(const char *cmd) {
 
 <!-- ═══════════ ADVANCED ═══════════ -->
 <section class="content-section" id="dual-screen">
-    <h2>LCD 端显示</h2>
-    <img src="images/oled-mcu.jpg" alt="STM32 LCD 实物" loading="lazy">
-    <p>演示工程同时支持 OLED 128×64 和 LCD 240×280。切换只需一行：</p>
+    <h2 data-i18n="oled-dual-heading">LCD 端显示</h2>
+    <img src="images/oled-mcu.jpg" alt="STM32 LCD 实物" data-i18n="oled-dual-img-alt" loading="lazy">
+    <p data-i18n="oled-dual-desc">演示工程同时支持 OLED 128×64 和 LCD 240×280。切换只需一行：</p>
 
     <pre><code data-lang="C">// main.c 的 UART 分发区：
 if (UART_GetRxFlag(SERIAL_DEVICE_1)) {
@@ -474,22 +474,22 @@ if (UART_GetRxFlag(SERIAL_DEVICE_1)) {
 
     <table>
         <tr><th></th><th>OLED</th><th>LCD</th></tr>
-        <tr><td>分辨率</td><td>128 × 64</td><td>240 × 280</td></tr>
-        <tr><td>颜色</td><td>单色（1 bit/pixel）</td><td>RGB565（16 位色）</td></tr>
-        <tr><td>帧缓冲</td><td><code>OLED_DisplayBuf[8][128]</code></td><td>无缓冲，直接绘制</td></tr>
-        <tr><td>协议前缀</td><td><code>[draw,...]</code></td><td><code>[lcd,...]</code> 或 <code>[draw,...]</code></td></tr>
-        <tr><td>F5 背景</td><td>固定黑色</td><td>跟踪 <code>f5_bg</code>（可自定义）</td></tr>
-        <tr><td>字号映射</td><td>&le;12→6×8，>12→8×16</td><td>&le;12→12，&le;16→16，&le;24→24，>24→32</td></tr>
+        <tr><td data-i18n="oled-dual-tbl-resolution">分辨率</td><td>128 × 64</td><td>240 × 280</td></tr>
+        <tr><td data-i18n="oled-dual-tbl-color">颜色</td><td data-i18n="oled-dual-val-oled-color">单色（1 bit/pixel）</td><td data-i18n="oled-dual-val-lcd-color">RGB565（16 位色）</td></tr>
+        <tr><td data-i18n="oled-dual-tbl-framebuf">帧缓冲</td><td><code>OLED_DisplayBuf[8][128]</code></td><td data-i18n="oled-dual-val-lcd-framebuf">无缓冲，直接绘制</td></tr>
+        <tr><td data-i18n="oled-dual-tbl-protocol-prefix">协议前缀</td><td><code>[draw,...]</code></td><td><code>[lcd,...]</code> 或 <code>[draw,...]</code></td></tr>
+        <tr><td data-i18n="oled-dual-tbl-f5-bg">F5 背景</td><td data-i18n="oled-dual-val-oled-f5bg">固定黑色</td><td data-i18n="oled-dual-val-lcd-f5bg">跟踪 <code>f5_bg</code>（可自定义）</td></tr>
+        <tr><td data-i18n="oled-dual-tbl-font-map">字号映射</td><td data-i18n="oled-dual-val-oled-font">&le;12→6×8，>12→8×16</td><td data-i18n="oled-dual-val-lcd-font">&le;12→12，&le;16→16，&le;24→24，>24→32</td></tr>
     </table>
 </section>
 
 <section class="content-section" id="rotation">
-    <h2>旋转支持</h2>
-    <p>矩形、圆角矩形、椭圆支持旋转。协议末尾加 <code>a&lt;angle&gt;</code>（角度制）：</p>
+    <h2 data-i18n="oled-rotation-heading">旋转支持</h2>
+    <p data-i18n="oled-rotation-desc">矩形、圆角矩形、椭圆支持旋转。协议末尾加 <code>a&lt;angle&gt;</code>（角度制）：</p>
 
     <pre><code>[draw,rect,200,150,100,60,#FF0000,2,a45]</code></pre>
 
-    <p>MCU 端用旋转矩阵计算四个角点：</p>
+    <p data-i18n="oled-rotation-matrix-desc">MCU 端用旋转矩阵计算四个角点：</p>
     <pre><code data-lang="C">static void LCD_DrawRotatedRect(int x, int y, int w, int h,
                                 float angle, uint16_t color, int filled) {
     float rad = angle * 3.14159f / 180.0f;
@@ -518,12 +518,12 @@ if (UART_GetRxFlag(SERIAL_DEVICE_1)) {
     }
 }</code></pre>
 
-    <p>旋转椭圆的实现类似——对每个扫描线点应用旋转矩阵后填充或描边。</p>
+    <p data-i18n="oled-rotation-ellipse-note">旋转椭圆的实现类似——对每个扫描线点应用旋转矩阵后填充或描边。</p>
 </section>
 
 <section class="content-section" id="eraser">
-    <h2>橡皮擦颜色</h2>
-    <p>OLED 是单色的，无法"画个白色矩形"来模拟橡皮擦。PC 画板的橡皮擦工具发送特定暗色——MCU 端识别这些颜色后，对 line 执行清除逻辑，对其他形状跳过绘制。</p>
+    <h2 data-i18n="oled-eraser-heading">橡皮擦颜色</h2>
+    <p data-i18n="oled-eraser-desc">OLED 是单色的，无法"画个白色矩形"来模拟橡皮擦。PC 画板的橡皮擦工具发送特定暗色——MCU 端识别这些颜色后，对 line 执行清除逻辑，对其他形状跳过绘制。</p>
 
     <pre><code data-lang="C">/* 橡皮擦颜色检测 */
 static int IsEraserColor(const char *color_str) {
@@ -555,7 +555,7 @@ static void Handle_Line(const char *cmd) {
 </main>
 </div>
 
-<button id="back-to-top" title="回到顶部">↑</button>
+<button id="back-to-top" data-i18n="oled-btt-title" title="回到顶部">↑</button>
 <div id="lightbox"><img src="" alt=""></div>
 <script src="manual.js"></script>
 </body>
