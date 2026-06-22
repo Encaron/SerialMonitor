@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title data-i18n="m-title-manual">使用说明 — Serial Monitor V2</title>
+<link rel="stylesheet" href="manual.css?v=4">
+</head>
+<body>
+<div id="scroll-progress"></div>
+
+<!-- ═══════════ TOP NAV ═══════════ -->
+<header id="topnav">
+    <a href="index.html" class="brand">← Serial <span>Monitor</span> V2</a>
+    <nav>
+        <a href="index.html" style="color:var(--accent);font-weight:600" data-i18n="m-nav-back-home">← 返回首页</a>
+        <a href="https://github.com/Encaron/SerialMonitor/releases" target="_blank" data-i18n="m-nav-download">下载</a>
+        <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
+        <a href="#" id="btn-lang-zh" style="font-weight:bold" data-i18n="lang-zh">中</a>
+        <a href="#" id="btn-lang-en" data-i18n="lang-en">EN</a>
+    </nav>
+</header>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<div class="doc-body">
+<aside class="doc-sidebar">
+    <div class="sb-brand">Serial <span>Monitor</span> V2<span class="ver" data-i18n="m-sb-brand-docs">文档</span></div>
+
+    <div class="sect-group">
+        <div class="sect-title" data-i18n="m-sb-sect-start">入门</div>
+        <a href="#quickstart" data-i18n="m-sb-link-quickstart">快速入门</a>
+    </div>
+
+    <div class="sect-group">
+        <div class="sect-title" data-i18n="m-sb-sect-panels">面板详情</div>
+        <a href="#p-serial" class="sub" data-i18n="m-sb-link-serial">收发区</a>
+        <a href="#p-serial-recv" class="sub-sub" data-i18n="m-sb-link-recv">接收区</a>
+        <a href="#p-serial-send" class="sub-sub" data-i18n="m-sb-link-send">发送区</a>
+        <a href="#p-plot-all" class="sub" data-i18n="m-sb-link-plot">波形图</a>
+        <a href="#p-plot" class="sub-sub" data-i18n="m-sb-link-time">时域波形</a>
+        <a href="#p-tuning" class="sub-sub" data-i18n="m-sb-link-tuning">调参工作台</a>
+        <a href="#p-fft" class="sub-sub" data-i18n="m-sb-link-fft">FFT 频谱</a>
+        <a href="#p-sensor" class="sub" data-i18n="m-sb-link-sensor">传感面板</a>
+        <a href="#p-keys" class="sub" data-i18n="m-sb-link-keys">按键面板</a>
+        <a href="#p-sliders" class="sub" data-i18n="m-sb-link-sliders">滑杆面板</a>
+        <a href="#p-joystick" class="sub" data-i18n="m-sb-link-joystick">摇杆面板</a>
+        <a href="#p-oled" class="sub" data-i18n="m-sb-link-oled">OLED 绘图 &amp; PC 画板</a>
+        <a href="oled.html" class="sub-sub" style="font-style:italic" data-i18n="m-sb-link-oled-doc">→ 完整 MCU 解析文档</a>
+    </div>
+
+    <div class="sect-group">
+        <div class="sect-title" data-i18n="m-sb-sect-ref">参考</div>
+        <a href="#protocol" data-i18n="m-sb-link-protocol">协议速查</a>
+        <a href="#settings" data-i18n="m-sb-link-settings">设置页</a>
+        <a href="#mcu" data-i18n="m-sb-link-mcu">MCU 对接</a>
+        <a href="#faq" data-i18n="m-sb-link-faq">常见问题</a>
+    </div>
+
+    <div class="sb-footer">
+        <a href="index.html" data-i18n="m-sb-footer-home">← 返回首页</a>
+        <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
+    </div>
+</aside>
+
+<!-- ═══════════ MAIN CONTENT ═══════════ -->
+<main class="doc-content">
+
+<!-- ═══════════ QUICK START ═══════════ -->
+<section class="content-section" id="quickstart">
+    <h2 data-i18n="m-qs-heading">快速入门</h2>
+    <p data-i18n="m-qs-intro">打开软件后，三步即可看到第一条数据：</p>
+    <ol>
+        <li><strong data-i18n="m-qs-step1-label">选择串口</strong><span data-i18n="m-qs-step1-desc"> — 顶栏下拉菜单自动扫描可用串口</span></li>
+        <li><strong data-i18n="m-qs-step2-label">点击连接</strong><span data-i18n="m-qs-step2-desc"> — 波特率默认 115200，通常不需要改</span></li>
+        <li><strong data-i18n="m-qs-step3-label">切换到对应标签页</strong><span data-i18n="m-qs-step3-desc"> — 数据会自动路由到正确的面板</span></li>
+    </ol>
+    <p><span data-i18n="m-qs-stm32-send">STM32 端发一行 <code>[plot,ch1,25.3]</code>，波形图面板即刻显示曲线。</span><strong data-i18n="m-qs-no-config">无需任何配置。</strong></p>
+
+    <div class="callout">
+        <strong data-i18n="m-qs-callout-q">💡 第一次用？</strong><span data-i18n="m-qs-callout-body"> 到 <a href="https://github.com/Encaron/SerialMonitor/tree/master/Serial_C_Language" target="_blank">GitHub 下载 STM32 C 库</a>（<code>Serial.c</code> + <code>Serial.h</code>），扔进 CubeMX 工程。配套演示工程在 <code>example/</code> 目录，烧录到 STM32F407 即可看到所有面板的演示数据。</span>
+    </div>
+
+    <div class="callout warn">
+        <strong data-i18n="m-qs-warn-title">⚠️ 发送间隔不能太小！</strong><span data-i18n="m-qs-warn-body"> 这是最容易踩的坑——传感数据、波形、滑杆等常规传输建议 <strong>50ms</strong> 以上间隔，PC 画板绘图建议 <strong>5ms</strong> 以上。想象一下：8 张传感卡片 × 每条 ~40 字节 × 每 5ms 发一次 = 每秒 64KB 塞进串口。PC 端来不及解析渲染，软件直接卡死。<strong>数据不是越快越好——是稳定才好。</strong></span>
+    </div>
+</section>
+
+<!-- ═══════════ PANEL DETAILS ═══════════ -->
+<section class="content-section" id="panels">
+    <h2 data-i18n="m-panels-heading">面板详情</h2>
+    <p data-i18n="m-panels-intro">协议格式统一：<code>[type,参数...]</code>，PC 端根据 <code>type</code> 字段自动路由到对应面板。</p>
+</section>
+
+<!-- 收发区（同一标签页，上收下发） -->
+<section class="content-section" id="p-serial">
+    <h3 data-i18n="m-serial-heading">收发区</h3>
+    <p data-i18n="m-serial-desc">串口通信的主标签页，上半部分接收数据，下半部分发送数据。</p>
+
+    <h4 id="p-serial-recv" data-i18n="m-serial-recv-heading">📥 接收区</h4>
+    <p data-i18n="m-serial-recv-desc">所有串口数据在此显示。AvalonEdit 虚拟化渲染，高频数据不掉帧。</p>
+    <p data-i18n="m-serial-recv-toolbar"><strong>工具栏：</strong>⏸ 暂停 / 导出日志 / 清空接收区 / 🔍 搜索（Ctrl+F，支持关键字/正则/大小写）/ 📡 筛选（按协议类型过滤显示内容）。</p>
+    <p data-i18n="m-serial-recv-sidebar"><strong>侧栏设置：</strong>时间戳格式（无/HH:mm:ss/HH:mm:ss.fff/yyyy-MM-dd HH:mm:ss）、消息回显、行号显示、系统消息独立显示（三色日志）。换行符可选（\r\n / \n / \r / 无）。定时发送可设间隔（ms），可选发送后自动清空发送区。接收/发送编码（UTF-8 / GBK）、HEX/文本双模式独立切换。</p>
+
+    <h4 id="p-serial-send" data-i18n="m-serial-send-heading">📤 发送区</h4>
+    <p data-i18n="m-serial-send-desc">快捷发送 chip 按钮 + 右键编辑删除、发送历史（最近 20 条去重，▾ 下拉）、HEX 实时格式化提醒。Enter = 发送 / Shift+Enter = 换行。</p>
+    <img src="images/serial-connected.png" alt="收发区" data-i18n="m-img-alt-serial" loading="lazy">
+</section>
+
+<!-- 波形图（同标签页：时域 + 调参 + FFT） -->
+<section class="content-section" id="p-plot-all">
+    <h3 data-i18n="m-plot-heading">📈 波形图</h3>
+    <p data-i18n="m-plot-desc">同一标签页内切换三种视图：时域波形 → 调参工作台（底部抽屉）→ FFT 频谱（⏱/📶 按钮）。通道名自动成为图例，颜色自动分配。</p>
+
+    <h4 id="p-plot" data-i18n="m-plot-sub-heading">时域波形</h4>
+    <pre><code>[plot,通道名,数值]</code></pre>
+    <pre><code>// 单通道
+Serial_Printf(&amp;huart1, "[plot,ch1,%d]\r\n", adc_val);
+// 多通道 — 一条消息发多条曲线
+Serial_Printf(&amp;huart1, "[plot,ax,%.2f][plot,ay,%.2f][plot,az,%.2f]\r\n", ax, ay, az);
+// PID 调参 — 名字自动成为图例
+Serial_Printf(&amp;huart1, "[plot,P,%.3f][plot,I,%.3f][plot,D,%.3f]\r\n", kp, ki, kd);</code></pre>
+    <p data-i18n="m-plot-sidebar"><strong>侧栏设置：</strong>显示模式（滚动/扫描）、数据点数、Y 轴自动/手动（含上下限）、标点 / 连线 / 数值 HUD 独立开关。🗑 清除全部曲线、📥 导出 CSV。滚轮缩放、右键拖拽平移、悬停查看数值。</p>
+    <p data-i18n="m-plot-signal-analysis"><strong>暂停后 📊 详细：</strong>点击 📊 进入信号分析面板——Vpp / Vmax / Vmin / 平均值 / RMS、频率 / 周期 / 占空比 / 高电平时间 / 低电平时间 / 上升时间 / 下降时间、波形类型识别（正弦/方波/三角/锯齿/AM/混合/噪声/阻尼/脉冲）。📄 复制数据、📊 复制统计、📋 全部复制。</p>
+    <img src="images/plot-waveform.png" alt="波形图" data-i18n="m-img-alt-plot" loading="lazy">
+    <img src="images/plot-detail.png" alt="信号分析" data-i18n="m-img-alt-signal" loading="lazy">
+
+    <h4 id="p-tuning" data-i18n="m-plot-tuning-heading">🎛️ 调参工作台</h4>
+    <p data-i18n="m-plot-tuning-desc">波形图底部可伸缩抽屉。拖动滑杆调整 PID 参数，同时实时观察波形变化。</p>
+    <pre><code>[slider,参数名,数值]        ← PC 端拖滑杆 → 回控 MCU</code></pre>
+    <p data-i18n="m-plot-tuning-vm">滑杆与 Sliders 面板共享 VM，步长/颜色/范围双向即时生效。+/- 按钮精调 PID。</p>
+    <img src="images/plot-tuning.png" alt="调参工作台" data-i18n="m-img-alt-tuning" loading="lazy">
+
+    <h4 id="p-fft" data-i18n="m-sb-link-fft">📶 FFT 频谱</h4>
+    <p data-i18n="m-plot-fft-desc">点 ⏱/📶 按钮一键切换到频域。PC 端自动对 <code>[plot,...]</code> 数据滑窗 FFT，STM32 端零改动。也可由 STM32 端 CMSIS-DSP 计算后直发：</p>
+    <pre><code>[fft,通道名,点数,bin0,bin1,...]  ← STM32 端直发频谱</code></pre>
+    <p data-i18n="m-plot-fft-details">窗函数：汉宁 / 矩形 / 汉明 / 布莱克曼。频域指标：基频 / 幅度 / THD / SNR / DC 偏置。采样率输入 → X 轴 Bin → Hz 显示。</p>
+    <img src="images/plot-fft.png" alt="FFT 频谱" data-i18n="m-img-alt-fft" loading="lazy">
+    <img src="images/plot-fft-options.png" alt="FFT 侧栏设置" data-i18n="m-img-alt-fft-opts" loading="lazy">
+</section>
+
+<!-- 传感面板 -->
+<section class="content-section" id="p-sensor">
+    <h3 data-i18n="m-sensor-heading">📡 传感面板</h3>
+    <p data-i18n="m-sensor-intro">STM32 发一行 <code>[sensor,temp,芯片温度,42.5]</code>，PC 端自动建卡——零配置，即插即显。</p>
+
+    <h4 data-i18n="m-sensor-sub-heading">协议格式</h4>
+    <pre><code>[sensor,类型,卡片名,值,辅助参数]</code></pre>
+    <p data-i18n="m-sensor-empty-field">中间参数如果读不到，用双逗号留空即可——后面的参数不受影响：</p>
+    <pre><code>[sensor,temp,芯片温度,,45]       ← 温度值失效，PWM 占空比照发
+[sensor,humidity,环境,68.2]         ← 全部字段正常
+[sensor,motor,电机1,,85]            ← 转速读不到，占空比照显</code></pre>
+    <p data-i18n="m-sensor-empty-behavior">值留空时卡片显示 <code>--</code>，不进迷你波形（不污染图表），辅助参数照常显示。传感器异常不用写额外处理逻辑。</p>
+
+    <h4 data-i18n="m-sensor-sub-heading-8">8 类卡片</h4>
+    <table>
+        <tr><th data-i18n="m-sensor-table-type">类型</th><th data-i18n="m-sensor-table-format">格式</th><th data-i18n="m-sensor-table-example">示例</th></tr>
+        <tr><td data-i18n="m-sensor-card-temp">温度</td><td><code>[sensor,temp,名,°C]</code></td><td><code>[sensor,temp,芯片,42.5]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-humidity">湿度</td><td><code>[sensor,humidity,名,%]</code></td><td><code>[sensor,humidity,环境,68.2]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-pressure">气压</td><td><code>[sensor,pressure,名,hPa]</code></td><td><code>[sensor,pressure,气压,1013.2]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-status">状态</td><td><code>[sensor,status,名,online]</code></td><td><code>[sensor,status,主板,online]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-motor">电机</td><td><code>[sensor,motor,名,RPM,PWM%]</code></td><td><code>[sensor,motor,电机1,2450,85]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-battery">电池</td><td><code>[sensor,battery,名,V]</code></td><td><code>[sensor,battery,电池,3.85]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-ctrl">开关</td><td><code>[ctrl,led,名,on/off]</code></td><td><code>[ctrl,led,蓝色LED,on]</code></td></tr>
+        <tr><td data-i18n="m-sensor-card-slider">滑杆</td><td><code>[sensor,slider,名,值]</code></td><td><code>[sensor,slider,亮度,75]</code></td></tr>
+    </table>
+
+    <p data-i18n="m-sensor-normal-mode"><strong>普通模式：</strong>卡片概览。开关卡点一下 → <code>[ctrl,led,名,on]</code> 发回 MCU。滑杆卡拖拽实时回控。数值卡内嵌 30 点迷你面积图，鼠标悬停查看数据点。状态卡 2 秒心跳超时自动绿变红、online→offline。</p>
+    <p data-i18n="m-sensor-edit-mode"><strong>编辑模式（卡片管理）：</strong>点"编辑"进入——拖拽排序卡片、增删改卡片、分组布局。侧栏切换分组，每组可独立管理。</p>
+    <img src="images/sensor-edit.png" alt="传感面板编辑" data-i18n="m-img-alt-sensor-edit" loading="lazy">
+
+    <div class="callout">
+        <strong data-i18n="m-sensor-heartbeat-title">💡 心跳机制：</strong><span data-i18n="m-sensor-heartbeat-body"> 状态卡每次收到 <code>[sensor,status,名,online]</code> 重置 2s 倒计时。超时自动绿变红、online→offline。固件挂了不需要发 offline——"死人不会打电话报丧"。</span>
+    </div>
+    <img src="images/sensor-fire.png" alt="传感面板" data-i18n="m-img-alt-sensor" loading="lazy">
+    <div class="callout" style="border-left-color:var(--accent);font-size:0.82rem;margin-top:8px">
+        <strong data-i18n="m-sensor-note-title">💡 注意：</strong><span data-i18n="m-sensor-note-body">图中波形由 MCU 端随机数模拟生成，不代表真实传感器数据。实际使用时波形由你的传感器读数决定。</span>
+    </div>
+</section>
+
+<!-- 按键面板 -->
+<section class="content-section" id="p-keys">
+    <h3 data-i18n="m-keys-heading">🔘 按键面板</h3>
+    <p data-i18n="m-keys-desc">虚拟按键面板，PC 端按下 → 发送 <code>[key,name,state]</code> → MCU 端响应。</p>
+    <h4 data-i18n="m-keys-sub-heading-protocol">协议格式</h4>
+    <pre><code>[key,按键名,状态]           ← 状态 = "on" | "off"（字符串，非 0/1）</code></pre>
+    <h4 data-i18n="m-keys-mcu-example">MCU 端接收示例</h4>
+    <pre><code>char type[16], name[32], state[16];
+GetField(raw, 0, type, sizeof(type));
+GetField(raw, 1, name, sizeof(name));
+GetField(raw, 2, state, sizeof(state));
+
+if (strcmp(type, "key") == 0) {
+    if (strcmp(name, "KEY1") == 0 &amp;&amp; strcmp(state, "on") == 0) {
+        HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    }
+}</code></pre>
+    <p data-i18n="m-keys-normal-mode"><strong>普通模式：</strong>点按键 → 侧栏显示最后操作反馈（按下/松开协议预览，可复制）。</p>
+    <p data-i18n="m-keys-edit-mode"><strong>编辑模式：</strong>点"编辑"进入——+ 添加按键、⌨ 键盘布局（6 种预设）、🗑 清空全部。选中按键后侧栏编辑属性：按键名、自锁开关、按下/松开模式（null / 键名 / up / down / on / off）及对应发送值、宽度/高度、颜色（40 色 Material Design 色板 + hex 自定义）。支持批量选中编辑 + 🗑 删除。</p>
+    <img src="images/keys-panel.png" alt="按键面板" data-i18n="m-img-alt-keys" loading="lazy">
+    <img src="images/keys-edit.png" alt="按键编辑" data-i18n="m-img-alt-keys-edit" loading="lazy">
+</section>
+
+<!-- 滑杆面板 -->
+<section class="content-section" id="p-sliders">
+    <h3 data-i18n="m-sliders-heading">🎚️ 滑杆面板</h3>
+    <p data-i18n="m-sliders-desc">拖拽滑杆 → 节流发送 <code>[slider,name,val]</code> → MCU 端实时接收数值。</p>
+    <h4 data-i18n="m-sliders-sub-heading-protocol">协议格式</h4>
+    <pre><code>[slider,滑杆名,数值]         ← 值范围取决于滑杆配置（默认 0~100）</code></pre>
+    <h4 data-i18n="m-sliders-mcu-example">MCU 端接收示例（PWM 调光）</h4>
+    <pre><code>if (strcmp(type, "slider") == 0) {
+    char name[32], valStr[16];
+    GetField(raw, 1, name, sizeof(name));
+    GetField(raw, 2, valStr, sizeof(valStr));
+
+    if (strcmp(name, "Slider1") == 0) {
+        float duty = (float)atof(valStr);          // "75.5" → 75.5f
+        TIM2-&gt;CCR1 = (uint32_t)(duty / 100.0f * 999);
+    }
+}</code></pre>
+    <p data-i18n="m-sliders-normal-mode"><strong>普通模式：</strong>侧栏快捷预设（全部归零/置中/全部最大）、当前值/范围/步长/发送值实时显示、协议预览可复制。</p>
+    <p data-i18n="m-sliders-edit-mode"><strong>编辑模式：</strong>点"编辑"进入——+ 添加滑杆、🗑 清空全部。选中滑杆后侧栏编辑：名称、最小值/最大值、步长、发送间隔(ms)、颜色、轨道风格（默认/极简 + 自定义 PNG）、拇指风格（默认/极简 + 自定义 PNG）。🗑 删除此滑杆。</p>
+    <img src="images/sliders-panel.png" alt="滑杆面板" data-i18n="m-img-alt-sliders" loading="lazy">
+    <img src="images/sliders-edit.png" alt="滑杆编辑" data-i18n="m-img-alt-sliders-edit" loading="lazy">
+</section>
+
+<!-- 摇杆面板 -->
+<section class="content-section" id="p-joystick">
+    <h3 data-i18n="m-joystick-heading">🕹️ 摇杆面板</h3>
+    <p data-i18n="m-joystick-desc">双轴摇杆控件 → <code>[joystick,id,x1,y1,x2,y2]</code> → MCU 端控制（如小车/云台）。</p>
+    <h4 data-i18n="m-joystick-sub-heading-protocol">协议格式</h4>
+    <pre><code>[joystick,id,x1,y1,x2,y2]    ← (x1,y1)=摇杆1, (x2,y2)=摇杆2
+                              坐标 -100~100，中心=0</code></pre>
+    <p data-i18n="m-joystick-sidebar"><strong>侧栏设置：</strong>发送间隔(ms)。⟲ 全部回中。摇杆反馈——实时显示当前坐标值 + 协议预览 <code>[joystick,id,x1,y1,x2,y2]</code>。</p>
+    <p data-i18n="m-joystick-style"><strong>风格：</strong>3 种内置风格（手柄/极简/经典）+ 自定义图片素材。顶栏「底板 ▾」「拇指 ▾」分别切换。自定义 PNG 放入素材文件夹即可自动识别。</p>
+    <img src="images/joystick-panel.png" alt="摇杆面板" data-i18n="m-img-alt-joystick" loading="lazy">
+</section>
+
+<!-- OLED 绘图 & PC 画板 -->
+<section class="content-section" id="p-oled">
+    <h3 data-i18n="m-oled-heading">🎨 OLED 绘图 &amp; PC 画板</h3>
+    <p data-i18n="m-oled-desc">PC 端鼠标绘制图形 → 实时转换为 <code>[draw,...]</code> 协议 → STM32 接收后渲染到物理 OLED/LCD 屏幕。</p>
+
+    <h4 data-i18n="m-oled-11-commands">11 种绘图指令</h4>
+    <table>
+        <tr><th data-i18n="m-oled-table-cmd">指令</th><th data-i18n="m-oled-table-format">格式</th></tr>
+        <tr><td data-i18n="m-oled-cmd-point">点</td><td><code>[draw,point,x,y,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-line">线</td><td><code>[draw,line,x1,y1,x2,y2,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-rect">矩形</td><td><code>[draw,rect,x,y,w,h,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-rrect">圆角矩形</td><td><code>[draw,rrect,x,y,w,h,r,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-circle">圆</td><td><code>[draw,circle,cx,cy,r,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-ellipse">椭圆</td><td><code>[draw,ellipse,cx,cy,rx,ry,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-triangle">三角形</td><td><code>[draw,triangle,x1,y1,x2,y2,x3,y3,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-arc">弧线</td><td><code>[draw,arc,cx,cy,r,start,end,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-text">文字</td><td><code>[draw,text,x,y,content,size,#color]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-clear">清屏</td><td><code>[draw,clear]</code></td></tr>
+        <tr><td data-i18n="m-oled-cmd-f5">F5 增量同步</td><td><code>[draw,set,id,指令,参数...]</code> / <code>[draw,del,id]</code></td></tr>
+    </table>
+
+    <p data-i18n="m-oled-features">旋转支持：矩形/椭圆支持旋转，<code>a&lt;angle&gt;</code> 协议后缀。F5 增量同步：拖动图形时每次只发 1 帧，MCU 本地维护图形数组。双屏支持：OLED 128×64 + LCD 240×280，注释一行代码即可切换。PC 画板：类似画图软件，鼠标拖拽绘制 → 实时同步到 STM32 物理屏幕。</p>
+    <img src="images/oled-canvas.png" alt="PC 画板" data-i18n="m-img-alt-oled" loading="lazy">
+
+    <a href="oled.html" style="display:block;margin-top:24px;padding:16px 24px;background:var(--accent);color:#fff;border-radius:var(--radius);text-align:center;text-decoration:none;font-weight:700;font-size:1.05rem;letter-spacing:0.02em;transition:filter 0.15s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'" data-i18n="m-oled-cta">
+        👆 点击查看完整 MCU 端解析代码 —— GetField · 路由 · F5 · 旋转 · 双屏
+    </a>
+</section>
+
+<!-- ═══════════ PROTOCOL REFERENCE ═══════════ -->
+<section class="content-section" id="protocol">
+    <h2 data-i18n="m-proto-heading">协议速查</h2>
+    <p data-i18n="m-proto-intro">全部协议格式、参数、方向、示例。📤 = MCU→PC &nbsp; 📥 = PC→MCU &nbsp; 🔄 = 双向。</p>
+    <table>
+        <tr><th data-i18n="ch3-tbl-type">Type</th><th data-i18n="m-proto-th-format">格式</th><th data-i18n="m-proto-th-dir">方向</th><th data-i18n="m-proto-th-example">示例</th><th data-i18n="m-proto-th-desc">说明</th></tr>
+        <tr><td><code>plot</code></td><td><code>[plot,通道名,数值]</code></td><td>📤</td><td><code>[plot,ch1,25.3]</code></td><td data-i18n="m-proto-desc-plot">通道名自动成为图例，多通道一条消息</td></tr>
+        <tr><td><code>fft</code></td><td><code>[fft,通道名,点数,bin0,...]</code></td><td>📤</td><td><code>[fft,ch1,256,0,12,45,...]</code></td><td data-i18n="m-proto-desc-fft">STM32 端 CMSIS-DSP FFT 后发送</td></tr>
+        <tr><td><code>sensor</code></td><td><code>[sensor,类型,卡片名,值,辅助]</code></td><td>📤</td><td><code>[sensor,temp,芯片,42.5]</code></td><td data-i18n="m-proto-desc-sensor">8 种卡片类型，零配置自动建卡</td></tr>
+        <tr><td><code>ctrl</code></td><td><code>[ctrl,子类型,名,动作]</code></td><td>🔄</td><td><code>[ctrl,led,LED1,on]</code></td><td data-i18n="m-proto-desc-ctrl">开关卡/滑杆卡双向控制</td></tr>
+        <tr><td><code>key</code></td><td><code>[key,按键名,状态]</code></td><td>📥</td><td><code>[key,KEY1,on]</code></td><td data-i18n="m-proto-desc-key">状态="on"/"off"（字符串）</td></tr>
+        <tr><td><code>slider</code></td><td><code>[slider,滑杆名,数值]</code></td><td>📥</td><td><code>[slider,kp,0.85]</code></td><td data-i18n="m-proto-desc-slider">拖动节流发送，松手发最终值</td></tr>
+        <tr><td><code>joystick</code></td><td><code>[joystick,id,x1,y1,x2,y2]</code></td><td>📥</td><td><code>[joystick,1,50,-30,0,0]</code></td><td data-i18n="m-proto-desc-joystick">坐标 -100~100，中心=0</td></tr>
+        <tr><td><code>draw</code></td><td><code>[draw,指令,参数...]</code></td><td>📥</td><td><code>[draw,circle,64,32,20,#FFF]</code></td><td data-i18n="m-proto-desc-draw">11 种绘图指令 + F5 增量同步</td></tr>
+        <tr><td><code>draw,set</code></td><td><code>[draw,set,id,指令,参数...]</code></td><td>📥</td><td><code>[draw,set,a1,circle,64,32,20,#0F0]</code></td><td data-i18n="m-proto-desc-draw-set">F5 增量同步——只发变化的图形</td></tr>
+        <tr><td><code>draw,del</code></td><td><code>[draw,del,id]</code></td><td>📥</td><td><code>[draw,del,a1]</code></td><td data-i18n="m-proto-desc-draw-del">F5 删除图形</td></tr>
+        <tr><td><code>display</code></td><td><code>[display,x,y,text,size,#color]</code></td><td>📥</td><td><code>[display,0,0,Hello,24,#FFF]</code></td><td data-i18n="m-proto-desc-display">旧协议，建议用 <code>[draw,text,...]</code></td></tr>
+    </table>
+
+    <div class="callout">
+        <strong data-i18n="m-proto-rules-title">📌 协议通用规则：</strong>
+        <ul>
+            <li data-i18n="m-proto-rule-1">方括号 <code>[]</code> 包裹每条消息，逗号分隔字段</li>
+            <li data-i18n="m-proto-rule-2">一条消息可含多组方括号：<code>[plot,a,1][plot,b,2]\r\n</code></li>
+            <li data-i18n="m-proto-rule-3">消息以 <code>\r\n</code> 结尾（<code>Serial_Printf</code> 自动追加）</li>
+            <li data-i18n="m-proto-rule-4">小数点 <code>.</code> 不是分隔符——<code>42.5</code> 不会被拆断</li>
+            <li data-i18n="m-proto-rule-5">字段留空用双逗号：<code>[sensor,temp,温度,,85]</code> → 值显示 <code>--</code></li>
+        </ul>
+    </div>
+</section>
+
+<!-- ═══════════ SETTINGS ═══════════ -->
+<section class="content-section" id="settings">
+    <h2 data-i18n="m-settings-heading">设置页</h2>
+    <p data-i18n="m-settings-desc">点击标签栏最右侧的 ⚙ 进入设置页。左侧为导航，右侧为子页面。所有设置实时生效，无需重启。</p>
+    <img src="images/settings-about.png" alt="设置页" data-i18n="m-img-alt-settings" loading="lazy">
+
+    <h4 data-i18n="m-settings-serial">📡 串口配置</h4>
+    <p data-i18n="m-settings-serial-body">数据位（5~8）、停止位（1/1.5/2）、校验位（None/Odd/Even）、流控（None/RTS/XOnXOff）。DTR / RTS 控制信号可手动开关。自动重连——串口意外断开后自动尝试重新连接。流量计数保持——串口重开时不重置 TX/RX 字节计数。</p>
+
+    <h4 data-i18n="m-settings-shortcuts">⌨ 快捷键提示</h4>
+    <table>
+        <tr><th data-i18n="m-settings-th-group">分组</th><th data-i18n="m-settings-th-key">快捷键</th><th data-i18n="m-settings-th-func">功能</th></tr>
+        <tr><td data-i18n="m-settings-group-global">全局</td><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td data-i18n="m-settings-func-open">打开 / 关闭串口</td></tr>
+        <tr><td data-i18n="m-settings-group-global">全局</td><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td data-i18n="m-settings-func-pause">暂停 / 继续显示</td></tr>
+        <tr><td data-i18n="m-settings-group-global">全局</td><td><kbd>Ctrl</kbd> + <kbd>L</kbd></td><td data-i18n="m-settings-func-clear-recv">清空接收区</td></tr>
+        <tr><td data-i18n="m-settings-group-global">全局</td><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd></td><td data-i18n="m-settings-func-clear-send">清空发送区</td></tr>
+        <tr><td data-i18n="m-settings-group-global">全局</td><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td data-i18n="m-settings-func-search">呼出接收区搜索栏</td></tr>
+        <tr><td data-i18n="m-settings-group-send">发送区</td><td><kbd>Enter</kbd></td><td data-i18n="m-settings-func-send">发送</td></tr>
+        <tr><td data-i18n="m-settings-group-send">发送区</td><td><kbd>Shift</kbd> + <kbd>Enter</kbd></td><td data-i18n="m-settings-func-newline">换行</td></tr>
+    </table>
+
+    <h4 data-i18n="m-settings-examples">📖 使用示例</h4>
+    <p data-i18n="m-settings-examples-body">各面板的协议格式示例，和 MCU 端 <code>Serial_Printf</code> 模板一致。新手可从这里复制粘贴到 STM32 工程验证。</p>
+
+    <h4 data-i18n="m-settings-assets">🎨 素材自定义</h4>
+    <p data-i18n="m-settings-assets-body">滑杆轨道和拇指支持自定义颜色。摇杆底板和拇指支持自定义 PNG 图片素材——放入素材文件夹，软件下拉菜单自动识别。删除 PNG 后重启软件，菜单中自动消失。内置风格（默认/极简/经典）始终可用。页面显示当前素材文件夹路径，点一下即可复制。</p>
+
+    <h4 data-i18n="m-settings-about">ℹ 关于</h4>
+    <p data-i18n="m-settings-about-body">版本号、作者（冯毅力）、技术栈（.NET 8 / WPF / OxyPlot / AvalonEdit / CommunityToolkit.Mvvm）、.NET 运行时版本。GitHub 仓库地址、用户数据路径、Issue 反馈链接均支持一键复制或浏览器打开。</p>
+
+    <h4 data-i18n="m-settings-i18n-theme">🌐 中英双语 + 🌙 主题切换</h4>
+    <p data-i18n="m-settings-i18n-theme-body">设置页底部常驻 <strong>中/EN</strong> 和 <strong>☀/🌙</strong> 按钮，和顶栏按钮等价。~550 条翻译全覆盖，21 色 DynamicResource 原地变色。</p>
+</section>
+
+<!-- ═══════════ MCU INTEGRATION ═══════════ -->
+<section class="content-section" id="mcu">
+    <h2 data-i18n="m-mcu-heading">MCU 对接</h2>
+    <p data-i18n="m-mcu-intro">MCU 端只需 <code>Serial.c</code> + <code>Serial.h</code> 两个文件，扔进 CubeMX 工程即可。<strong>零依赖、零 malloc。</strong></p>
+
+    <h3 data-i18n="m-mcu-step1">① 导入文件</h3>
+    <p data-i18n="m-mcu-step1-desc">将 <code>Serial.c</code> 和 <code>Serial.h</code> 复制到 CubeMX 工程的 <code>Core/Src/</code> 和 <code>Core/Inc/</code>。</p>
+    <img src="images/cubemx-usart.png" alt="CubeMX USART 配置" data-i18n="m-img-alt-cubemx-usart" loading="lazy">
+    <p data-i18n="m-mcu-select-uart">在 <code>Serial.h</code> 顶部选择启用哪些串口：</p>
+    <pre><code>#define SERIAL_USE_USART1 1   // 启用
+#define SERIAL_USE_USART2 0   // 禁用
+#define SERIAL_USE_USART3 0   // 禁用</code></pre>
+
+    <h3 data-i18n="m-mcu-step2">② ⚠️ 开启串口中断（必须）</h3>
+    <p data-i18n="m-mcu-step2-desc">在 CubeMX 中，对每个要用的 USART：<strong>NVIC Settings</strong> → 勾选 <code>USARTx global interrupt</code> ✅。不勾中断 → 接收功能静默失效。</p>
+    <img src="images/cubemx-nvic.png" alt="CubeMX NVIC 中断设置" data-i18n="m-img-alt-cubemx-nvic" loading="lazy">
+
+    <h3 data-i18n="m-mcu-step3">③ 三行初始化</h3>
+    <pre><code>#include "Serial.h"
+
+int main(void) {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+
+    // ↓ 就这一行——启动方括号协议接收
+    UART_InitReceive(SERIAL_DEVICE_1, SERIAL_PROTOCOL, SERIAL_SQUARE_BRACKET);
+
+    while (1) {
+        if (UART_GetRxFlag(SERIAL_DEVICE_1)) {
+            char *msg = UART_GetRxData(SERIAL_DEVICE_1);
+            // msg = "ctrl,led,LED1,on"（方括号和 \r\n 已剥离）
+        }
+    }
+}</code></pre>
+
+    <h3 data-i18n="m-mcu-step4">④ 发送数据到 PC（6 个函数）</h3>
+    <table>
+        <tr><th data-i18n="m-mcu-th-func">函数</th><th data-i18n="m-mcu-th-desc">说明</th><th data-i18n="m-mcu-th-example">示例</th></tr>
+        <tr><td><code>Serial_SendByte</code></td><td data-i18n="m-mcu-func-byte">发一个字节</td><td><code>Serial_SendByte(&amp;huart1, 0x42)</code></td></tr>
+        <tr><td><code>Serial_SendArray</code></td><td data-i18n="m-mcu-func-array">发字节数组</td><td><code>Serial_SendArray(&amp;huart1, data, 4)</code></td></tr>
+        <tr><td><code>Serial_SendString</code></td><td data-i18n="m-mcu-func-string">发字符串</td><td><code>Serial_SendString(&amp;huart1, "OK\r\n")</code></td></tr>
+        <tr><td><code>Serial_SendNumber</code></td><td data-i18n="m-mcu-func-number">发定长数字</td><td><code>Serial_SendNumber(&amp;huart1, 42, 2)</code></td></tr>
+        <tr><td><strong><code>Serial_Printf</code></strong></td><td data-i18n="m-mcu-func-printf">格式化发送 ⭐</td><td><code>Serial_Printf(&amp;huart1, "Val:%.1f\r\n", 3.14)</code></td></tr>
+        <tr><td><code>Serial_SendPacket</code></td><td data-i18n="m-mcu-func-packet">发数据包</td><td><code>Serial_SendPacket(&amp;huart1, data, len)</code></td></tr>
+    </table>
+
+    <h3 data-i18n="m-mcu-step5">⑤ 接收 PC 指令</h3>
+    <p data-i18n="m-mcu-step5-desc">主循环中轮询接收，用 <code>GetField</code> 拆字段，按 <code>type</code> 路由：</p>
+    <pre><code>// GetField — 从逗号串提取第 index 个字段
+void GetField(const char *str, int index, char *out, int outSize);
+
+// 例：raw = "ctrl,led,LED1,on"
+char type[16], name[32], action[8];
+GetField(raw, 0, type, sizeof(type));     // type   = "ctrl"
+GetField(raw, 2, name, sizeof(name));     // name   = "LED1"
+GetField(raw, 3, action, sizeof(action)); // action = "on"
+
+// 按 type 路由到对应 handler
+if (strcmp(type, "ctrl")   == 0) Ctrl_Handle(raw);
+else if (strcmp(type, "slider") == 0) Slider_Handle(raw);
+else if (strcmp(type, "key")    == 0) Key_Handle(raw);
+else if (strcmp(type, "draw")   == 0) Draw_Handle(raw);</code></pre>
+
+    <h3 data-i18n="m-mcu-step6">⑥ 传感数据上报</h3>
+    <p data-i18n="m-mcu-step6-desc">定时发送传感器读数，PC 端自动建卡。心跳状态卡保持 500ms 间隔：</p>
+    <pre><code>void Sensor_Report(void) {
+    static uint32_t last_ms = 0;
+    if (HAL_GetTick() - last_ms &lt; 500) return;
+    last_ms = HAL_GetTick();
+
+    Serial_Printf(&amp;huart1, "[sensor,temp,芯片温度,%.1f]\r\n", 42.5);
+    Serial_Printf(&amp;huart1, "[sensor,humidity,环境湿度,%.1f]\r\n", 68.2);
+    Serial_Printf(&amp;huart1, "[sensor,status,主板,online]\r\n");  // ← 心跳
+}</code></pre>
+
+    <div class="callout">
+        <strong data-i18n="m-mcu-callout-title">📁 完整演示工程：</strong><span data-i18n="m-mcu-callout-body"> <a href="https://github.com/Encaron/SerialMonitor/tree/master/Serial_C_Language/example" target="_blank">GitHub 上的 STM32F407 CMake 工程</a>，含绘图解析（OLED/LCD 双屏）+ F5 增量同步 + 双滑杆 PWM + 传感面板 + 9 种波形 + 物理按键。</span>
+    </div>
+</section>
+
+<!-- ═══════════ FAQ ═══════════ -->
+<section class="content-section" id="faq">
+    <h2 data-i18n="m-faq-heading">常见问题</h2>
+
+    <h4 data-i18n="m-faq-q1">Q: 接收不到数据，但发送正常？</h4>
+    <p data-i18n="m-faq-a1">99% 是没在 CubeMX 里开串口中断。NVIC 页签 → <code>USARTx global interrupt</code> → 勾上 ✅ → 重新编译。</p>
+
+    <h4 data-i18n="m-faq-q2">Q: 串口列表为空？</h4>
+    <p data-i18n="m-faq-a2">确认设备已连接、驱动已安装。部分 USB 转串口芯片（CH340/CP2102）需手动安装驱动。</p>
+
+    <h4 data-i18n="m-faq-q3">Q: 软件卡死/响应迟钝？</h4>
+    <p data-i18n="m-faq-a3">几乎都是 MCU 端发送太快。常规数据（传感/波形/滑杆/LED）请保持 <strong>50ms</strong> 以上间隔，PC 画板绘图 <strong>5ms</strong> 以上。8 张传感卡片 × 每 5ms 发一次 = 串口瞬间塞爆，PC 端渲染跟不上。宁可慢一点，求稳不求快。</p>
+
+    <h4 data-i18n="m-faq-q4">Q: 波形图卡顿/数据丢失？</h4>
+    <p data-i18n="m-faq-a4">波特率太低——115200 是推荐起点。不要在 <code>while(1)</code> 里放 <code>HAL_Delay(500)</code> 然后发大量数据。</p>
+
+    <h4 data-i18n="m-faq-q5">Q: 传感面板卡片不更新？</h4>
+    <p data-i18n="m-faq-a5">检查协议格式——必须是 <code>[sensor,类型,卡片名,值]</code>。值不能为空（除非主动留空用双逗号 <code>,,</code>）。状态卡 2 秒无心跳自动标红。</p>
+
+    <h4 data-i18n="m-faq-q6">Q: 支持哪些 STM32 系列？</h4>
+    <p data-i18n="m-faq-a6">只要用 HAL 库就支持。已在 STM32F407 和 STM32H743 上验证，F1/G0/L4 理论兼容。</p>
+
+    <h4 data-i18n="m-faq-q7">Q: 如何反馈问题？</h4>
+    <p data-i18n="m-faq-a7">请在 <a href="https://github.com/Encaron/SerialMonitor/issues" target="_blank">GitHub Issues</a> 提交，附上串口参数、操作步骤和截图。</p>
+</section>
+
+</main>
+</div><!-- /.doc-body -->
+
+<button id="back-to-top" title="回到顶部" data-i18n="m-btn-back-to-top">↑</button>
+<div id="lightbox"><img src="" alt=""></div>
+<script src="manual.js"></script>
+</body>
+</html>

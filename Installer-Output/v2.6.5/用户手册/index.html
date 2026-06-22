@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title data-i18n="idx-page-title">Serial Monitor V2 — 串口调试工具</title>
+<link rel="stylesheet" href="manual.css?v=4">
+</head>
+<body>
+<div id="scroll-progress"></div>
+
+<!-- ═══════════ TOP NAV ═══════════ -->
+<header id="topnav">
+    <a href="index.html" class="brand">Serial <span>Monitor</span> V2</a>
+    <nav>
+        <a href="manual.html" data-i18n="idx-nav-manual">使用说明</a>
+        <a href="manual.html#protocol" data-i18n="idx-nav-protocol">协议速查</a>
+        <a href="manual.html#mcu" data-i18n="idx-nav-mcu">MCU 对接</a>
+        <a href="manual.html#faq" data-i18n="idx-nav-faq">常见问题</a>
+        <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
+        <a href="#" id="btn-lang-zh" style="font-weight:bold" data-i18n="lang-zh">中</a>
+        <a href="#" id="btn-lang-en" data-i18n="lang-en">EN</a>
+    </nav>
+</header>
+
+<!-- ═══════════ HERO — split layout ═══════════ -->
+<section id="hero">
+    <canvas id="hero-bg-canvas"></canvas>
+    <div class="hero-split">
+        <div class="hero-left">
+            <img src="images/logo.png" alt="Serial Monitor V2" class="logo-icon" style="object-fit:contain">
+            <h1>Serial Monitor V2</h1>
+            <p class="subtitle" data-i18n="idx-hero-subtitle-line1">
+                基于 WPF + OxyPlot + AvalonEdit 的串口调试工具<br>
+                STM32 端配套 C 库，扔进工程即用
+            </p>
+            <div class="hero-buttons">
+                <a href="https://github.com/Encaron/SerialMonitor/releases" class="btn-hero primary" target="_blank" data-i18n="idx-hero-btn-download">
+                    ⬇ 下载软件
+                </a>
+                <a href="manual.html" class="btn-hero secondary" data-i18n="idx-hero-btn-manual">
+                    📖 使用说明
+                </a>
+            </div>
+            <p class="hero-meta" data-i18n="idx-hero-version-meta">
+                作者：<strong style="color:var(--accent)">冯毅力 (Encaron)</strong> &nbsp;·&nbsp; v2.6.5 &nbsp;·&nbsp; Windows 10+ x64 &nbsp;·&nbsp; .NET 8 &nbsp;·&nbsp; MIT 开源
+            </p>
+        </div>
+        <div class="hero-right">
+            <img src="images/overview.png" alt="Serial Monitor V2 主界面" class="hero-screenshot" data-i18n="idx-hero-screenshot-alt">
+        </div>
+    </div>
+    <div class="scroll-hint" data-i18n="idx-hero-scroll-hint">▼ 向下滚动了解详情</div>
+</section>
+
+<!-- ═══════════ FEATURES ═══════════ -->
+<div class="content-section" id="home-features">
+    <h2 data-i18n="idx-features-heading">为什么选择 Serial Monitor V2？</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📟</div>
+            <h4 data-i18n="idx-features-card1-title">9 个功能面板</h4>
+            <p data-i18n="idx-features-card1-desc">收发区、波形图、FFT 频谱、传感面板、按键、滑杆、摇杆、OLED 绘图——一个软件全搞定。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📡</div>
+            <h4 data-i18n="idx-features-card2-title">零配置，即插即显</h4>
+            <p data-i18n="idx-features-card2-desc">STM32 发一行 <code>[sensor,temp,芯片,42.5]</code>，PC 端自动建卡。协议自动路由，通道名即图例。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h4 data-i18n="idx-features-card3-title">双向控制闭环</h4>
+            <p data-i18n="idx-features-card3-desc">PC 端拖滑杆、点开关、画图形 → 协议实时发回 MCU → 操作硬件。不是单向监视器。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📦</div>
+            <h4 data-i18n="idx-features-card4-title">STM32 端开箱即用</h4>
+            <p data-i18n="idx-features-card4-desc">仅 2 个文件（<code>Serial.c</code> + <code>Serial.h</code>），零依赖零 malloc，扔进 CubeMX 工程即可。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h4 data-i18n="idx-features-card5-title">中英双语 + 亮暗双模</h4>
+            <p data-i18n="idx-features-card5-desc">~550 条翻译一键瞬切。21 色 DynamicResource 原地变色不闪烁。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <h4 data-i18n="idx-features-card6-title">健壮容错</h4>
+            <p data-i18n="idx-features-card6-desc">三个致命路径全 try-catch 保护。崩溃日志自动写入。USB 热插拔自动检测 + 自动重连。</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ PANELS STRIP ═══════════ -->
+<div class="content-section">
+    <h2 data-i18n="idx-panels-heading">10 个面板，一个软件</h2>
+    <p style="text-align:center;max-width:640px;margin:0 auto 32px" data-i18n="idx-panels-intro">协议格式统一为 <code>[type,参数...]</code>。PC 端根据 type 自动路由到对应面板，无需任何配置。</p>
+    <div class="panel-grid">
+        <div class="panel-card"><div class="card-icon">📥📤</div><h4 data-i18n="idx-panels-card1-title">收发区</h4><p data-i18n="idx-panels-card1-desc">AvalonEdit 虚拟化渲染<br>三色日志 + HEX/文本双模</p></div>
+        <div class="panel-card"><div class="card-icon">📈</div><h4 data-i18n="idx-panels-card2-title">波形图</h4><p data-i18n="idx-panels-card2-desc">OxyPlot 实时曲线<br>时域/频域一键切换</p><code>[plot,ch1,25.3]</code></div>
+        <div class="panel-card"><div class="card-icon">📶</div><h4 data-i18n="idx-panels-card3-title">FFT 频谱</h4><p data-i18n="idx-panels-card3-desc">PC 端自动 FFT<br>STM32 端零改动</p><code>[fft,name,256,bin0,...]</code></div>
+        <div class="panel-card"><div class="card-icon">📡</div><h4 data-i18n="idx-panels-card4-title">传感面板</h4><p data-i18n="idx-panels-card4-desc">8 类卡片零配置建卡<br>双向控制 + 心跳检测</p><code>[sensor,temp,芯片,42.5]</code></div>
+        <div class="panel-card"><div class="card-icon">🔘</div><h4 data-i18n="idx-panels-card5-title">按键</h4><p data-i18n="idx-panels-card5-desc">6 种键盘布局<br>40 色自定义</p><code>[key,KEY1,on]</code></div>
+        <div class="panel-card"><div class="card-icon">🎚️</div><h4 data-i18n="idx-panels-card6-title">滑杆</h4><p data-i18n="idx-panels-card6-desc">拖拽节流发送<br>自定义颜色轨道</p><code>[slider,kp,0.85]</code></div>
+        <div class="panel-card"><div class="card-icon">🕹️</div><h4 data-i18n="idx-panels-card7-title">摇杆</h4><p data-i18n="idx-panels-card7-desc">双轴控制<br>3 种风格 + 自定义素材</p><code>[joystick,1,50,-30,0,0]</code></div>
+        <div class="panel-card"><div class="card-icon">🎨</div><h4 data-i18n="idx-panels-card8-title">OLED 绘图</h4><p data-i18n="idx-panels-card8-desc">11 种绘图指令<br>F5 增量同步</p><code>[draw,circle,64,32,20,#FFF]</code></div>
+    </div>
+</div>
+
+<!-- ═══════════ SHOWCASE ═══════════ -->
+<div class="content-section">
+    <h2 data-i18n="idx-showcase-heading">看看实际效果</h2>
+    <div class="showcase-grid">
+        <figure><img src="images/sensor-fire.png" alt="传感面板" loading="lazy" data-i18n="idx-showcase-fig1-alt"><figcaption data-i18n="idx-showcase-fig1-caption">传感面板 — 8 类卡片火力全开</figcaption></figure>
+        <figure><img src="images/plot-waveform.png" alt="波形图" loading="lazy" data-i18n="idx-showcase-fig2-alt"><figcaption data-i18n="idx-showcase-fig2-caption">波形图 — 多通道实时曲线</figcaption></figure>
+        <figure><img src="images/plot-fft.png" alt="FFT 频谱" loading="lazy" data-i18n="idx-showcase-fig3-alt"><figcaption data-i18n="idx-showcase-fig3-caption">FFT 频谱 — 时域/频域一键切换</figcaption></figure>
+        <figure><img src="images/oled-canvas.png" alt="PC 画板" loading="lazy" data-i18n="idx-showcase-fig4-alt"><figcaption data-i18n="idx-showcase-fig4-caption">PC 画板 — 拖拽绘制 + 实时同步 MCU</figcaption></figure>
+    </div>
+</div>
+
+<!-- ═══════════ ENGINEERING DETAILS ═══════════ -->
+<div class="content-section">
+    <h2 data-i18n="idx-engineering-heading">工程细节</h2>
+    <p style="text-align:center;max-width:640px;margin:0 auto 40px;color:var(--text-secondary)" data-i18n="idx-engineering-intro">
+        不是"能跑就行"——每个交互都认真想过。
+    </p>
+    <div class="design-grid design-grid-3">
+        <div class="design-card design-card-icon">
+            <div class="design-icon">🫀</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card1-title">死人不报丧</h4>
+                <p data-i18n="idx-engineering-card1-desc">状态卡每 500ms 发一次心跳。PC 端 2 秒没收到 → 自动绿变红、online → offline。固件挂了不需要发离线消息——"死人不会打电话报丧"。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">🎛</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card2-title">Cluster 思维</h4>
+                <p data-i18n="idx-engineering-card2-desc">8 类卡片，每种长得不一样。温度有波形、湿度有进度条、气压 PC 端自算百分比、开关是 iOS 胶囊滑块。同排混搭，WrapPanel 自然折行。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">✏</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card3-title">编辑模式</h4>
+                <p data-i18n="idx-engineering-card3-desc">卡片间虚线 <code>[+]</code> 悬停弹性展开 8→16px 不挤卡片。F2 改名跳过删卡重选。删组二次确认 3 秒倒计时——不靠弹窗打断。</p>
+            </div>
+        </div>
+    </div>
+    <div class="design-grid design-grid-3" style="margin-top:0">
+        <div class="design-card design-card-icon">
+            <div class="design-icon">🔄</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card4-title">F5 增量同步</h4>
+                <p data-i18n="idx-engineering-card4-desc">PC 画板拖图形时每次只发 <strong>1 帧</strong>——<code>[draw,set,id,...]</code>。MCU 端本地维护图形数组，收到后本地全量重绘。不把整张画布几十条命令重发一遍。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">🖱</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card5-title">调度法</h4>
+                <p data-i18n="idx-engineering-card5-desc">拖滑杆时 <code>InvalidatePlot</code> 走 <code>DispatcherPriority.Background</code>——WPF 优先处理 MouseMove，空闲才渲染波形。拖拽永远流畅，松手瞬间恢复 30Hz。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">📋</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card6-title">文档不写"略"</h4>
+                <p data-i18n="idx-engineering-card6-desc">72 条测试 29ms 全绿。CubeMX 重新生成后 6 个必补坑全写清——栈 1K→4K、<code>-u _printf_float</code>、TIM6_DAC_IRQHandler 永远不生成……嵌入式开发者一看就知道踩过坑。</p>
+            </div>
+        </div>
+    </div>
+    <div class="design-grid" style="margin-top:0">
+        <div class="design-card design-card-icon">
+            <div class="design-icon">📉</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card7-title">迷你波形不糊不单薄</h4>
+                <p data-i18n="idx-engineering-card7-desc">1px 轮廓线保持峰谷细节 + 30% 透明填充给视觉重量。加粗线条 2px+ 会在 140px 宽画布上抹平相邻点差异——面积图方案不碰线宽。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">🪫</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-engineering-card8-title">优雅降级</h4>
+                <p data-i18n="idx-engineering-card8-desc">传感器读回异常？中段留空双逗号 <code>[sensor,temp,温度,,45]</code> → 主值显示 <code>--</code> 不进波形，辅助参数照常显示。不报错、不丢数据、不污染图表。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ DESIGN HIGHLIGHTS ═══════════ -->
+<div class="content-section">
+    <h2 data-i18n="idx-design-heading">为开发者设计</h2>
+    <p style="text-align:center;max-width:640px;margin:0 auto 40px;color:var(--text-secondary)" data-i18n="idx-design-intro">
+        VS Code 风格三栏布局、暗色主题、扁平化设计。嵌入式开发者一眼就能上手。
+    </p>
+    <div class="design-grid">
+        <div class="design-card">
+            <img src="images/overview_dark.png" alt="暗色模式" loading="lazy" data-i18n="idx-design-card1-img-alt">
+            <div class="design-card-text">
+                <h4 data-i18n="idx-design-card1-title">🌙 VS Code 暗色主题</h4>
+                <p data-i18n="idx-design-card1-desc">仿 VS Code Dark+ 配色，21 色 <code>DynamicResource</code> 原地变色不闪烁。从 VS Code 切过来零学习成本——深色背景、蓝色强调、绿色状态灯，肌肉记忆完全复用。</p>
+            </div>
+        </div>
+        <div class="design-card">
+            <img src="images/overview_english.png" alt="英文界面" loading="lazy" data-i18n="idx-design-card2-img-alt">
+            <div class="design-card-text">
+                <h4 data-i18n="idx-design-card2-title">🌐 国际化，国际友人能用</h4>
+                <p data-i18n="idx-design-card2-desc">~550 条翻译全覆盖，中英一键瞬切。ComboBox、系统日志、协议预览、错误提示——全线英文覆盖。GitHub README 双语，STM32 C 库文档双语。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">📐</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-design-card3-title">三栏布局，VS Code 同款交互</h4>
+                <p data-i18n="idx-design-card3-desc">左侧图标栏（Activity Bar）→ 侧面板 220px → 主内容区。标签页点图标切换、侧栏内容跟随图标走、选中态左竖线指示器——和 VS Code 一模一样的操作逻辑。</p>
+            </div>
+        </div>
+        <div class="design-card design-card-icon">
+            <div class="design-icon">⚡</div>
+            <div class="design-card-text">
+                <h4 data-i18n="idx-design-card4-title">一处注册，自动跟</h4>
+                <p data-i18n="idx-design-card4-desc">加新面板只需一行 <code>RegisterTab</code>——图标动效、标签切换、编辑态退出、弹窗主题全部自动处理。复制反馈、Popup 定位、透明按钮模板——框架统一兜底，忘写也不会出 bug。72 条测试 29ms 全绿。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ CTA ═══════════ -->
+<div class="content-section" style="text-align:center">
+    <div class="cta-box">
+        <h2 style="border:none;margin-bottom:12px" data-i18n="idx-cta-heading">准备好开始了吗？</h2>
+        <p style="max-width:500px;margin:0 auto 24px" data-i18n="idx-cta-desc">下载安装包，接上 STM32，发一行 <code>[plot,ch1,25.3]</code>，即刻看到波形。</p>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+            <a href="https://github.com/Encaron/SerialMonitor/releases" class="btn-hero primary" target="_blank" data-i18n="idx-cta-btn-download">⬇ 下载软件</a>
+            <a href="manual.html" class="btn-hero secondary" data-i18n="idx-cta-btn-read-manual">📖 阅读使用说明</a>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer id="footer">
+    <div class="footer-grid">
+        <div class="footer-col">
+            <h5 data-i18n="idx-footer-col1-heading">项目</h5>
+            <a href="https://github.com/Encaron/SerialMonitor" target="_blank">GitHub</a>
+            <a href="https://github.com/Encaron/SerialMonitor/releases" target="_blank" data-i18n="idx-footer-download-release">下载 Release</a>
+            <a href="https://github.com/Encaron/SerialMonitor/issues" target="_blank" data-i18n="idx-footer-issues">问题反馈</a>
+        </div>
+        <div class="footer-col">
+            <h5 data-i18n="idx-footer-col2-heading">文档</h5>
+            <a href="manual.html" data-i18n="idx-footer-manual">使用说明</a>
+            <a href="manual.html#protocol" data-i18n="idx-footer-protocol">协议速查</a>
+            <a href="manual.html#mcu" data-i18n="idx-footer-mcu">MCU 对接</a>
+            <a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial_C_Language/README.md" target="_blank" data-i18n="idx-footer-c-lib-docs">C 库文档</a>
+        </div>
+        <div class="footer-col">
+            <h5 data-i18n="idx-footer-col3-heading">配套资源</h5>
+            <a href="https://github.com/Encaron/SerialMonitor/tree/master/Serial_C_Language" target="_blank" data-i18n="idx-footer-stm32-c-lib">STM32 C 库</a>
+            <a href="https://github.com/Encaron/SerialMonitor/tree/master/Serial_C_Language/example" target="_blank" data-i18n="idx-footer-demo-project">演示工程</a>
+            <a href="https://github.com/Encaron/SerialMonitor/blob/master/Serial%20Monitor%20V2/Docs/MCU/OLED绘图协议.md" target="_blank" data-i18n="idx-footer-oled-protocol">OLED 绘图协议</a>
+        </div>
+    </div>
+
+    <div class="tech-stack">
+        <span>WPF .NET 8</span>
+        <span>OxyPlot</span>
+        <span>AvalonEdit</span>
+        <span>STM32 HAL</span>
+        <span>CMSIS-DSP</span>
+    </div>
+
+    <div class="copyright">
+        <p data-i18n="idx-footer-copyright">&copy; 2026 冯毅力 (Encaron) &nbsp;&middot;&nbsp; 基于 WPF + OxyPlot + AvalonEdit 构建 &nbsp;&middot;&nbsp; STM32 配套 C 库开箱即用</p>
+        <p style="margin-top:4px">
+            <a href="https://github.com/Encaron/SerialMonitor/blob/master/LICENSE" target="_blank" style="color:var(--text-muted)">MIT License</a>
+        </p>
+    </div>
+</footer>
+
+<button id="back-to-top" title="回到顶部" data-i18n="idx-a11y-back-to-top">&uarr;</button>
+<div id="lightbox"><img src="" alt=""></div>
+<script src="manual.js"></script>
+</body>
+</html>
