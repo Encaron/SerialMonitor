@@ -622,7 +622,11 @@ function updateActiveNav() {
             if (group && group.classList.contains('collapsed')) {
                 group.classList.remove('collapsed');
             }
-            activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            /* Only on desktop — sidebar has its own scrollbar there.
+               On mobile the sidebar is inline, scrolling it scrolls the whole page. */
+            if (window.innerWidth > 860) {
+                activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
         }
     }
 }
