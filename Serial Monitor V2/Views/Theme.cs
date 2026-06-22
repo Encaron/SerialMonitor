@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -139,14 +141,48 @@ namespace 串口助手
 
         private void BtnHelp_Click(object sender, RoutedEventArgs e)
         {
-            var manualPath = System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "用户手册", "index.html");
-            if (System.IO.File.Exists(manualPath))
+            var manualDir = Path.Combine(Path.GetTempPath(), "SerialMonitor", "manual");
+            ExtractManualIfNeeded(manualDir);
+            var indexPath = Path.Combine(manualDir, "index.html");
+            if (File.Exists(indexPath))
+            {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = manualPath,
+                    FileName = indexPath,
                     UseShellExecute = true
                 });
+            }
+        }
+
+        private static void ExtractManualIfNeeded(string targetDir)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var currentVersion = assembly.GetName().Version.ToString();
+            var versionFile = Path.Combine(targetDir, ".version");
+
+            // Already extracted this version? Skip.
+            if (File.Exists(versionFile) && File.ReadAllText(versionFile) == currentVersion)
+                return;
+
+            // Clean and recreate
+            try { if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true); }
+            catch { /* locked by another instance — skip extraction */ return; }
+            Directory.CreateDirectory(targetDir);
+
+            var prefix = "串口助手.用户手册.";
+            foreach (var name in assembly.GetManifestResourceNames())
+            {
+                if (!name.StartsWith(prefix)) continue;
+                var relativePath = name.Substring(prefix.Length);
+                var targetPath = Path.Combine(targetDir, relativePath);
+                var dir = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                using (var stream = assembly.GetManifestResourceStream(name))
+                using (var file = File.Create(targetPath))
+                    stream.CopyTo(file);
+            }
+
+            File.WriteAllText(versionFile, currentVersion);
         }
 
         /// <summary>标题栏 DWM 暗色模式（Win10 1809+）</summary>
