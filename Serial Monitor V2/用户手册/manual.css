@@ -35,7 +35,7 @@
         --bg-card:       #ffffff;
         --text:          #1f2328;
         --text-secondary:#656d76;
-        --text-muted:    #8b949e;
+        --text-muted:    #57606a;  /* WCAG AA 4.5:1 on #fff */
         --accent:        #0969da;
         --accent-glow:   rgba(9,105,218,0.08);
         --green:         #1a7f37;
@@ -56,7 +56,10 @@ html { scroll-behavior: smooth; font-size: 16px; }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
                  "Helvetica Neue", Arial, sans-serif;
-    background: var(--bg);
+    background:
+        radial-gradient(circle, var(--border-subtle) 0.5px, transparent 0.5px);
+    background-size: 18px 18px;
+    background-color: var(--bg);
     color: var(--text);
     line-height: 1.7;
     overflow-x: hidden;
@@ -91,18 +94,22 @@ body {
 
 /* ── Hero Section ── */
 #hero {
-    min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-    padding: 80px 24px 60px;
+    padding: 64px 24px 40px;
     position: relative; overflow: hidden;
+    text-align: center;
+}
+.hero-split {
+    display: flex; align-items: center; gap: 56px; max-width: 1100px;
+    width: 100%; text-align: left;
+    margin: 0 auto;
 }
 #hero::before {
     content: '';
     position: absolute; inset: 0;
     background-image:
-        linear-gradient(rgba(88,166,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(88,166,255,0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
+        linear-gradient(rgba(88,166,255,0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(88,166,255,0.09) 1px, transparent 1px);
+    background-size: 56px 56px;
     mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 70%);
     -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 70%);
 }
@@ -160,84 +167,14 @@ body {
     50% { transform: translateX(-50%) translateY(10px); opacity: 1; }
 }
 
-/* ── Features strip (old) ── */
-#features-strip {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 40px;
-    max-width: var(--max-width); margin: -20px auto 80px; padding: 0 24px;
-}
-#features-strip .feat {
-    text-align: center; flex: 1; min-width: 130px; max-width: 180px;
-    padding: 20px 12px; border-radius: var(--radius);
-    transition: background var(--transition);
-}
-#features-strip .feat:hover { background: var(--bg-card); }
-#features-strip .feat .icon { font-size: 2rem; margin-bottom: 8px; transition: transform var(--transition); }
-#features-strip .feat:hover .icon { transform: scale(1.15); }
-#features-strip .feat .label { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-#features-strip .feat .desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-
-/* ── Hero floating orbs ── */
-.hero-orb {
-    position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
-}
-.orb-1 {
-    width: 500px; height: 500px; top: -120px; right: -150px;
-    background: radial-gradient(circle, rgba(88,166,255,0.12) 0%, transparent 70%);
-    animation: orbFloat1 10s ease-in-out infinite;
-}
-.orb-2 {
-    width: 400px; height: 400px; bottom: 5%; left: -120px;
-    background: radial-gradient(circle, rgba(63,185,80,0.1) 0%, transparent 70%);
-    animation: orbFloat2 8s ease-in-out infinite;
-}
-.orb-3 {
-    width: 300px; height: 300px; top: 40%; left: 55%;
-    background: radial-gradient(circle, rgba(210,153,29,0.08) 0%, transparent 70%);
-    animation: orbFloat3 12s ease-in-out infinite;
-}
-@keyframes orbFloat1 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33%  { transform: translate(-40px, 30px) scale(1.1); }
-    66%  { transform: translate(20px, -20px) scale(0.9); }
-}
-@keyframes orbFloat2 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50%  { transform: translate(50px, -25px) scale(1.15); }
-}
-@keyframes orbFloat3 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25%  { transform: translate(-30px, -30px) scale(0.85); }
-    75%  { transform: translate(25px, 20px) scale(1.1); }
+#hero-bg-canvas {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 0;
+    opacity: 0.55;
+    mask-image: linear-gradient(to bottom, black 40%, black 65%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 40%, black 65%, transparent 100%);
 }
 
-/* ── Hero twinkling particles ── */
-.hero-particles {
-    position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    background-image:
-        radial-gradient(2px 2px at 10% 20%, rgba(88,166,255,0.7), transparent),
-        radial-gradient(2px 2px at 25% 10%, rgba(88,166,255,0.5), transparent),
-        radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,0.6), transparent),
-        radial-gradient(2px 2px at 55% 18%, rgba(63,185,80,0.6), transparent),
-        radial-gradient(1px 1px at 70% 35%, rgba(88,166,255,0.7), transparent),
-        radial-gradient(2px 2px at 80% 60%, rgba(210,153,29,0.55), transparent),
-        radial-gradient(1px 1px at 15% 65%, rgba(255,255,255,0.5), transparent),
-        radial-gradient(2px 2px at 45% 75%, rgba(63,185,80,0.6), transparent),
-        radial-gradient(1px 1px at 60% 85%, rgba(88,166,255,0.65), transparent),
-        radial-gradient(2px 2px at 88% 15%, rgba(210,153,29,0.55), transparent),
-        radial-gradient(1px 1px at 92% 50%, rgba(255,255,255,0.5), transparent),
-        radial-gradient(2px 2px at 30% 90%, rgba(88,166,255,0.6), transparent);
-    animation: particlesFade 3s ease-in-out infinite alternate;
-}
-@keyframes particlesFade {
-    0% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* ── Hero split layout ── */
-.hero-split {
-    display: flex; align-items: center; gap: 56px; max-width: 1100px;
-    width: 100%; text-align: left;
-}
 .hero-left { flex: 0 0 auto; max-width: 440px; }
 .hero-right { flex: 1; min-width: 0; }
 .hero-screenshot {
@@ -285,6 +222,53 @@ body {
     text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-top: 8px;
 }
 
+/* ── Design highlights grid ── */
+.design-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px; margin: 24px 0;
+}
+.design-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.design-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.design-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px var(--accent-glow);
+}
+.design-card img {
+    width: 100%; display: block; border-bottom: 1px solid var(--border-subtle);
+}
+/* Dark mode — don't dim these, they're meant to show dark UI */
+@media (prefers-color-scheme: dark) {
+    .design-card img { filter: none; }
+}
+.design-card-text { padding: 20px 24px 24px; }
+.design-card-text h4 {
+    font-size: 1rem; font-weight: 600; margin: 0 0 8px; color: var(--text);
+}
+.design-card-text p {
+    font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0;
+}
+.design-card-text code { font-size: 0.78rem; }
+/* Icon variant */
+.design-card-icon {
+    display: flex; align-items: flex-start; padding: 24px; gap: 20px;
+}
+.design-icon {
+    font-size: 2.2rem; flex-shrink: 0;
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--border-subtle); border-radius: 12px;
+}
+.design-card-icon .design-card-text { padding: 0; }
+@media (max-width: 768px) {
+    .design-grid, .design-grid-3 { grid-template-columns: 1fr; }
+    .design-card-icon { flex-direction: column; gap: 12px; }
+}
+
 /* ── CTA box ── */
 .cta-box {
     background: var(--bg-card); border: 1px solid var(--border);
@@ -317,16 +301,6 @@ body {
 .content-section ol { padding-left: 24px; margin-bottom: 14px; color: var(--text-secondary); }
 .content-section ol li { margin-bottom: 8px; }
 
-/* ── Section entrance animation ── */
-.content-section {
-    animation: fadeUp 0.5s ease-out both;
-    animation-timeline: view();
-    animation-range: entry 5% cover 15%;
-}
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
 
 /* ── Code blocks ── */
 .content-section pre {
@@ -520,7 +494,7 @@ kbd {
 @media (max-width: 768px) {
     #topnav { padding: 0 16px; }
     #topnav nav { display: none; }
-    #hero { padding: 100px 16px 60px; min-height: auto; }
+    #hero { padding: 90px 16px 40px; }
     #hero h1 { font-size: 2rem; }
     #hero .subtitle { font-size: 1rem; }
     .hero-split { flex-direction: column; gap: 32px; text-align: center; }
@@ -650,6 +624,33 @@ kbd {
     .doc-body { flex-direction: column; }
     .doc-content { margin-left: 0; padding: 24px 16px 80px; }
 }
+
+/* ── Accessibility: respect user motion preference ── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ── Lightbox ── */
+#lightbox {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.88);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease-out;
+    cursor: pointer;
+}
+#lightbox.open { opacity: 1; pointer-events: auto; }
+#lightbox img {
+    max-width: 92vw; max-height: 92vh;
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.5);
+    transform: scale(0.95);
+    transition: transform 0.25s ease-out;
+}
+#lightbox.open img { transform: scale(1); }
 
 /* ── Print ── */
 @media print {
