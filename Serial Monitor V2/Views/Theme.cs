@@ -174,6 +174,14 @@ namespace 串口助手
             {
                 if (!name.StartsWith(prefix)) continue;
                 var relativePath = name.Substring(prefix.Length);
+
+                // 修复：EmbeddedResource 将子目录映射为 . 分隔符
+                //   "images.logo.png" → "images\logo.png"
+                //   "index.html"       → "index.html"（无子目录不改）
+                var parts = relativePath.Split('.');
+                if (parts.Length > 2 && (parts[0] == "images"))
+                    relativePath = parts[0] + "\\" + string.Join(".", parts.Skip(1));
+
                 var targetPath = Path.Combine(targetDir, relativePath);
                 var dir = Path.GetDirectoryName(targetPath);
                 if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
