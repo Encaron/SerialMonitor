@@ -772,62 +772,46 @@ namespace 串口助手
             {
                 PlotAreaBorderThickness = new OxyThickness(0),
                 PlotMargins = new OxyThickness(40, 2, 2, 10),
-                TextColor = isDark ? OxyColor.Parse("#CCCCCC") : OxyColor.Parse("#333333"),
-                PlotAreaBackground = isDark ? OxyColor.Parse("#1E1E1E") : OxyColor.Parse("#FFFFFF"),
             };
             plotModel.Legends.Add(new Legend
             {
                 LegendPosition = LegendPosition.LeftTop,
                 LegendOrientation = LegendOrientation.Vertical,
                 LegendFontSize = 9,
-                LegendTextColor = isDark ? OxyColor.Parse("#CCCCCC") : OxyColor.Parse("#333333"),
-                LegendBackground = isDark ? OxyColor.Parse("#2D2D30") : OxyColor.Parse("#F5F5F5"),
                 LegendBorder = OxyColors.Transparent,
                 LegendPadding = 8,
                 LegendItemSpacing = 4,
                 LegendSymbolLength = 20,
             });
 
-            var majorGridColor = isDark ? OxyColor.Parse("#3A3A3D") : OxyColor.Parse("#E0E0E0");
-            var minorGridColor = isDark ? OxyColor.Parse("#2A2A2D") : OxyColor.Parse("#F0F0F0");
-            var tickColor = isDark ? OxyColor.Parse("#555555") : OxyColor.Parse("#CCCCCC");
-            var axisTextColor = isDark ? OxyColor.Parse("#888888") : OxyColor.Parse("#666666");
-
             // X 轴——时间轴（滚动模式）
-            var xAxis = new DateTimeAxis
+            plotModel.Axes.Add(new DateTimeAxis
             {
                 Position = AxisPosition.Bottom,
                 StringFormat = "HH:mm:ss",
                 FontSize = 8,
                 MajorGridlineStyle = LineStyle.Solid,
                 MinorGridlineStyle = LineStyle.Dot,
-                MajorGridlineColor = majorGridColor,
-                MinorGridlineColor = minorGridColor,
-                TicklineColor = tickColor,
-                TextColor = axisTextColor,
                 IntervalType = DateTimeIntervalType.Seconds,
-            };
-            plotModel.Axes.Add(xAxis);
+            });
 
             // Y 轴
-            var yAxis = new LinearAxis
+            plotModel.Axes.Add(new LinearAxis
             {
                 Position = AxisPosition.Left,
                 FontSize = 8,
                 StringFormat = "0.00",
                 MajorGridlineStyle = LineStyle.Dash,
-                MajorGridlineColor = majorGridColor,
                 MinorGridlineStyle = LineStyle.Dot,
-                MinorGridlineColor = minorGridColor,
-                TicklineColor = tickColor,
-                TextColor = axisTextColor,
                 Minimum = vm.YAutoRange ? double.NaN : vm.YMin,
                 Maximum = vm.YAutoRange ? double.NaN : vm.YMax,
                 MinimumRange = 0.01,
                 AbsoluteMinimum = -1000000,
                 AbsoluteMaximum = 1000000,
-            };
-            plotModel.Axes.Add(yAxis);
+            });
+
+            // 主题色归一化（和 PlotViewModel 同源）
+            OxyPlotTheme.Apply(plotModel, isDark);
 
             vm.PlotModel = plotModel;
 
@@ -1451,31 +1435,11 @@ namespace 串口助手
                     var vm = kv.Key;
                     kv.Value.Foreground = ParseColor(vm.GetAccentHex(isDark));
                 }
-                // 波形卡 OxyPlot 主题色（轴颜色/网格线/文字色/Legend）
+                // 波形卡 OxyPlot 主题 → 归一化静态方法（和 PlotViewModel.UpdateThemeColors 同源）
                 foreach (var kv in _waveformPlotViewMap)
                 {
-                    var vm = kv.Key;
-                    var pm = vm.PlotModel;
-                    if (pm == null) continue;
-                    var majorGridColor = OxyColor.Parse(isDark ? "#3A3A3D" : "#E0E0E0");
-                    var minorGridColor = OxyColor.Parse(isDark ? "#2A2A2D" : "#F0F0F0");
-                    var tickColor = OxyColor.Parse(isDark ? "#555555" : "#CCCCCC");
-                    var axisTextColor = OxyColor.Parse(isDark ? "#888888" : "#666666");
-                    pm.TextColor = OxyColor.Parse(isDark ? "#CCCCCC" : "#333333");
-                    pm.PlotAreaBackground = OxyColor.Parse(isDark ? "#1E1E1E" : "#FFFFFF");
-                    foreach (var leg in pm.Legends)
-                    {
-                        leg.LegendTextColor = OxyColor.Parse(isDark ? "#CCCCCC" : "#333333");
-                        leg.LegendBackground = OxyColor.Parse(isDark ? "#2D2D30" : "#F5F5F5");
-                    }
-                    foreach (var ax in pm.Axes)
-                    {
-                        ax.MajorGridlineColor = majorGridColor;
-                        ax.MinorGridlineColor = minorGridColor;
-                        ax.TicklineColor = tickColor;
-                        ax.TextColor = axisTextColor;
-                    }
-                    pm.InvalidatePlot(false);
+                    if (kv.Value.Model != null)
+                        OxyPlotTheme.Apply(kv.Value.Model, isDark);
                 }
                 // 选中卡片蓝边（编辑态=蓝色 accent，正常态=半透明蓝/PrimaryBrush）
                 if (_cardBorderMap.Count > 0)

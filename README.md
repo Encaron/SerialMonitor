@@ -19,7 +19,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-v2.6.0-green.svg)
+![Version](https://img.shields.io/badge/version-v2.6.6-green.svg)
 
 ## Preview
 
@@ -93,13 +93,14 @@
 - **PC 画板**：类似画图软件，支持鼠标拖拽绘制 → 实时同步到 STM32 物理 OLED/LCD 屏幕
 - **双屏支持**：OLED 128×64 + LCD 240×280，注释一行代码即可切换
 
-### 📡 传感面板（v2.4 新增）
+### 📡 传感面板（v2.4 新增，v2.6.6 波形卡）
 
 STM32 发一行 `[sensor,temp,芯片温度,42.5]`，PC 端自动建卡——**零配置，即插即显**。
 
-- **8 类卡片**：温度 / 湿度 / 气压 / 状态 / 电机 / 电池 / 开关 / 滑杆，每类独立配色 + 定制布局（湿度三层进度条、开关 iOS 胶囊滑块、电机紫色 RPM 表）
+- **9 类卡片**：温度 / 湿度 / 气压 / 状态 / 电机 / 电池 / 开关 / 滑杆 / **波形图**，每类独立配色 + 定制布局
+- **📈 波形图卡片（v2.7）**：OxyPlot 嵌入传感卡，多曲线自动配色，正常模式侧栏直调（显示模式/点数/Y 轴/采样率/清除）——不用进编辑
 - **双向控制**：开关卡点一下 → `[ctrl,led,蓝色LED,on]` 发回 MCU；滑杆卡拖拽实时回控，形成闭环
-- **迷你波形**：数值类卡片内嵌 30 点面积图，鼠标悬停查看数据点，1px 线条 + 30% 透明填充
+- **迷你波形**：数值类卡片内嵌 30 点面积图，1px 线条 + 30% 透明填充
 - **智能离线检测**：2 秒心跳超时自动标红 offline，无需 MCU 发心跳包
 - **编辑模式**：拖拽排序 + 增删改 + 分组布局，卡片名随固件自定——固件写什么 PC 就显示什么
 
@@ -143,6 +144,9 @@ Serial_Printf(&huart1, "[plot,ax,%f][plot,ay,%f][plot,az,%f]\r\n", ax, ay, az);
 
 // 按键/OLED
 Serial_Printf(&huart1, "[key,btn1,down][display,0,0,\"Hello\",18]\r\n");
+
+// 传感面板波形卡（v2.7）—— 多曲线，自动配色
+Serial_Printf(&huart1, "[sensor,waveform,示波器,P,%f][sensor,waveform,示波器,I,%f]\r\n", p, i);
 ```
 
 ## 🔧 STM32 端 C 库（开箱即用）
@@ -211,6 +215,7 @@ dotnet test SerialMonitor.Tests/SerialMonitor.Tests.csproj
 - **v2.4.0** — 传感面板：8 类卡片 + 编辑模式 + 协议筛选 + 主题切换
 - **v2.5.0** — OLED 绘图 + PC 画板：11 种指令 + F5 增量同步 + 旋转 + 协议预览
 - **v2.6.0** — 中英双语：~550 条映射全覆盖，一键瞬切，ComboBox 英文存储
+- **v2.6.6** — 波形图卡片：OxyPlot 嵌入传感面板，多曲线自动配色 + 换色 + 显隐 + 侧栏直调；OxyPlotTheme 主题归一化
 
 ### 🔵 远期创意
 
