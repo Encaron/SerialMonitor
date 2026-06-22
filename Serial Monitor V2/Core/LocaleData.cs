@@ -839,6 +839,18 @@ namespace 串口助手
             ["锁定画布"] = "Lock Canvas",
             ["🔒 解锁"] = "🔒 Unlock",
             ["🔓 锁定"] = "🔓 Lock",
+            // Waveform card
+            ["显示模式："] = "Display Mode:",
+            ["滚动"] = "Scroll",
+            ["扫描"] = "Sweep",
+            ["显示点数："] = "Data Points:",
+            ["Y 轴：自动"] = "Y-Axis: Auto",
+            ["最小："] = "Min:",
+            ["最大："] = "Max:",
+            ["采样率 (Hz)："] = "Sample Rate (Hz):",
+            ["清除波形"] = "Clear Waveform",
+            ["重置 Y 轴"] = "Reset Y-Axis",
+            ["曲线："] = "Curves:",
 
         };
     }

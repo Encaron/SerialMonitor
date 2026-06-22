@@ -1,6 +1,10 @@
+using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace 串口助手
 {
@@ -57,13 +61,42 @@ namespace 串口助手
         /// <summary>仅 pressure 卡：进度条满格气压基准值（hPa），默认 1013.25（标准海平面）</summary>
         public double PressureBaseline { get; set; } = 1013.25;
 
+        // ——— 仅 waveform 类型 ———
+
+        /// <summary>OxyPlot 模型（每卡一个）。不序列化——运行时重建。</summary>
+        public PlotModel PlotModel { get; set; }
+
+        /// <summary>曲线名 → LineSeries。不序列化——数据到达时自动重建。</summary>
+        public Dictionary<string, LineSeries> SeriesMap { get; } = new();
+
+        /// <summary>曲线名 → 自定义颜色 hex。空则走色板轮转。</summary>
+        public Dictionary<string, string> CurveColors { get; } = new();
+
+        /// <summary>显示模式：scroll / sweep</summary>
+        public string DisplayMode { get; set; } = "scroll";
+
+        /// <summary>最大显示点数（50~1000）</summary>
+        public int MaxPoints { get; set; } = 200;
+
+        /// <summary>Y 轴自动范围</summary>
+        public bool YAutoRange { get; set; } = true;
+
+        /// <summary>Y 轴最小值（取消自动后生效）</summary>
+        public double YMin { get; set; } = 0;
+
+        /// <summary>Y 轴最大值（取消自动后生效）</summary>
+        public double YMax { get; set; } = 100;
+
+        /// <summary>采样率 Hz（仅显示用，不影响渲染）</summary>
+        public double SampleRate { get; set; }
+
         /// <summary>上次收到数据的时间（离线超时检测用）</summary>
         public DateTime LastSeen { get; set; } = DateTime.Now;
 
-        /// <summary>迷你波形历史（30 点）</summary>
+        /// <summary>迷你波形历史（30 点）。waveform 类型不使用——数据走 PlotModel.Series。</summary>
         public FixedSizeQueue<double> History { get; } = new(30);
 
-        /// <summary>数值单位。status/control 无单位返回 ""。</summary>
+        /// <summary>数值单位。status/control/waveform 无单位返回 ""。</summary>
         public string GetUnit()
         {
             return Type switch
@@ -103,6 +136,7 @@ namespace 串口助手
                     "offline" => isDark ? "#EF5350" : "#F44336",
                     _         => isDark ? "#66BB6A" : "#4CAF50",
                 },
+                "waveform" => isDark ? "#66BB6A" : "#4CAF50",
                 _ => isDark ? "#B0B0B0" : "#888888",
             };
         }
@@ -153,6 +187,17 @@ namespace 串口助手
             }
             if (Type == "pressure")
                 d["pBase"] = PressureBaseline;
+            if (Type == "waveform")
+            {
+                d["curves"] = SeriesMap.Keys.ToList();
+                if (CurveColors.Count > 0)
+                    d["curveColors"] = new Dictionary<string, string>(CurveColors);
+                d["mode"] = DisplayMode;
+                d["maxPoints"] = MaxPoints;
+                d["yAuto"] = YAutoRange;
+                if (!YAutoRange) { d["yMin"] = YMin; d["yMax"] = YMax; }
+                if (SampleRate > 0) d["sampleRate"] = SampleRate;
+            }
             return d;
         }
 
@@ -173,6 +218,19 @@ namespace 串口助手
             if (d.TryGetValue("step", out var st) && st is double dSt) card.SliderStep = dSt;
             if (d.TryGetValue("interval", out var iv) && iv is double dIv && dIv >= 20) card.SendIntervalMs = (int)dIv;
             if (d.TryGetValue("pBase", out var pb) && pb is double dPb && dPb > 0) card.PressureBaseline = dPb;
+            if (d.TryGetValue("mode", out var mo)) card.DisplayMode = mo?.ToString() ?? "scroll";
+            if (d.TryGetValue("maxPoints", out var mp) && mp is double dMp && dMp >= 50 && dMp <= 1000) card.MaxPoints = (int)dMp;
+            if (d.TryGetValue("yAuto", out var ya) && ya is bool bYa) card.YAutoRange = bYa;
+            if (d.TryGetValue("yMin", out var ymn) && ymn is double dYmn) card.YMin = dYmn;
+            if (d.TryGetValue("yMax", out var ymx) && ymx is double dYmx) card.YMax = dYmx;
+            if (d.TryGetValue("sampleRate", out var sr) && sr is double dSr) card.SampleRate = dSr;
+            // curves 仅用于持久化曲线名列表——Series 本身运行时从数据重建
+            // curveColors 用于持久化自定义曲线颜色
+            if (d.TryGetValue("curveColors", out var cc) && cc is Dictionary<string, object> ccd)
+            {
+                foreach (var kv in ccd)
+                    card.CurveColors[kv.Key] = kv.Value?.ToString();
+            }
             return card;
         }
     }

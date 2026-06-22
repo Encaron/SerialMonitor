@@ -1,3 +1,8 @@
+using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Legends;
+using OxyPlot.Series;
+using OxyPlot.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -9,6 +14,10 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+// OxyPlot 与 WPF 共享类型消歧义
+using HA = System.Windows.HorizontalAlignment;
+using VA = System.Windows.VerticalAlignment;
+using FW = System.Windows.FontWeights;
 
 namespace 串口助手
 {
@@ -39,6 +48,12 @@ namespace 串口助手
         private readonly Dictionary<SensorCardViewModel, TextBlock> _cardSliderMaxLabelMap = new();
         private readonly Dictionary<SensorCardViewModel, DateTime> _sliderLastSend = new();
         private bool _sliderProgrammaticUpdate;
+        // waveform
+        private readonly Dictionary<SensorCardViewModel, PlotView> _waveformPlotViewMap = new();
+        private readonly Dictionary<SensorCardViewModel, StackPanel> _waveformHudGridMap = new();
+        private readonly Dictionary<SensorCardViewModel, TextBlock> _waveformInfoBarMap = new();
+        // 曲线色板轮转
+        private static readonly string[] WaveformPalette = { "#4CAF50", "#2196F3", "#FF9800", "#9C27B0", "#00BCD4", "#E91E63" };
         private SensorCardViewModel _detailCard; // null = 编辑侧栏显示行管理器，非 null = 显示该卡详情面板
         private SensorCardViewModel _normalDetailCard; // 正常模式下点击卡片→显示该卡详情视图
         private Popup _addCardPopup; // "+ 卡片" 弹窗引用（toggle 关闭用）
@@ -70,7 +85,7 @@ namespace 串口助手
             {
                 _sensorRefreshTimer = new DispatcherTimer(
                     TimeSpan.FromMilliseconds(33), DispatcherPriority.Background,
-                    (s, e) => RefreshMiniPlots(), Dispatcher);
+                    (s, e) => { RefreshMiniPlots(); RefreshWaveformCards(); }, Dispatcher);
             }
 
             // F2 改名——窗口级事件，侧栏有焦点也能触发
@@ -168,6 +183,9 @@ namespace 串口助手
 
         private Border CreateSensorCard(SensorCardViewModel vm)
         {
+            if (vm.Type == "waveform")
+                return CreateWaveformCard(vm);
+
             var isDark = isDarkTheme;
             var accentHex = vm.GetAccentHex(isDark);
             var accentBrush = ParseColor(accentHex);
@@ -185,7 +203,7 @@ namespace 串口助手
             // 标题——最大文字，和竖条同色
             var title = new TextBlock
             {
-                Text = vm.Name, FontSize = 15, FontWeight = FontWeights.Bold,
+                Text = vm.Name, FontSize = 15, FontWeight = FW.Bold,
                 Foreground = accentBrush,
                 Margin = new Thickness(0, 0, 0, 2),
                 TextTrimming = TextTrimming.CharacterEllipsis,
@@ -201,7 +219,7 @@ namespace 串口助手
             // 主值
             var valueText = new TextBlock
             {
-                Text = GetDisplayValue(vm), FontSize = 22, FontWeight = FontWeights.Bold,
+                Text = GetDisplayValue(vm), FontSize = 22, FontWeight = FW.Bold,
                 Foreground = accentBrush, Margin = new Thickness(0, 1, 0, 1),
             };
             _cardValueMap[vm] = valueText;
@@ -284,7 +302,7 @@ namespace 串口助手
                 if (miniPlot is Canvas cv)
                 {
                     cv.Height = double.NaN;
-                    cv.VerticalAlignment = VerticalAlignment.Stretch;
+                    cv.VerticalAlignment = VA.Stretch;
                 }
                 contentGrid.Children.Add(textStack);
                 contentGrid.Children.Add(miniPlot);
@@ -352,7 +370,7 @@ namespace 串口助手
             var fillBorder = new Border
             {
                 Background = fillBrush, CornerRadius = new CornerRadius(3),
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HA.Left,
                 Width = Math.Max(percent / 100.0 * 95, percent > 0 ? 4 : 0),
                 Height = 12,
             };
@@ -370,7 +388,7 @@ namespace 串口助手
             var pctText = new TextBlock
             {
                 Text = $"{percent:F1}%", FontSize = 9,
-                Foreground = fillBrush, VerticalAlignment = VerticalAlignment.Center,
+                Foreground = fillBrush, VerticalAlignment = VA.Center,
                 Margin = new Thickness(5, 0, 0, 0),
             };
 
@@ -460,7 +478,7 @@ namespace 串口助手
             var minusBtn = new Button
             {
                 Content = "−", Width = 24, Height = 24,
-                FontSize = 16, FontWeight = FontWeights.Bold,
+                FontSize = 16, FontWeight = FW.Bold,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(1),
                 Foreground = accentBrush,
@@ -483,10 +501,10 @@ namespace 串口助手
             var valueText = new TextBlock
             {
                 Text = GetDisplayValue(vm),
-                FontSize = 22, FontWeight = FontWeights.Bold,
+                FontSize = 22, FontWeight = FW.Bold,
                 Foreground = accentBrush,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HA.Center,
+                VerticalAlignment = VA.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
             _cardValueMap[vm] = valueText;
@@ -496,7 +514,7 @@ namespace 串口助手
             var plusBtn = new Button
             {
                 Content = "+", Width = 24, Height = 24,
-                FontSize = 16, FontWeight = FontWeights.Bold,
+                FontSize = 16, FontWeight = FW.Bold,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(1),
                 Foreground = accentBrush,
@@ -579,7 +597,7 @@ namespace 串口助手
             {
                 Text = $"{vm.SliderMin:F0}",
                 FontSize = 10,
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HA.Left,
             };
             minLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
             _cardSliderMinLabelMap[vm] = minLabel;
@@ -587,7 +605,7 @@ namespace 串口助手
             {
                 Text = $"{vm.SliderMax:F0}",
                 FontSize = 10,
-                HorizontalAlignment = HorizontalAlignment.Right,
+                HorizontalAlignment = HA.Right,
             };
             maxLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
             _cardSliderMaxLabelMap[vm] = maxLabel;
@@ -598,7 +616,7 @@ namespace 串口助手
             Grid.SetRow(btnRow, 0);
             Grid.SetRow(slider, 1);
             Grid.SetRow(labelRow, 2);
-            slider.VerticalAlignment = VerticalAlignment.Center;
+            slider.VerticalAlignment = VA.Center;
             panel.Children.Add(btnRow);
             panel.Children.Add(slider);
             panel.Children.Add(labelRow);
@@ -638,8 +656,8 @@ namespace 串口助手
             var canvas = new Canvas
             {
                 // 宽高由 Grid * 行/列自动分配，不设固定值
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalAlignment = HA.Stretch,
+                VerticalAlignment = VA.Stretch,
                 MinHeight = 40,
                 Margin = new Thickness(0, 2, 0, 0),
             };
@@ -690,6 +708,361 @@ namespace 串口助手
                 areaPoints.Add(new Point(0, ch));
                 polygon.Points = areaPoints;
             }
+        }
+
+        // ═══ 波形图卡片 ═══
+
+        /// <summary>
+        /// 波形图卡片工厂：OxyPlot PlotView 嵌入传感卡，400×380。
+        /// 多曲线自动建 Series + 色板轮转。和全屏 Plot 面板同技术栈。
+        /// </summary>
+        private Border CreateWaveformCard(SensorCardViewModel vm)
+        {
+            var isDark = isDarkTheme;
+            var accentHex = vm.GetAccentHex(isDark);
+            var accentBrush = ParseColor(accentHex);
+
+            // 左竖条
+            var strip = new Border
+            {
+                Width = 12,
+                Background = accentBrush,
+                CornerRadius = new CornerRadius(8, 0, 0, 8),
+            };
+            _cardStripMap[vm] = strip;
+
+            // 标题
+            var titleTb = new TextBlock
+            {
+                Text = vm.Name, FontSize = 13, FontWeight = FW.Bold,
+                Foreground = accentBrush,
+                Margin = new Thickness(0, 0, 0, 1),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+            _cardTitleMap[vm] = titleTb;
+
+            // HUD 面板（各曲线当前值，右上角水平排列，timer 刷新）
+            var hudPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 0, 2),
+            };
+            _waveformHudGridMap[vm] = hudPanel;
+
+            // 顶部标题行：标题 | HUD
+            var topRow = new Grid { Margin = new Thickness(0, 0, 0, 2) };
+            topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(titleTb, 0);
+            Grid.SetColumn(hudPanel, 1);
+            topRow.Children.Add(titleTb);
+            topRow.Children.Add(hudPanel);
+
+            // PlotModel（每卡一个独立实例）
+            // 保存旧 PlotModel 数据（RefreshAllRows 重建时避免丢失已累积的数据点）
+            var savedPoints = new Dictionary<string, List<DataPoint>>();
+            foreach (var kv in vm.SeriesMap)
+            {
+                if (kv.Value.Points.Count > 0)
+                    savedPoints[kv.Key] = new List<DataPoint>(kv.Value.Points);
+            }
+            vm.SeriesMap.Clear();
+
+            var plotModel = new PlotModel
+            {
+                PlotAreaBorderThickness = new OxyThickness(0),
+                PlotMargins = new OxyThickness(40, 2, 2, 10),
+                TextColor = isDark ? OxyColor.Parse("#CCCCCC") : OxyColor.Parse("#333333"),
+                PlotAreaBackground = isDark ? OxyColor.Parse("#1E1E1E") : OxyColor.Parse("#FFFFFF"),
+            };
+            plotModel.Legends.Add(new Legend
+            {
+                LegendPosition = LegendPosition.LeftTop,
+                LegendOrientation = LegendOrientation.Vertical,
+                LegendFontSize = 9,
+                LegendTextColor = isDark ? OxyColor.Parse("#CCCCCC") : OxyColor.Parse("#333333"),
+                LegendBackground = isDark ? OxyColor.Parse("#2D2D30") : OxyColor.Parse("#F5F5F5"),
+                LegendBorder = OxyColors.Transparent,
+                LegendPadding = 8,
+                LegendItemSpacing = 4,
+                LegendSymbolLength = 20,
+            });
+
+            var majorGridColor = isDark ? OxyColor.Parse("#3A3A3D") : OxyColor.Parse("#E0E0E0");
+            var minorGridColor = isDark ? OxyColor.Parse("#2A2A2D") : OxyColor.Parse("#F0F0F0");
+            var tickColor = isDark ? OxyColor.Parse("#555555") : OxyColor.Parse("#CCCCCC");
+            var axisTextColor = isDark ? OxyColor.Parse("#888888") : OxyColor.Parse("#666666");
+
+            // X 轴——时间轴（滚动模式）
+            var xAxis = new DateTimeAxis
+            {
+                Position = AxisPosition.Bottom,
+                StringFormat = "HH:mm:ss",
+                FontSize = 8,
+                MajorGridlineStyle = LineStyle.Solid,
+                MinorGridlineStyle = LineStyle.Dot,
+                MajorGridlineColor = majorGridColor,
+                MinorGridlineColor = minorGridColor,
+                TicklineColor = tickColor,
+                TextColor = axisTextColor,
+                IntervalType = DateTimeIntervalType.Seconds,
+            };
+            plotModel.Axes.Add(xAxis);
+
+            // Y 轴
+            var yAxis = new LinearAxis
+            {
+                Position = AxisPosition.Left,
+                FontSize = 8,
+                StringFormat = "0.00",
+                MajorGridlineStyle = LineStyle.Dash,
+                MajorGridlineColor = majorGridColor,
+                MinorGridlineStyle = LineStyle.Dot,
+                MinorGridlineColor = minorGridColor,
+                TicklineColor = tickColor,
+                TextColor = axisTextColor,
+                Minimum = vm.YAutoRange ? double.NaN : vm.YMin,
+                Maximum = vm.YAutoRange ? double.NaN : vm.YMax,
+                MinimumRange = 0.01,
+                AbsoluteMinimum = -1000000,
+                AbsoluteMaximum = 1000000,
+            };
+            plotModel.Axes.Add(yAxis);
+
+            vm.PlotModel = plotModel;
+
+            // 恢复已保存的数据点到新 PlotModel
+            foreach (var kv in savedPoints)
+            {
+                // 优先用自定义颜色，否则走色板轮转
+                string hex;
+                if (vm.CurveColors.TryGetValue(kv.Key, out var customHex) && !string.IsNullOrEmpty(customHex))
+                    hex = customHex;
+                else
+                    hex = WaveformPalette[vm.SeriesMap.Count % WaveformPalette.Length];
+                var series = new LineSeries
+                {
+                    Title = kv.Key,
+                    StrokeThickness = 1.5,
+                    Color = OxyColor.Parse(hex),
+                    MarkerType = MarkerType.None,
+                    LineStyle = LineStyle.Solid,
+                };
+                foreach (var pt in kv.Value)
+                    series.Points.Add(pt);
+                plotModel.Series.Add(series);
+                vm.SeriesMap[kv.Key] = series;
+            }
+
+            var plotView = new PlotView
+            {
+                Model = plotModel,
+                HorizontalAlignment = HA.Stretch,
+                VerticalAlignment = VA.Stretch,
+                Margin = new Thickness(0),
+            };
+            // 禁用鼠标交互——波形卡是只读展示，缩放/平移会破坏自动滚动
+            var controller = new PlotController();
+            controller.UnbindAll();
+            plotView.Controller = controller;
+            plotModel.IsLegendVisible = true; // legend 走 PlotModel，不受 Controller 影响
+            _waveformPlotViewMap[vm] = plotView;
+
+            // 底部信息条
+            var infoBar = new TextBlock
+            {
+                FontSize = 8,
+                Margin = new Thickness(0, 1, 0, 0),
+                HorizontalAlignment = HA.Right,
+            };
+            infoBar.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+            _waveformInfoBarMap[vm] = infoBar;
+            UpdateWaveformInfoBar(vm);
+
+            // 内容布局：顶部行(Auto) + PlotView(*)
+            var contentGrid = new Grid { Margin = new Thickness(8, 6, 8, 6) };
+            contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(topRow, 0);
+            Grid.SetRow(plotView, 1);
+            Grid.SetRow(infoBar, 2);
+            contentGrid.Children.Add(topRow);
+            contentGrid.Children.Add(plotView);
+            contentGrid.Children.Add(infoBar);
+
+            // 外层 Grid（左竖条 + 内容）
+            var outerGrid = new Grid();
+            outerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            outerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(strip, 0);
+            Grid.SetColumn(contentGrid, 1);
+            outerGrid.Children.Add(strip);
+            outerGrid.Children.Add(contentGrid);
+
+            var card = new Border
+            {
+                Width = 400, Height = 380,
+                BorderThickness = new Thickness(0.5),
+                CornerRadius = new CornerRadius(8),
+                Child = outerGrid,
+                Margin = new Thickness(0, 0, 8, 8),
+            };
+            card.SetResourceReference(Border.BackgroundProperty, "CardBgBrush");
+            card.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+            _cardBorderMap[vm] = card;
+
+            // 点击 → 正常模式侧栏详情
+            var capturedVm = vm;
+            card.MouseLeftButtonDown += (s, e) =>
+            {
+                if (_sensorVM != null && _sensorVM.IsEditMode) return;
+                if (_currentTab != "Sensors") return;
+                _normalDetailCard = capturedVm;
+                RefreshSensorSidePanel();
+                PulseCardHighlight(capturedVm);
+                e.Handled = true;
+            };
+
+            return card;
+        }
+
+        /// <summary>
+        /// 33ms 定时刷新所有波形卡：追加数据 → InvalidatePlot + 更新 HUD + 信息条。
+        /// </summary>
+        private void RefreshWaveformCards()
+        {
+            if (_sensorVM == null || !_sensorVM.IsActive) return;
+
+            foreach (var group in _sensorVM.Groups)
+            {
+                foreach (var card in group.Items.OfType<SensorCardViewModel>())
+                {
+                    if (card.Type != "waveform") continue;
+                    if (card.PlotModel == null) continue;
+
+                    // Y 自动范围 → 从所有曲线数据计算 global min/max
+                    if (card.YAutoRange && card.SeriesMap.Count > 0)
+                    {
+                        double gMin = double.MaxValue, gMax = double.MinValue;
+                        bool hasData = false;
+                        foreach (var series in card.SeriesMap.Values)
+                        {
+                            if (series.Points.Count == 0) continue;
+                            var vals = series.Points.Select(p => p.Y);
+                            gMin = Math.Min(gMin, vals.Min());
+                            gMax = Math.Max(gMax, vals.Max());
+                            hasData = true;
+                        }
+                        if (hasData && gMax - gMin > 0.001)
+                        {
+                            double pad = (gMax - gMin) * 0.1;
+                            card.PlotModel.Axes[1].Minimum = gMin - pad;
+                            card.PlotModel.Axes[1].Maximum = gMax + pad;
+                        }
+                    }
+
+                    card.PlotModel.InvalidatePlot(true);
+                    UpdateWaveformHud(card);
+                    UpdateWaveformInfoBar(card);
+                }
+            }
+        }
+
+        /// <summary>更新波形卡 HUD：各曲线名 + 当前值，右上角水平排列小字。</summary>
+        private void UpdateWaveformHud(SensorCardViewModel vm)
+        {
+            if (!_waveformHudGridMap.TryGetValue(vm, out var hudPanel)) return;
+            hudPanel.Children.Clear();
+
+            int idx = 0;
+            foreach (var kv in vm.SeriesMap)
+            {
+                var curveName = kv.Key;
+                var series = kv.Value;
+                double lastVal = series.Points.Count > 0 ? series.Points.Last().Y : 0;
+                var hex = WaveformPalette[idx % WaveformPalette.Length];
+                var color = ParseColor(hex);
+
+                var tb = new TextBlock
+                {
+                    Text = $"{curveName}: {lastVal:F2}",
+                    FontSize = 9, FontWeight = FW.SemiBold,
+                    Foreground = color,
+                    Margin = new Thickness(idx == 0 ? 0 : 8, 0, 0, 0),
+                    VerticalAlignment = VA.Center,
+                };
+                hudPanel.Children.Add(tb);
+                idx++;
+            }
+        }
+
+        /// <summary>更新波形卡底部信息条：点数 / 模式 / 采样率。</summary>
+        private void UpdateWaveformInfoBar(SensorCardViewModel vm)
+        {
+            if (!_waveformInfoBarMap.TryGetValue(vm, out var infoBar)) return;
+            int count = vm.SeriesMap.Values.FirstOrDefault()?.Points.Count ?? 0;
+            string modeText = vm.DisplayMode == "scroll" ? "滚动" : "扫描";
+            string sampleInfo = vm.SampleRate > 0 ? $" / {vm.SampleRate} Hz" : "";
+            infoBar.Text = $"← {count} 点 / {modeText}{sampleInfo}";
+        }
+
+        /// <summary>
+        /// 波形卡数据到达时调用（由 RouteSensorMessage 触发）。
+        /// 自动建曲线 + 追加数据点 + 裁剪旧点。
+        /// </summary>
+        public void OnWaveformData(SensorCardViewModel card, string curveName, double value)
+        {
+            if (card.PlotModel == null) return;
+
+            if (!card.SeriesMap.TryGetValue(curveName, out var series))
+            {
+                string hex;
+                if (card.CurveColors.TryGetValue(curveName, out var customHex) && !string.IsNullOrEmpty(customHex))
+                    hex = customHex;
+                else
+                    hex = WaveformPalette[card.SeriesMap.Count % WaveformPalette.Length];
+                series = new LineSeries
+                {
+                    Title = curveName,
+                    StrokeThickness = 1.5,
+                    Color = OxyColor.Parse(hex),
+                    MarkerType = MarkerType.None,
+                    LineStyle = LineStyle.Solid,
+                };
+                card.PlotModel.Series.Add(series);
+                card.SeriesMap[curveName] = series;
+
+                // 新建曲线后立即重建 HUD（曲线数变了）
+                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    if (_waveformHudGridMap.ContainsKey(card))
+                        UpdateWaveformHud(card);
+                }));
+            }
+
+            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(DateTime.Now), value));
+
+            // 裁剪旧点
+            while (series.Points.Count > card.MaxPoints)
+                series.Points.RemoveAt(0);
+
+            // 扫描模式：X 轴 Pan
+            if (card.DisplayMode == "sweep")
+            {
+                var firstPt = series.Points.FirstOrDefault();
+                if (firstPt.X > 0)
+                {
+                    var axis = card.PlotModel.Axes[0] as DateTimeAxis;
+                    if (axis != null)
+                    {
+                        double window = (DateTimeAxis.ToDouble(DateTime.Now) - firstPt.X) * 1.05;
+                        axis.Zoom(firstPt.X, firstPt.X + window);
+                    }
+                }
+            }
+
+            _sidePanelDirty = true;
         }
 
         // ═══ 增量更新 ═══
@@ -768,6 +1141,13 @@ namespace 串口助手
             if (_cardSliderMaxLabelMap.TryGetValue(vm, out var maxLb))
                 maxLb.Text = $"{vm.SliderMax:F0}";
 
+            // 波形卡：信息条 + HUD
+            if (vm.Type == "waveform")
+            {
+                UpdateWaveformInfoBar(vm);
+                UpdateWaveformHud(vm);
+            }
+
             // 正常模式侧栏 dirty flag
             _sidePanelDirty = true;
         }
@@ -793,6 +1173,9 @@ namespace 串口助手
             _cardStripMap.Clear();
             _cardEditWrapperMap.Clear();
             _cardDeleteBtnMap.Clear();
+            _waveformPlotViewMap.Clear();
+            _waveformHudGridMap.Clear();
+            _waveformInfoBarMap.Clear();
 
             Brush groupBg = isDarkTheme
                 ? ParseColor("#1C1C1E")       // 深于卡片 #252526 → 卡片浮在组框上
@@ -827,7 +1210,7 @@ namespace 串口助手
                         {
                             Text = string.IsNullOrEmpty(group.Name) ? "(未命名)" : group.Name,
                             FontSize = 11,
-                            VerticalAlignment = VerticalAlignment.Center,
+                            VerticalAlignment = VA.Center,
                             Cursor = System.Windows.Input.Cursors.Hand,
                         };
                         nameTb.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
@@ -929,8 +1312,8 @@ namespace 串口助手
                     var itemsList = group.Items.ToList();
                     var currentWrap = new WrapPanel
                     {
-                        HorizontalAlignment = HorizontalAlignment.Stretch,
-                        VerticalAlignment = VerticalAlignment.Top,
+                        HorizontalAlignment = HA.Stretch,
+                        VerticalAlignment = VA.Top,
                     };
                     groupPanel.Children.Add(currentWrap);
 
@@ -940,8 +1323,8 @@ namespace 串口助手
                         {
                             currentWrap = new WrapPanel
                             {
-                                HorizontalAlignment = HorizontalAlignment.Stretch,
-                                VerticalAlignment = VerticalAlignment.Top,
+                                HorizontalAlignment = HA.Stretch,
+                                VerticalAlignment = VA.Top,
                                 Margin = new Thickness(0, 4, 0, 0),
                             };
                             groupPanel.Children.Add(currentWrap);
@@ -980,8 +1363,8 @@ namespace 串口助手
                     // 正常模式：WrapPanel 水平排列
                     var currentWrap = new WrapPanel
                     {
-                        HorizontalAlignment = HorizontalAlignment.Stretch,
-                        VerticalAlignment = VerticalAlignment.Top,
+                        HorizontalAlignment = HA.Stretch,
+                        VerticalAlignment = VA.Top,
                     };
                     groupPanel.Children.Add(currentWrap);
 
@@ -991,8 +1374,8 @@ namespace 串口助手
                         {
                             currentWrap = new WrapPanel
                             {
-                                HorizontalAlignment = HorizontalAlignment.Stretch,
-                                VerticalAlignment = VerticalAlignment.Top,
+                                HorizontalAlignment = HA.Stretch,
+                                VerticalAlignment = VA.Top,
                                 Margin = new Thickness(0, 4, 0, 0),
                             };
                             groupPanel.Children.Add(currentWrap);
@@ -1067,6 +1450,32 @@ namespace 串口助手
                 {
                     var vm = kv.Key;
                     kv.Value.Foreground = ParseColor(vm.GetAccentHex(isDark));
+                }
+                // 波形卡 OxyPlot 主题色（轴颜色/网格线/文字色/Legend）
+                foreach (var kv in _waveformPlotViewMap)
+                {
+                    var vm = kv.Key;
+                    var pm = vm.PlotModel;
+                    if (pm == null) continue;
+                    var majorGridColor = OxyColor.Parse(isDark ? "#3A3A3D" : "#E0E0E0");
+                    var minorGridColor = OxyColor.Parse(isDark ? "#2A2A2D" : "#F0F0F0");
+                    var tickColor = OxyColor.Parse(isDark ? "#555555" : "#CCCCCC");
+                    var axisTextColor = OxyColor.Parse(isDark ? "#888888" : "#666666");
+                    pm.TextColor = OxyColor.Parse(isDark ? "#CCCCCC" : "#333333");
+                    pm.PlotAreaBackground = OxyColor.Parse(isDark ? "#1E1E1E" : "#FFFFFF");
+                    foreach (var leg in pm.Legends)
+                    {
+                        leg.LegendTextColor = OxyColor.Parse(isDark ? "#CCCCCC" : "#333333");
+                        leg.LegendBackground = OxyColor.Parse(isDark ? "#2D2D30" : "#F5F5F5");
+                    }
+                    foreach (var ax in pm.Axes)
+                    {
+                        ax.MajorGridlineColor = majorGridColor;
+                        ax.MinorGridlineColor = minorGridColor;
+                        ax.TicklineColor = tickColor;
+                        ax.TextColor = axisTextColor;
+                    }
+                    pm.InvalidatePlot(false);
                 }
                 // 选中卡片蓝边（编辑态=蓝色 accent，正常态=半透明蓝/PrimaryBrush）
                 if (_cardBorderMap.Count > 0)
@@ -1147,8 +1556,8 @@ namespace 串口助手
             if (vm != null && _sensorVM.IsEditMode && _currentTab != "Sensors")
                 tabSensors.IsChecked = true;
 
-            // 编辑模式→slider/generic/pressure 卡直接跳详情面板（侧栏态3）
-            if (vm != null && _sensorVM.IsEditMode && (vm.Type == "slider" || vm.Type == "generic" || vm.Type == "pressure"))
+            // 编辑模式→slider/generic/pressure/waveform 卡直接跳详情面板（侧栏态3）
+            if (vm != null && _sensorVM.IsEditMode && (vm.Type == "slider" || vm.Type == "generic" || vm.Type == "pressure" || vm.Type == "waveform"))
             {
                 if (_detailCard != vm)
                 {
@@ -1268,7 +1677,7 @@ namespace 串口助手
                 Width = 10, Height = 10,
                 Fill = ParseColor(card.GetAccentHex(isDarkTheme)),
                 Margin = new Thickness(0, 0, 8, 0),
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VA.Center,
             };
             Grid.SetColumn(dot, 0);
 
@@ -1277,7 +1686,7 @@ namespace 串口助手
             {
                 Text = card.Name,
                 FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VA.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
             nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
@@ -1294,8 +1703,8 @@ namespace 串口助手
             {
                 Text = displayValue,
                 FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VA.Center,
+                HorizontalAlignment = HA.Right,
                 Margin = new Thickness(12, 0, 0, 0),
             };
             valueBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
@@ -1365,13 +1774,13 @@ namespace 串口助手
             {
                 Content = "×",
                 Width = 20, Height = 20,
-                FontSize = 14, FontWeight = FontWeights.Bold,
+                FontSize = 14, FontWeight = FW.Bold,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 Padding = new Thickness(0),
                 Cursor = System.Windows.Input.Cursors.Hand,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = HA.Right,
+                VerticalAlignment = VA.Top,
                 Margin = new Thickness(0, 2, 2, 0),
             };
             deleteBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
@@ -1441,8 +1850,8 @@ namespace 串口助手
             var line = new Border
             {
                 Width = 3, Height = 160,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = HA.Center,
+                VerticalAlignment = VA.Top,
                 Opacity = 0.60,
             };
             line.SetResourceReference(Border.BackgroundProperty, "TextMutedBrush");
@@ -1452,7 +1861,7 @@ namespace 串口助手
             var expandGrid = new Grid
             {
                 Width = 16, Height = 160,
-                HorizontalAlignment = HorizontalAlignment.Center,
+                HorizontalAlignment = HA.Center,
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 RenderTransform = new ScaleTransform(0, 1),
             };
@@ -1473,9 +1882,9 @@ namespace 串口助手
             var plusTb = new TextBlock
             {
                 Text = "+",
-                FontSize = 16, FontWeight = FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 16, FontWeight = FW.Bold,
+                HorizontalAlignment = HA.Center,
+                VerticalAlignment = VA.Center,
             };
             plusTb.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
             expandGrid.Children.Add(plusTb);
@@ -1514,6 +1923,7 @@ namespace 串口助手
                 ("开关 (control)", "control"),
                 ("电机 (motor)", "motor"),
                 ("滑杆 (slider)", "slider"),
+                ("波形 (waveform)", "waveform"),
                 ("通用 (generic)", "generic"),
             };
 
@@ -1540,7 +1950,7 @@ namespace 串口助手
             nameBox.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
             nameBox.SetResourceReference(TextBox.BorderBrushProperty, "InputBorderBrush");
 
-            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HA.Center };
             var addBtn = new Button
             {
                 Style = (Style)FindResource("PrimaryButtonStyle"),
@@ -1659,7 +2069,7 @@ namespace 串口助手
             var container = rightSensors.Content as StackPanel;
             if (container == null)
             {
-                container = new StackPanel { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 0, 2, 0) };
+                container = new StackPanel { VerticalAlignment = VA.Top, Margin = new Thickness(0, 0, 2, 0) };
                 rightSensors.Content = container;
             }
             container.Children.Clear();
@@ -1711,7 +2121,7 @@ namespace 串口助手
                         Style = (Style)FindResource("SecondaryButtonStyle"),
                         Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
                         Margin = new Thickness(0, 10, 0, 4),
-                        HorizontalAlignment = HorizontalAlignment.Center,
+                        HorizontalAlignment = HA.Center,
                     };
                     addGroupBtn.LocText("+ 添加组");
                     addGroupBtn.Click += (s, e) =>
@@ -1727,7 +2137,7 @@ namespace 串口助手
                         Style = (Style)FindResource("PrimaryButtonStyle"),
                         Height = 28, MinWidth = 0, Padding = new Thickness(14, 0, 14, 0),
                         Margin = new Thickness(0, 4, 0, 0),
-                        HorizontalAlignment = HorizontalAlignment.Center,
+                        HorizontalAlignment = HA.Center,
                     };
                     doneBtn.LocText("完成编辑");
                     doneBtn.Click += (s, e) => BtnSensorEdit_Click(s, e);
@@ -1782,7 +2192,7 @@ namespace 串口助手
                             {
                                 FontSize = 12,
                                 Margin = new Thickness(0, 20, 0, 0),
-                                HorizontalAlignment = HorizontalAlignment.Center,
+                                HorizontalAlignment = HA.Center,
                             };
                             emptyHint.LocText("暂无卡片");
                             emptyHint.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
@@ -1821,8 +2231,8 @@ namespace 串口助手
             var nameBlock = new TextBlock
             {
                 Text = string.IsNullOrEmpty(group.Name) ? "(未命名)" : group.Name,
-                FontSize = 14, FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 14, FontWeight = FW.SemiBold,
+                VerticalAlignment = VA.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
             };
             nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
@@ -1841,7 +2251,7 @@ namespace 串口助手
                 Content = "×",
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                FontSize = 14, FontWeight = FontWeights.Bold,
+                FontSize = 14, FontWeight = FW.Bold,
                 Padding = new Thickness(3, 0, 3, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 Tag = false, // false = 待确认
@@ -1859,7 +2269,7 @@ namespace 串口助手
                     delGroupBtn.LocText("确认删除?");
                     delGroupBtn.Foreground = ParseColor("#EF5350");
                     delGroupBtn.FontSize = 11;
-                    delGroupBtn.FontWeight = FontWeights.SemiBold;
+                    delGroupBtn.FontWeight = FW.SemiBold;
                     delGroupBtn.Tag = true;
                     resetTimer = new System.Windows.Threading.DispatcherTimer(
                         TimeSpan.FromSeconds(3),
@@ -1869,7 +2279,7 @@ namespace 串口助手
                             delGroupBtn.Content = "×";
                             delGroupBtn.SetResourceReference(Button.ForegroundProperty, "TextMutedBrush");
                             delGroupBtn.FontSize = 14;
-                            delGroupBtn.FontWeight = FontWeights.Bold;
+                            delGroupBtn.FontWeight = FW.Bold;
                             delGroupBtn.Tag = false;
                             resetTimer?.Stop();
                         },
@@ -1927,7 +2337,7 @@ namespace 串口助手
                     var lbLabel = new TextBlock
                     {
                         FontSize = 10,
-                        VerticalAlignment = VerticalAlignment.Center,
+                        VerticalAlignment = VA.Center,
                     };
                     lbLabel.LocText("── 换行 ──");
                     lbLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
@@ -1998,7 +2408,7 @@ namespace 串口助手
                 Height = 22, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
                 FontSize = 10,
                 Margin = new Thickness(0, 2, 0, 2),
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HA.Left,
             };
             addCardBtn.LocText("+ 卡片");
             var capGroup3 = group;
@@ -2038,15 +2448,15 @@ namespace 串口助手
                 Width = 10, Height = 10,
                 Fill = ParseColor(card.GetAccentHex(isDarkTheme)),
                 Margin = new Thickness(0, 0, 6, 0),
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VA.Center,
             };
             Grid.SetColumn(dot, 0);
 
             // 卡片名
             var nameBlock = new TextBlock
             {
-                Text = card.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center,
+                Text = card.Name, FontSize = 12, FontWeight = FW.SemiBold,
+                VerticalAlignment = VA.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 Cursor = System.Windows.Input.Cursors.IBeam,
             };
@@ -2067,7 +2477,7 @@ namespace 串口助手
                     FontSize = 11, FontWeight = nameBlock.FontWeight,
                     BorderThickness = new Thickness(1),
                     Padding = new Thickness(2, 1, 2, 1),
-                    VerticalAlignment = VerticalAlignment.Center,
+                    VerticalAlignment = VA.Center,
                 };
                 textBox2.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
                 textBox2.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
@@ -2112,8 +2522,8 @@ namespace 串口助手
             };
             Grid.SetColumn(nameBlock, 1);
 
-            // [⚙]——滑杆卡 / 通用卡 / 气压卡 → 详情面板
-            if (card.Type == "slider" || card.Type == "generic" || card.Type == "pressure")
+            // [⚙]——滑杆卡 / 通用卡 / 气压卡 / 波形卡 → 详情面板
+            if (card.Type == "slider" || card.Type == "generic" || card.Type == "pressure" || card.Type == "waveform")
             {
                 var cfgBtn = CreateSmallIconBtn("⚙", () =>
                 {
@@ -2181,7 +2591,7 @@ namespace 串口助手
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 24, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
                 FontSize = 11,
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HA.Left,
                 Margin = new Thickness(0, 0, 0, 10),
             };
             backBtn.Click += (s, e) =>
@@ -2294,11 +2704,120 @@ namespace 串口助手
                 container.Children.Add(waveCheck);
             }
 
+            if (card.Type == "waveform")
+            {
+                // ═══ 曲线管理（只读名称 + 换色 + 显隐）═══
+                var curvesLabel = new TextBlock
+                {
+                    FontSize = 11, FontWeight = FW.SemiBold,
+                    Margin = new Thickness(0, 8, 0, 4),
+                };
+                curvesLabel.LocText("曲线：");
+                curvesLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+                container.Children.Add(curvesLabel);
+
+                var curvesToShow = card.SeriesMap.Keys.ToList();
+                if (curvesToShow.Count == 0)
+                {
+                    var emptyHint = new TextBlock
+                    {
+                        Text = "（数据到达时自动创建）",
+                        FontSize = 10,
+                        Margin = new Thickness(0, 0, 0, 6),
+                    };
+                    emptyHint.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+                    container.Children.Add(emptyHint);
+                }
+                else
+                {
+                    int idx = 0;
+                    foreach (var curveName in curvesToShow)
+                    {
+                        var row = new Grid
+                        {
+                            Margin = new Thickness(0, 2, 0, 2),
+                        };
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                        string curHex;
+                        if (!card.CurveColors.TryGetValue(curveName, out curHex) || string.IsNullOrEmpty(curHex))
+                            curHex = WaveformPalette[idx % WaveformPalette.Length];
+                        var swatch = new Border
+                        {
+                            Width = 16, Height = 16,
+                            CornerRadius = new CornerRadius(3),
+                            Background = ParseColor(curHex),
+                            BorderThickness = new Thickness(1),
+                            Margin = new Thickness(0, 0, 6, 0),
+                            VerticalAlignment = VA.Center,
+                            Cursor = Cursors.Hand,
+                        };
+                        swatch.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+                        var capName = curveName;
+                        swatch.MouseLeftButtonDown += (s2, e2) =>
+                        {
+                            e2.Handled = true;
+                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                            {
+                                ShowColorPickerPopup(swatch, hex =>
+                                {
+                                    card.CurveColors[capName] = hex;
+                                    swatch.Background = ParseColor(hex);
+                                    if (card.SeriesMap.TryGetValue(capName, out var ls))
+                                        ls.Color = OxyColor.Parse(hex);
+                                    card.PlotModel?.InvalidatePlot(true);
+                                    SaveSensorPrefs();
+                                });
+                            }));
+                        };
+                        Grid.SetColumn(swatch, 0);
+
+                        var nameTb = new TextBlock
+                        {
+                            Text = curveName,
+                            FontSize = 12,
+                            VerticalAlignment = VA.Center,
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                        };
+                        nameTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+                        Grid.SetColumn(nameTb, 1);
+
+                        bool isVisible = card.SeriesMap.TryGetValue(curveName, out var ls2) && ls2.IsVisible;
+                        Button eyeBtn = null;
+                        eyeBtn = CreateSmallIconBtn(isVisible ? "👁" : "👁‍🗨", () =>
+                        {
+                            if (card.SeriesMap.TryGetValue(curveName, out var ls3))
+                            {
+                                ls3.IsVisible = !ls3.IsVisible;
+                                if (eyeBtn != null) eyeBtn.Content = ls3.IsVisible ? "👁" : "👁‍🗨";
+                                card.PlotModel?.InvalidatePlot(true);
+                            }
+                        });
+                        Grid.SetColumn(eyeBtn, 2);
+
+                        row.Children.Add(swatch);
+                        row.Children.Add(nameTb);
+                        row.Children.Add(eyeBtn);
+                        container.Children.Add(row);
+                        idx++;
+                    }
+                }
+            }
+
             SaveSensorPrefs();
         }
 
         private void AddDetailNumberField(StackPanel container, string label, double currentValue,
             Action<double> onChanged)
+        {
+            AddDetailNumberFieldWithRef(container, label, currentValue, onChanged, out _);
+        }
+
+        /// <summary>同 AddDetailNumberField，额外返回 TextBox 引用供外部更新显示值。</summary>
+        private void AddDetailNumberFieldWithRef(StackPanel container, string label, double currentValue,
+            Action<double> onChanged, out TextBox boxRef)
         {
             var lb = new TextBlock
             {
@@ -2335,12 +2854,12 @@ namespace 串口助手
                     if (double.TryParse(box.Text, NumberStyles.Float,
                         CultureInfo.InvariantCulture, out double v))
                         onChanged(v);
-                    // 焦点转移到下一个控件（如果有）
                     box.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
                     e.Handled = true;
                 }
             };
             container.Children.Add(box);
+            boxRef = box;
         }
 
         /// <summary>详情面板文本字段（单位等）</summary>
@@ -2396,7 +2915,7 @@ namespace 串口助手
                 Background = ParseColor(currentHex),
                 BorderThickness = new Thickness(1),
                 Margin = new Thickness(0, 0, 8, 0),
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VA.Center,
             };
             swatch.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
 
@@ -2490,10 +3009,10 @@ namespace 串口助手
             var textBox = new TextBox
             {
                 Text = group.Name ?? "",
-                FontSize = 12, FontWeight = FontWeights.SemiBold,
+                FontSize = 12, FontWeight = FW.SemiBold,
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(4, 1, 4, 1),
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VA.Center,
             };
             textBox.SetResourceReference(TextBox.ForegroundProperty, "TextPrimaryBrush");
             textBox.SetResourceReference(TextBox.BackgroundProperty, "CardBgBrush");
@@ -2560,7 +3079,7 @@ namespace 串口助手
             var textBox = new TextBox
             {
                 Text = vm.Name,
-                FontSize = 15, FontWeight = FontWeights.Bold,
+                FontSize = 15, FontWeight = FW.Bold,
                 Foreground = ParseColor(vm.GetAccentHex(isDarkTheme)),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(2, 1, 2, 1),
@@ -2637,7 +3156,7 @@ namespace 串口助手
                 Content = (string)Application.Current.Resources["← 返回"],
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Height = 24, MinWidth = 0, Padding = new Thickness(6, 0, 6, 0),
-                FontSize = 11, HorizontalAlignment = HorizontalAlignment.Left,
+                FontSize = 11, HorizontalAlignment = HA.Left,
                 Margin = new Thickness(0, 0, 0, 10),
             };
             backBtn.Click += (s, e) =>
@@ -2658,7 +3177,7 @@ namespace 串口助手
                 Background = ParseColor(accentHex, 0.15),
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(6, 2, 6, 2),
-                VerticalAlignment = VerticalAlignment.Center,
+                VerticalAlignment = VA.Center,
             };
             typeTag.Child = new TextBlock
             {
@@ -2672,8 +3191,8 @@ namespace 串口助手
             var cardNameTb = new TextBlock
             {
                 Text = " " + card.Name,
-                FontSize = 14, FontWeight = System.Windows.FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 14, FontWeight = FW.SemiBold,
+                VerticalAlignment = VA.Center,
                 Margin = new Thickness(8, 0, 0, 0),
             };
             cardNameTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
@@ -2729,14 +3248,187 @@ namespace 串口助手
                 AddDetailRow(infoStack, "单位", card.CustomUnit);
             if (card.Type == "pressure")
                 AddDetailRow(infoStack, "参考值", $"{card.PressureBaseline:F2} hPa");
+            // 波形卡：各曲线统计
+            if (card.Type == "waveform")
+            {
+                foreach (var kv in card.SeriesMap)
+                {
+                    var vals = kv.Value.Points.Select(p => p.Y).ToList();
+                    if (vals.Count == 0) continue;
+                    double min = vals.Min(), max = vals.Max(), avg = vals.Average();
+                    AddDetailRow(infoStack, kv.Key, $"{vals.Last():F2}  (min:{min:F2}  max:{max:F2}  avg:{avg:F2})");
+                }
+                AddDetailRow(infoStack, "点数", card.SeriesMap.Values.FirstOrDefault()?.Points.Count.ToString() ?? "0");
+            }
 
             infoBorder.Child = infoStack;
             container.Children.Add(infoBorder);
 
+            // ═══ 波形卡常用操作（正常模式直接可调，不用进编辑）═══
+            if (card.Type == "waveform")
+            {
+                // 显示模式
+                var modeLabel = new TextBlock
+                {
+                    FontSize = 11, FontWeight = FW.SemiBold,
+                    Margin = new Thickness(0, 8, 0, 2),
+                };
+                modeLabel.LocText("显示模式：");
+                modeLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+                container.Children.Add(modeLabel);
+
+                var modeCombo = new ComboBox
+                {
+                    FontSize = 12, Height = 28,
+                    Margin = new Thickness(0, 0, 0, 6),
+                };
+                modeCombo.SetResourceReference(ComboBox.ForegroundProperty, "TextPrimaryBrush");
+                modeCombo.SetResourceReference(ComboBox.BackgroundProperty, "CardBgBrush");
+                modeCombo.SetResourceReference(ComboBox.BorderBrushProperty, "InputBorderBrush");
+                modeCombo.Items.Add("滚动");
+                modeCombo.Items.Add("扫描");
+                modeCombo.SelectedIndex = card.DisplayMode == "sweep" ? 1 : 0;
+                modeCombo.SelectionChanged += (s, e) =>
+                {
+                    card.DisplayMode = modeCombo.SelectedIndex == 1 ? "sweep" : "scroll";
+                    UpdateWaveformInfoBar(card);
+                    SaveSensorPrefs();
+                };
+                container.Children.Add(modeCombo);
+
+                // 显示点数
+                AddDetailNumberField(container, "显示点数：", card.MaxPoints, v => {
+                    card.MaxPoints = Math.Clamp((int)v, 50, 1000);
+                    UpdateWaveformInfoBar(card);
+                    SaveSensorPrefs();
+                });
+
+                // Y 轴自动
+                var yAutoCheck = new CheckBox
+                {
+                    IsChecked = card.YAutoRange,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 6, 0, 2),
+                };
+                yAutoCheck.LocText("Y 轴：自动");
+                yAutoCheck.SetResourceReference(CheckBox.ForegroundProperty, "TextPrimaryBrush");
+
+                // 手动范围面板（声明在闭包前，Checked/Unchecked 都要用）
+                var manualPanel = new StackPanel
+                {
+                    Visibility = card.YAutoRange ? Visibility.Collapsed : Visibility.Visible,
+                };
+                TextBox manualMinBox = null, manualMaxBox = null;
+                AddDetailNumberFieldWithRef(manualPanel, "最小：", card.YMin, v => {
+                    card.YMin = v;
+                    if (!card.YAutoRange && card.PlotModel?.Axes.Count > 1)
+                        card.PlotModel.Axes[1].Minimum = v;
+                    SaveSensorPrefs();
+                }, out manualMinBox);
+                AddDetailNumberFieldWithRef(manualPanel, "最大：", card.YMax, v => {
+                    card.YMax = v;
+                    if (!card.YAutoRange && card.PlotModel?.Axes.Count > 1)
+                        card.PlotModel.Axes[1].Maximum = v;
+                    SaveSensorPrefs();
+                }, out manualMaxBox);
+
+                yAutoCheck.Checked += (s, e) =>
+                {
+                    card.YAutoRange = true;
+                    if (card.PlotModel?.Axes.Count > 1)
+                    {
+                        card.PlotModel.Axes[1].Minimum = double.NaN;
+                        card.PlotModel.Axes[1].Maximum = double.NaN;
+                    }
+                    manualPanel.Visibility = Visibility.Collapsed;
+                    SaveSensorPrefs();
+                };
+                yAutoCheck.Unchecked += (s2, e2) =>
+                {
+                    // 抓当前数据范围作为初始 min/max
+                    double gMin = double.MaxValue, gMax = double.MinValue;
+                    foreach (var kv in card.SeriesMap)
+                    {
+                        if (kv.Value.Points.Count == 0) continue;
+                        var vals = kv.Value.Points.Select(p => p.Y);
+                        gMin = Math.Min(gMin, vals.Min());
+                        gMax = Math.Max(gMax, vals.Max());
+                    }
+                    if (gMin < gMax)
+                    {
+                        double pad = (gMax - gMin) * 0.1;
+                        card.YMin = Math.Floor((gMin - pad) * 100) / 100;
+                        card.YMax = Math.Ceiling((gMax + pad) * 100) / 100;
+                    }
+                    card.YAutoRange = false;
+                    if (card.PlotModel?.Axes.Count > 1)
+                    {
+                        card.PlotModel.Axes[1].Minimum = card.YMin;
+                        card.PlotModel.Axes[1].Maximum = card.YMax;
+                    }
+                    if (manualMinBox != null) manualMinBox.Text = card.YMin.ToString("G");
+                    if (manualMaxBox != null) manualMaxBox.Text = card.YMax.ToString("G");
+                    manualPanel.Visibility = Visibility.Visible;
+                    SaveSensorPrefs();
+                };
+                container.Children.Add(yAutoCheck);
+                container.Children.Add(manualPanel);
+
+                // 采样率
+                AddDetailNumberField(container, "采样率 (Hz)：", card.SampleRate, v => {
+                    card.SampleRate = Math.Max(0, v);
+                    UpdateWaveformInfoBar(card);
+                    SaveSensorPrefs();
+                });
+
+                // 清除 + 重置
+                var btnRow = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 8, 0, 0),
+                };
+                var clearBtn = new Button
+                {
+                    Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
+                    FontSize = 11, Margin = new Thickness(0, 0, 6, 0),
+                };
+                clearBtn.LocText("清除波形");
+                clearBtn.Click += (s2, e2) =>
+                {
+                    foreach (var series in card.SeriesMap.Values)
+                        series.Points.Clear();
+                    card.PlotModel?.InvalidatePlot(true);
+                    UpdateWaveformInfoBar(card);
+                };
+                btnRow.Children.Add(clearBtn);
+
+                var resetBtn = new Button
+                {
+                    Style = (Style)FindResource("SecondaryButtonStyle"),
+                    Height = 28, MinWidth = 0, Padding = new Thickness(10, 0, 10, 0),
+                    FontSize = 11,
+                };
+                resetBtn.LocText("重置 Y 轴");
+                resetBtn.Click += (s2, e2) =>
+                {
+                    card.YAutoRange = true;
+                    if (yAutoCheck != null) yAutoCheck.IsChecked = true;
+                    if (card.PlotModel?.Axes.Count > 1)
+                    {
+                        card.PlotModel.Axes[1].Minimum = double.NaN;
+                        card.PlotModel.Axes[1].Maximum = double.NaN;
+                    }
+                    SaveSensorPrefs();
+                };
+                btnRow.Children.Add(resetBtn);
+                container.Children.Add(btnRow);
+            }
+
             // 分隔线
             var sepBorder = new Border
             {
-                Height = 1, Margin = new Thickness(0, 0, 0, 8),
+                Height = 1, Margin = new Thickness(0, 8, 0, 8),
             };
             sepBorder.SetResourceReference(Border.BackgroundProperty, "SeparatorBrush");
             container.Children.Add(sepBorder);
@@ -2745,7 +3437,7 @@ namespace 串口助手
             var (sensorLine, ctrlLine) = BuildSensorProtocolLines(card);
             var protoTitle = new TextBlock
             {
-                FontSize = 11, FontWeight = System.Windows.FontWeights.SemiBold,
+                FontSize = 11, FontWeight = FW.SemiBold,
                 Margin = new Thickness(0, 0, 0, 4),
             };
             protoTitle.LocText("协议预览");
@@ -2796,6 +3488,20 @@ namespace 串口助手
 
         private (string sensorLine, string ctrlLine) BuildSensorProtocolLines(SensorCardViewModel card)
         {
+            // waveform 卡：协议示例 = 所有曲线的当前值拼接（和 MCU 实际发送格式一致）
+            if (card.Type == "waveform")
+            {
+                if (card.SeriesMap.Count == 0)
+                    return ($"[sensor,waveform,{card.Name},曲线名,0.00]", "");
+                var parts = new System.Text.StringBuilder();
+                foreach (var kv in card.SeriesMap)
+                {
+                    double val = kv.Value.Points.Count > 0 ? kv.Value.Points.Last().Y : 0;
+                    parts.Append($"[sensor,waveform,{card.Name},{kv.Key},{val:F6}]");
+                }
+                return (parts.ToString(), "");
+            }
+
             // MCU→PC: [sensor,type,name,value,aux?]
             string valuePart = card.Type == "status" ? (card.Status ?? "")
                            : card.Type == "control" ? (card.Status ?? "")
@@ -2823,6 +3529,28 @@ namespace 串口助手
         {
             if (_normalDetailCard == null) return;
             var card = _normalDetailCard;
+
+            // 波形卡统计数据变化频繁 → 全量重建（曲线值/min/max/avg 每帧都变）
+            // 但若用户正在操作控件（ComboBox下拉/TextBox聚焦）则跳过，避免打断交互
+            if (card.Type == "waveform")
+            {
+                var focused = System.Windows.Input.FocusManager.GetFocusedElement(
+                    Application.Current.MainWindow) as DependencyObject;
+                bool isEditingControl = focused != null &&
+                    (focused is ComboBox || focused is TextBox ||
+                     (focused is FrameworkElement fe && fe.Parent is StackPanel sp &&
+                      sp.Parent is ScrollViewer));
+                if (!isEditingControl)
+                {
+                    var container2 = rightSensors?.Content as StackPanel;
+                    if (container2 != null)
+                    {
+                        container2.Children.Clear();
+                        BuildCardNormalDetailView(container2, card);
+                    }
+                }
+                return;
+            }
 
             // 标签颜色（control/status 卡的状态变化会影响颜色）
             if (_ndTypeTag != null && _ndTypeTagText != null)

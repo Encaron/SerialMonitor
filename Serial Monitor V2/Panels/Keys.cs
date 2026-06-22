@@ -267,14 +267,33 @@ namespace 串口助手
             stack.Children.Add(btnRow);
 
             border.Child = stack;
-            var popup = new System.Windows.Controls.Primitives.Popup {
-                Child = border, AllowsTransparency = true,
-                PlacementTarget = placementTarget, Placement = System.Windows.Controls.Primitives.PlacementMode.Right,
-                StaysOpen = false, Width = 260,
-            };
+            var popup = CreatePopup(placementTarget, System.Windows.Controls.Primitives.PlacementMode.Right);
+            popup.Width = 260;
+            popup.Child = border;
 
             cancelBtn.Click += (_, __) => popup.IsOpen = false;
             confirmBtn.Click += (_, __) => { popup.IsOpen = false; onColorPicked(currentHex); };
+
+            // 点击外部关闭（CreatePopup 已处理 StaysOpen/AllowsTransparency/窗口移动；
+            //   外部点击需手动补——和 ShowAddCardPopup 同模式）
+            MouseButtonEventHandler outsideHandler = null;
+            outsideHandler = (s, e) =>
+            {
+                if (!popup.IsOpen) { Application.Current.MainWindow.PreviewMouseLeftButtonDown -= outsideHandler; return; }
+                var clicked = e.OriginalSource as DependencyObject;
+                bool inside = false;
+                var cur = clicked;
+                while (cur != null)
+                {
+                    if (cur == border) { inside = true; break; }
+                    cur = VisualTreeHelper.GetParent(cur);
+                }
+                if (!inside) { popup.IsOpen = false; Application.Current.MainWindow.PreviewMouseLeftButtonDown -= outsideHandler; }
+            };
+            popup.Opened += (_, __) => Dispatcher.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.Input,
+                new Action(() => Application.Current.MainWindow.PreviewMouseLeftButtonDown += outsideHandler));
+            popup.Closed += (_, __) => Application.Current.MainWindow.PreviewMouseLeftButtonDown -= outsideHandler;
             popup.IsOpen = true;
         }
 

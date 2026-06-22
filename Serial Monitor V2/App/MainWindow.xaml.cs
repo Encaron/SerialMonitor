@@ -591,6 +591,7 @@ namespace 串口助手
 
         /// <summary>
         /// [sensor,子类型,卡片名,值,辅助] 路由 —— inline 逻辑从 OnLineReceived 提取
+        /// waveform 子类型特殊处理：5 字段 [sensor,waveform,卡片名,曲线名,值]
         /// </summary>
         private void RouteSensorMessage(List<string> args)
         {
@@ -599,8 +600,32 @@ namespace 串口助手
             string value = args.Count >= 3 ? args[2] : null;
             string aux = args.Count >= 4 ? args[3] : null;
 
+            // 波形卡：协议含曲线名 → 单独路由
+            if (subType == "waveform")
+            {
+                string curveName = value;  // args[2] = 曲线名
+                string curveValue = aux;   // args[3] = 值
+                if (string.IsNullOrEmpty(curveName) || string.IsNullOrEmpty(curveValue)) return;
+
+                bool isNewCard = (_sensorVM.FindByName(name) == null);
+                var card = _sensorVM.OnSensorMessage(subType, name, "", null);
+                if (card != null && double.TryParse(curveValue, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double v))
+                {
+                    // 新卡：先 RefreshAllRows 建 PlotView+PlotModel，再追加数据
+                    // （否则 OnWaveformData 写入旧 PlotModel，RefreshAllRows 重建后数据丢失）
+                    if (_sensorVM.IsActive && !_sensorVM.IsEditMode && isNewCard)
+                        RefreshAllRows();
+                    OnWaveformData(card, curveName, v);
+                    if (_sensorVM.IsActive && !_sensorVM.IsEditMode && !isNewCard)
+                        UpdateCardUI(card);
+                    SaveSensorPrefs();
+                }
+                return;
+            }
+
             // 滑杆卡仅手动建——收到数据只更新不创建
-            bool isNewCard = (_sensorVM.FindByName(name) == null);
+            bool isNewSlider = (_sensorVM.FindByName(name) == null);
             if (subType == "slider")
             {
                 var existing = _sensorVM.FindByName(name);
@@ -613,15 +638,15 @@ namespace 串口助手
                 return;
             }
 
-            var card = _sensorVM.OnSensorMessage(subType, name, value, aux);
-            if (card != null)
+            var card2 = _sensorVM.OnSensorMessage(subType, name, value, aux);
+            if (card2 != null)
             {
                 if (_sensorVM.IsActive && !_sensorVM.IsEditMode)
                 {
-                    if (isNewCard)
+                    if (isNewSlider)
                         RefreshAllRows();       // 首次建卡 → 重建
                     else
-                        UpdateCardUI(card);     // 已存在 → 增量更新
+                        UpdateCardUI(card2);     // 已存在 → 增量更新
                 }
                 SaveSensorPrefs();
             }
