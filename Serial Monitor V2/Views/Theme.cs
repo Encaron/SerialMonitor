@@ -157,11 +157,14 @@ namespace 串口助手
         private static void ExtractManualIfNeeded(string targetDir)
         {
             var assembly = Assembly.GetExecutingAssembly();
+            // 指纹 = 版本号 + 资源数量，提取逻辑改了但版本号没变也能触发重建
             var currentVersion = assembly.GetName().Version.ToString();
+            var resCount = assembly.GetManifestResourceNames()
+                .Count(n => n.StartsWith("串口助手.用户手册."));
+            var fingerprint = currentVersion + "_" + resCount + "_v2";  // v2 = 修复 dots → \
             var versionFile = Path.Combine(targetDir, ".version");
 
-            // Already extracted this version? Skip.
-            if (File.Exists(versionFile) && File.ReadAllText(versionFile) == currentVersion)
+            if (File.Exists(versionFile) && File.ReadAllText(versionFile) == fingerprint)
                 return;
 
             // Clean and recreate
@@ -190,7 +193,7 @@ namespace 串口助手
                     stream.CopyTo(file);
             }
 
-            File.WriteAllText(versionFile, currentVersion);
+            File.WriteAllText(versionFile, fingerprint);
         }
 
         /// <summary>标题栏 DWM 暗色模式（Win10 1809+）</summary>
